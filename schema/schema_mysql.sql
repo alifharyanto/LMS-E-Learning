@@ -4,6 +4,15 @@ CREATE DATABASE IF NOT EXISTS db_learning
 
 USE db_learning;
 
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(100) NOT NULL UNIQUE,
+  email VARCHAR(150) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'student') NOT NULL DEFAULT 'student',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   question TEXT NOT NULL,
@@ -53,18 +62,6 @@ CREATE TABLE IF NOT EXISTS faqs (
   answer TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Password default: admin123
-INSERT INTO users (username, email, password, role)
-SELECT 'admin', 'admin@courseup.com',
-  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC8L4YqN1QnK4J3Dkq7W', 'admin'
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
-
--- Password default: student123
-INSERT INTO users (username, email, password, role)
-SELECT 'student', 'student@courseup.com',
-  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC8L4YqN1QnK4J3Dkq7W', 'student'
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'student');
 
 INSERT INTO quiz_questions
   (question, option_a, option_b, option_c, option_d, answer_index, explanation)
