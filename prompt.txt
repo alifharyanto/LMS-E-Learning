@@ -1,37 +1,156 @@
-buatkan sayqa website LMS E-Learning untuk kebutuhan siswa
+Kamu membantu menyelesaikan project LMS E-Learning bernama CourseUp di folder c:/xampp/htdocs/lms-learning.
 
-BAGIAN BAGIAN website
 
-JUDUL WEBSITE: CourseUp
-DESAIN UI : MINIMALISM 
-BASIC WARNA : PUTIH,HITAM,BIRU 
-INTERAKSI : AOS
+## Teknologi dan aturan utama
 
-1. NAVBAR
-- Beranda
-- Kursus Materi
-- Latihan soal
-- Forum
-- Help Center
+- Gunakan PHP murni, MySQL, HTML5, Tailwind CSS CDN, Vanilla JavaScript, dan AOS CDN.
+- Database yang digunakan adalah db_learning.
+- File koneksi utama adalah koneksi.php.
+- Gunakan session PHP untuk autentikasi.
+- Gunakan prepared statement untuk query yang menerima input user.
+- Jangan gunakan LocalStorage untuk menyimpan user, quiz, nilai, FAQ, thread, atau komentar.
+- Jangan menggunakan framework backend.
+- Pertahankan desain CourseUp yang sudah ada: minimalis, responsive, warna putih, hitam, dan biru.
+- Jangan menghapus fitur atau tampilan yang sudah berjalan tanpa alasan teknis.
 
-Isi Beranda
-- Hero/Banner 
-- Penjelasan Singkat
-- Button Mulai Belajar --> Masuk ke Kursus Materi
-- Mata pelajaran populer fake aja lewat kode
-- Stastik yang banyak daftar fake aja lewat kode
+## Struktur database yang sudah tersedia
 
-Kursus Materi
-- Langsung menampilkan file pdf nya saja tanpa di download
-- Untuk file taruh di folder root yang bernama Materi
+File schema/schema_mysql.sql sudah berisi tabel:
 
-Latihan soal
-- Bisa di isi lewat sistem admin metode CRUD
+- users
+- quiz_questions
+- quiz_results
+- forum_threads
+- forum_comments
+- faqs
 
-Profile
-- Dengan ukuran bulat 999px saat di klik masuk ke halaman dashbaord pengguna
+koneksi.php juga memiliki pembuatan schema dan seed data default.
 
-2. Fitur
--  Bisa register dan login dan tersimpan di database
-- Stastik belajar durasi di profile
+## Bagian yang sudah selesai
+
+- Landing page CourseUp di index.php.
+- Halaman kursus dan viewer PDF dari folder Materi di courses.php.
+- Login database di login.php.
+- Register database di register.php.
+- Password menggunakan password_hash() dan password_verify().
+- Session login dan logout.
+- Proteksi dashboard berdasarkan session.
+- Role admin dan student.
+- Dashboard menampilkan username, email, dan riwayat nilai dari quiz_results.
+- Schema database sudah ditulis ulang di schema/schema_mysql.sql.
+
+## Tugas yang harus diselesaikan
+
+### 1. CRUD Quiz Admin
+
+Kerjakan admin.php agar:
+
+- Hanya user dengan role admin yang dapat mengakses halaman.
+- Daftar soal diambil dari quiz_questions.
+- Admin dapat menambah soal.
+- Admin dapat mengedit soal.
+- Admin dapat menghapus soal.
+- Semua proses memakai PHP POST/GET dan query MySQL.
+- Validasi input wajib dilakukan.
+- Output database wajib menggunakan htmlspecialchars().
+- Jangan mengandalkan app.js atau LocalStorage untuk data quiz.
+
+Kolom quiz_questions:
+
+- question
+- option_a
+- option_b
+- option_c
+- option_d
+- answer_index
+- explanation
+
+### 2. Quiz Siswa
+
+Kerjakan quiz.php agar:
+
+- Soal ditampilkan dari quiz_questions.
+- Siswa dapat memilih jawaban.
+- Jawaban diproses di server menggunakan PHP.
+- Nilai dihitung di server, bukan hanya JavaScript.
+- Hasil disimpan ke quiz_results dengan user_id dari session.
+- Tampilkan skor setelah submit.
+- User yang belum login diarahkan ke login.php.
+- Jangan memperlihatkan jawaban benar sebelum quiz dikirim.
+
+### 3. CRUD FAQ
+
+Kerjakan admin.php dan help-center.php agar:
+
+- FAQ diambil dari tabel faqs.
+- Admin dapat menambah FAQ.
+- Admin dapat mengedit FAQ.
+- Admin dapat menghapus FAQ.
+- Help Center menampilkan data terbaru dari database.
+- Jangan menggunakan data FAQ dari JavaScript atau LocalStorage.
+
+### 4. Forum dan komentar
+
+Kerjakan forum.php agar:
+
+- Thread baru disimpan ke forum_threads.
+- Thread ditampilkan dari database.
+- Komentar disimpan ke forum_comments.
+- Komentar ditampilkan berdasarkan thread_id.
+- user_id diambil dari session.
+- Nama author diambil dari user yang sedang login, bukan input bebas jika user sudah login.
+- User yang belum login diarahkan ke login.php saat ingin membuat thread atau komentar.
+- Gunakan prepared statement dan htmlspecialchars().
+
+### 5. Dashboard
+
+Pertahankan dashboard.php yang sudah menggunakan session dan quiz_results.
+
+Jika memungkinkan, tambahkan data dinamis berikut:
+
+- jumlah quiz yang sudah dikerjakan
+- skor rata-rata dari quiz_results
+- jumlah modul selesai
+- durasi belajar siswa
+
+Jangan membuat data palsu terlihat seperti data database. Jika tabel progress belum ada, tambahkan tabel baru secara konsisten di schema_mysql.sql dan koneksi.php.
+
+## Persyaratan keamanan
+
+- Semua halaman privat wajib memanggil koneksi.php.
+- Cek session dan role sebelum menampilkan halaman admin.
+- Gunakan password_hash() untuk password baru.
+- Gunakan password_verify() saat login.
+- Gunakan prepared statement untuk INSERT, UPDATE, SELECT dengan input user, dan DELETE.
+- Escape output dengan htmlspecialchars().
+- Validasi ID sebagai integer.
+- Tambahkan CSRF token sederhana untuk form admin, forum, register, dan quiz jika memungkinkan.
+
+## File yang boleh diedit
+
+- admin.php
+- quiz.php
+- forum.php
+- help-center.php
+- dashboard.php
+- koneksi.php
+- schema/schema_mysql.sql
+- styles.css jika diperlukan
+- app.js hanya jika diperlukan untuk animasi atau interaksi UI, bukan penyimpanan data utama
+
+## Validasi wajib setelah selesai
+
+1. Jalankan php -l pada semua file PHP.
+2. Import schema/schema_mysql.sql melalui phpMyAdmin jika database belum dibuat.
+3. Buka http://localhost/lms-learning/index.php melalui XAMPP.
+4. Tes register siswa baru.
+5. Tes login student dan redirect ke dashboard.
+6. Tes login admin dan redirect ke admin.php.
+7. Tes tambah, edit, dan hapus quiz.
+8. Tes quiz siswa dan pastikan nilai masuk ke quiz_results.
+9. Tes tambah FAQ dan pastikan tampil di help-center.php.
+10. Tes thread dan komentar forum dan pastikan data masuk ke database.
+11. Pastikan halaman tidak lagi membutuhkan LocalStorage untuk data aplikasi.
+
+Setelah selesai, jelaskan file apa saja yang diubah, fitur apa yang sudah berhasil, dan error atau keterbatasan apa yang masih tersisa. Jangan membuat commit atau push Git tanpa diminta.
 
