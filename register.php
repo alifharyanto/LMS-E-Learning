@@ -1,3 +1,44 @@
+<?php
+require __DIR__ . '/koneksi.php';
+
+if (!empty($_SESSION['user'])) {
+    redirect($_SESSION['user']['role'] === 'admin' ? 'admin.php' : 'dashboard.php');
+}
+
+$message = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    if ($username === '' || $email === '' || $password === '') {
+        $message = 'Semua field wajib diisi.';
+    } else {
+        $check = mysqli_prepare($koneksi, 'SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1');
+        mysqli_stmt_bind_param($check, 'ss', $username, $email);
+        mysqli_stmt_execute($check);
+        $result = mysqli_stmt_get_result($check);
+        $exists = mysqli_fetch_assoc($result);
+
+        if ($exists) {
+            $message = 'Username atau email sudah terdaftar.';
+        } else {
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = mysqli_prepare($koneksi, 'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, "student")');
+            mysqli_stmt_bind_param($stmt, 'sss', $username, $email, $hash);
+            mysqli_stmt_execute($stmt);
+
+            $_SESSION['user'] = [
+                'id' => mysqli_insert_id($koneksi),
+                'username' => $username,
+                'email' => $email,
+                'role' => 'student'
+            ];
+            redirect('dashboard.php');
+        }
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="id">
   <head>
@@ -6,18 +47,7 @@
     <title>Daftar | CourseUp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                blue: '#2563EB',
-                dark: '#111111'
-              }
-            }
-          }
-        }
-      };
+      tailwind.config = { theme: { extend: { colors: { brand: { blue: '#2563EB', dark: '#111111' } } } } };
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,22 +66,14 @@
                 <div><span class="text-2xl font-black tracking-tight">Course</span><span class="text-2xl font-black tracking-tight text-blue-500">Up</span></div>
               </a>
             </div>
-
             <div>
               <p class="text-sm uppercase tracking-[0.25em] text-slate-300">Bergabung sekarang</p>
               <h1 class="mt-6 text-4xl font-black leading-tight">Bangun kebiasaan belajar yang konsisten bersama CourseUp.</h1>
               <p class="mt-5 max-w-md text-base text-slate-300">Daftarkan diri Anda untuk mulai belajar dengan materi yang terstruktur, kuis interaktif, dan ruang diskusi aktif.</p>
             </div>
-
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="rounded-2xl bg-white/5 p-4">
-                <p class="text-2xl font-black text-white">4.8/5</p>
-                <p class="text-sm text-slate-300">Rating siswa</p>
-              </div>
-              <div class="rounded-2xl bg-white/5 p-4">
-                <p class="text-2xl font-black text-white">24/7</p>
-                <p class="text-sm text-slate-300">Akses materi</p>
-              </div>
+              <div class="rounded-2xl bg-white/5 p-4"><p class="text-2xl font-black text-white">4.8/5</p><p class="text-sm text-slate-300">Rating siswa</p></div>
+              <div class="rounded-2xl bg-white/5 p-4"><p class="text-2xl font-black text-white">24/7</p><p class="text-sm text-slate-300">Akses materi</p></div>
             </div>
           </div>
 
@@ -62,22 +84,22 @@
                 <h2 class="mt-3 text-3xl font-black text-slate-900">Buat akun baru</h2>
               </div>
 
-              <form id="registerForm" class="space-y-5">
+              <form method="post" action="" class="space-y-5">
+                <?php if ($message): ?>
+                  <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?php echo htmlspecialchars($message); ?></div>
+                <?php endif; ?>
                 <div>
                   <label for="username" class="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
                   <input id="username" name="username" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="Masukkan username" required />
                 </div>
-
                 <div>
                   <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
                   <input id="email" name="email" type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="contoh@email.com" required />
                 </div>
-
                 <div>
                   <label for="registerPassword" class="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
                   <input id="registerPassword" name="password" type="password" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="Buat password" required />
                 </div>
-
                 <button type="submit" class="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-700">Daftar sekarang</button>
               </form>
 
@@ -90,8 +112,8 @@
         </div>
       </div>
     </div>
-
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
+
