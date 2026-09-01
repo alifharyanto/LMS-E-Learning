@@ -46,6 +46,33 @@ function getFlash($key)
     return null;
 }
 
+function refreshAuthenticatedUser($conn)
+{
+    if (empty($_SESSION['user']['id'])) {
+        return;
+    }
+
+    $userId = (int) $_SESSION['user']['id'];
+    $stmt = mysqli_prepare($conn, 'SELECT id, username, email, role FROM users WHERE id = ? LIMIT 1');
+    mysqli_stmt_bind_param($stmt, 'i', $userId);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $user = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+
+    if (!$user) {
+        unset($_SESSION['user']);
+        return;
+    }
+
+    $_SESSION['user'] = [
+        'id' => (int) $user['id'],
+        'username' => $user['username'],
+        'email' => $user['email'],
+        'role' => strtolower(trim($user['role']))
+    ];
+}
+
 function ensureDatabaseSchema($conn)
 {
     $queries = [
@@ -140,3 +167,4 @@ function ensureDatabaseSchema($conn)
 }
 
 ensureDatabaseSchema($koneksi);
+refreshAuthenticatedUser($koneksi);
