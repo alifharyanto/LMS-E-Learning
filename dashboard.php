@@ -10,11 +10,40 @@ if ($user['role'] !== 'student') {
     redirect('admin.php');
 }
 
+// Fetch quiz results
 $resultQuery = mysqli_prepare($koneksi, 'SELECT score, total, percent, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC');
 mysqli_stmt_bind_param($resultQuery, 'i', $user['id']);
 mysqli_stmt_execute($resultQuery);
 $results = mysqli_stmt_get_result($resultQuery);
 $results = mysqli_fetch_all($results, MYSQLI_ASSOC);
+
+// Calculate stats
+$quizzes_taken = count($results);
+$avg_score = 0;
+if ($quizzes_taken > 0) {
+    $avg_score_query = mysqli_prepare($koneksi, 'SELECT AVG(percent) as avg_percent FROM quiz_results WHERE user_id = ?');
+    mysqli_stmt_bind_param($avg_score_query, 'i', $user['id']);
+    mysqli_stmt_execute($avg_score_query);
+    $avg_result = mysqli_stmt_get_result($avg_score_query);
+    $avg_data = mysqli_fetch_assoc($avg_result);
+    $avg_score = round($avg_data['avg_percent'] ?? 0);
+}
+
+// Forum activity
+$forum_threads_query = mysqli_prepare($koneksi, 'SELECT COUNT(*) as count FROM forum_threads WHERE user_id = ?');
+mysqli_stmt_bind_param($forum_threads_query, 'i', $user['id']);
+mysqli_stmt_execute($forum_threads_query);
+$forum_result = mysqli_stmt_get_result($forum_threads_query);
+$forum_data = mysqli_fetch_assoc($forum_result);
+$forum_threads_count = $forum_data['count'] ?? 0;
+
+// Latest activity date
+$latest_query = mysqli_prepare($koneksi, 'SELECT MAX(created_at) as latest FROM quiz_results WHERE user_id = ?');
+mysqli_stmt_bind_param($latest_query, 'i', $user['id']);
+mysqli_stmt_execute($latest_query);
+$latest_result = mysqli_stmt_get_result($latest_query);
+$latest_data = mysqli_fetch_assoc($latest_result);
+$latest_activity = $latest_data['latest'] ?? null;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -75,24 +104,24 @@ $results = mysqli_fetch_all($results, MYSQLI_ASSOC);
       </section>
 
       <section class="grid gap-6 md:grid-cols-3">
-        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Kursus selesai</p><p class="mt-3 text-4xl font-black text-slate-900">12</p><p class="mt-2 text-sm text-slate-600">Modul yang telah dipelajari</p></article>
-        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up" data-aos-delay="100"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Tingkat kemajuan</p><p class="mt-3 text-4xl font-black text-slate-900">76%</p><p class="mt-2 text-sm text-slate-600">Progress pembelajaran siswa</p></article>
-        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up" data-aos-delay="200"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Skor rata-rata</p><p class="mt-3 text-4xl font-black text-slate-900">92%</p><p class="mt-2 text-sm text-slate-600">Rata-rata hasil latihan</p></article>
+        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Kuis Diselesaikan</p><p class="mt-3 text-4xl font-black text-slate-900"><?php echo $quizzes_taken; ?></p><p class="mt-2 text-sm text-slate-600">Quiz yang telah dikerjakan</p></article>
+        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up" data-aos-delay="100"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Skor Rata-rata</p><p class="mt-3 text-4xl font-black text-slate-900"><?php echo $avg_score; ?>%</p><p class="mt-2 text-sm text-slate-600">Rata-rata hasil latihan</p></article>
+        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up" data-aos-delay="200"><p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Forum Threads</p><p class="mt-3 text-4xl font-black text-slate-900"><?php echo $forum_threads_count; ?></p><p class="mt-2 text-sm text-slate-600">Thread yang dibuat</p></article>
       </section>
 
       <section class="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-right">
-          <div class="flex items-center justify-between gap-3"><h2 class="text-xl font-black text-slate-900">Statistik durasi belajar</h2><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Minggu ini</span></div>
+          <div class="flex items-center justify-between gap-3"><h2 class="text-xl font-black text-slate-900">Statistik Pembelajaran</h2><span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Seumur Hidup</span></div>
           <div class="mt-6">
-            <div class="mb-2 flex items-center justify-between text-sm text-slate-600"><span>Progress belajar</span><span>72%</span></div>
-            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width: 72%"></div></div>
+            <div class="mb-2 flex items-center justify-between text-sm text-slate-600"><span>Progress belajar</span><span><?php echo $avg_score; ?>%</span></div>
+            <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width: <?php echo $avg_score; ?>%"></div></div>
           </div>
           <div class="mt-8 rounded-2xl bg-slate-50 p-4">
-            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Aktivitas terakhir</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Ringkasan Aktivitas</p>
             <ul class="mt-4 space-y-3 text-sm text-slate-700">
-              <li class="flex items-center justify-between"><span>Matematika Dasar</span><span class="font-semibold text-blue-600">1h 20m</span></li>
-              <li class="flex items-center justify-between"><span>Fisika Dasar</span><span class="font-semibold text-blue-600">55m</span></li>
-              <li class="flex items-center justify-between"><span>Pemrograman Web</span><span class="font-semibold text-blue-600">1h 05m</span></li>
+              <li class="flex items-center justify-between"><span>Quiz Diselesaikan</span><span class="font-semibold text-blue-600"><?php echo $quizzes_taken; ?> kuis</span></li>
+              <li class="flex items-center justify-between"><span>Skor Tertinggi</span><span class="font-semibold text-blue-600"><?php echo !empty($results) ? max(array_column($results, 'percent')) : 0; ?>%</span></li>
+              <li class="flex items-center justify-between"><span>Thread Forum</span><span class="font-semibold text-blue-600"><?php echo $forum_threads_count; ?> thread</span></li>
             </ul>
           </div>
         </div>

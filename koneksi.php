@@ -18,6 +18,34 @@ function redirect($target)
     exit;
 }
 
+function generateCSRFToken()
+{
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCSRFToken($token)
+{
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function setFlash($key, $message, $type = 'info')
+{
+    $_SESSION['flash'][$key] = ['message' => $message, 'type' => $type];
+}
+
+function getFlash($key)
+{
+    if (isset($_SESSION['flash'][$key])) {
+        $flash = $_SESSION['flash'][$key];
+        unset($_SESSION['flash'][$key]);
+        return $flash;
+    }
+    return null;
+}
+
 function ensureDatabaseSchema($conn)
 {
     $queries = [
