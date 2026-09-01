@@ -1,0 +1,29 @@
+buatkan sayqa website E-Learning untuk kebutuhan siswa
+
+BAGIAN BAGIAN website
+
+JUDUL WEBSITE: CourseUp
+DESAIN UI : MINIMALISM 
+BASIC WARNA : PUTIH,HITAM,BIRU
+INTERAKSI : AOS
+
+1. NAVBAR
+- Beranda
+- Kursus Materi
+- Latihan soal
+- Forum
+- Help Center
+
+Isi Beranda
+- Hero/Banner 
+- Penjelasan Singkat
+- Button Mulai Belajar --> Masuk ke Kursus Materi
+- Mata pelajaran populer fake aja lewat kode
+- Stastik yang banyak daftar fake aja lewat kode
+
+Kursus Materi
+- Langsung menampilkan file pdf nya saja tanpa di download
+- Untuk file taruh di folder root yang bernama Materi
+
+Latihan soal
+- Bisa di isi lewat sistem admin metode CRUD
