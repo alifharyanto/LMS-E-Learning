@@ -1,10 +1,10 @@
-buatkan sayqa website E-Learning untuk kebutuhan siswa
+buatkan sayqa website LMS E-Learning untuk kebutuhan siswa
 
 BAGIAN BAGIAN website
 
 JUDUL WEBSITE: CourseUp
 DESAIN UI : MINIMALISM 
-BASIC WARNA : PUTIH,HITAM,BIRU
+BASIC WARNA : PUTIH,HITAM,BIRU 
 INTERAKSI : AOS
 
 1. NAVBAR
@@ -27,3 +27,11 @@ Kursus Materi
 
 Latihan soal
 - Bisa di isi lewat sistem admin metode CRUD
+
+Profile
+- Dengan ukuran bulat 999px saat di klik masuk ke halaman dashbaord pengguna
+
+2. Fitur
+-  Bisa register dan login dan tersimpan di database
+- Stastik belajar durasi di profile
+

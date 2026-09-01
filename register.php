@@ -1,87 +1,97 @@
-<?php
-session_start();
-require_once 'koneksi.php';
-
-// Jika sudah login, lempar ke dashboard
-if (isset($_SESSION['user_id'])) {
-    header("Location: dashboard.php");
-    exit();
-}
-
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username']);
-    $email    = trim($_POST['email']);
-    $password = $_POST['password'];
-
-    if (empty($username) || empty($email) || empty($password)) {
-        $error = "Semua kolom wajib diisi!";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = "Format email tidak valid!";
-    } else {
-        // Cek apakah username atau email sudah terdaftar
-        $stmt = mysqli_prepare($koneksi, "SELECT id FROM users WHERE username = ? OR email = ?");
-        mysqli_stmt_bind_param($stmt, "ss", $username, $email);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_store_result($stmt);
-
-        if (mysqli_stmt_num_rows($stmt) > 0) {
-            $error = "Username atau Email sudah terdaftar!";
-        } else {
-            // Hash password untuk keamanan
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-            // Simpan data user baru
-            $insert_stmt = mysqli_prepare($koneksi, "INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
-            mysqli_stmt_bind_param($insert_stmt, "sss", $username, $email, $hashed_password);
-
-            if (mysqli_stmt_execute($insert_stmt)) {
-                $success = "Pendaftaran berhasil! Silakan <a href='login.php'>Login</a>.";
-            } else {
-                $error = "Terjadi kesalahan saat menyimpan data.";
-            }
-            mysqli_stmt_close($insert_stmt);
-        }
-        mysqli_stmt_close($stmt);
-    }
-}
-?>
-
 <!DOCTYPE html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Register</title>
-</head>
-<body>
-    <h2>Form Register</h2>
-    <?php if ($error): ?>
-        <p style="color: red;"><?= $error; ?></p>
-    <?php endif; ?>
-    <?php if ($success): ?>
-        <p style="color: green;"><?= $success; ?></p>
-    <?php endif; ?>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daftar | CourseUp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                blue: '#2563EB',
+                dark: '#111111'
+              }
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-page="auth" class="bg-slate-50 text-slate-900 antialiased">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.12),_transparent_30%)] px-4 py-12 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl shadow-slate-200">
+        <div class="grid min-h-[760px] lg:grid-cols-2">
+          <div class="hidden bg-slate-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+            <div>
+              <a href="index.php" class="inline-flex items-center gap-3">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-black text-white">C</div>
+                <div><span class="text-2xl font-black tracking-tight">Course</span><span class="text-2xl font-black tracking-tight text-blue-500">Up</span></div>
+              </a>
+            </div>
 
-    <form action="" method="POST">
-        <div>
-            <label>Username:</label><br>
-            <input type="text" name="username" required>
+            <div>
+              <p class="text-sm uppercase tracking-[0.25em] text-slate-300">Bergabung sekarang</p>
+              <h1 class="mt-6 text-4xl font-black leading-tight">Bangun kebiasaan belajar yang konsisten bersama CourseUp.</h1>
+              <p class="mt-5 max-w-md text-base text-slate-300">Daftarkan diri Anda untuk mulai belajar dengan materi yang terstruktur, kuis interaktif, dan ruang diskusi aktif.</p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="rounded-2xl bg-white/5 p-4">
+                <p class="text-2xl font-black text-white">4.8/5</p>
+                <p class="text-sm text-slate-300">Rating siswa</p>
+              </div>
+              <div class="rounded-2xl bg-white/5 p-4">
+                <p class="text-2xl font-black text-white">24/7</p>
+                <p class="text-sm text-slate-300">Akses materi</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center p-6 sm:p-10">
+            <div class="w-full max-w-md">
+              <div class="mb-8 text-center lg:text-left">
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Daftar akun</p>
+                <h2 class="mt-3 text-3xl font-black text-slate-900">Buat akun baru</h2>
+              </div>
+
+              <form id="registerForm" class="space-y-5">
+                <div>
+                  <label for="username" class="mb-1.5 block text-sm font-medium text-slate-700">Username</label>
+                  <input id="username" name="username" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="Masukkan username" required />
+                </div>
+
+                <div>
+                  <label for="email" class="mb-1.5 block text-sm font-medium text-slate-700">Email</label>
+                  <input id="email" name="email" type="email" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="contoh@email.com" required />
+                </div>
+
+                <div>
+                  <label for="registerPassword" class="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+                  <input id="registerPassword" name="password" type="password" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="Buat password" required />
+                </div>
+
+                <button type="submit" class="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-700">Daftar sekarang</button>
+              </form>
+
+              <div class="mt-6 flex items-center justify-center gap-2 text-sm text-slate-600">
+                <span>Sudah punya akun?</span>
+                <a href="login.php" class="font-semibold text-blue-600 hover:text-blue-700">Masuk di sini</a>
+              </div>
+            </div>
+          </div>
         </div>
-        <br>
-        <div>
-            <label>Email:</label><br>
-            <input type="email" name="email" required>
-        </div>
-        <br>
-        <div>
-            <label>Password:</label><br>
-            <input type="password" name="password" required>
-        </div>
-        <br>
-        <button type="submit">Daftar</button>
-    </form>
-    <p>Sudah punya akun? <a href="login.php">Login di sini</a></p>
-</body>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>
