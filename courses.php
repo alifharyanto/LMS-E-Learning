@@ -1,3 +1,17 @@
+<?php
+require __DIR__ . '/koneksi.php';
+
+if (empty($_SESSION['user'])) {
+  redirect('login.php');
+}
+
+$materialsResult = mysqli_query($koneksi, 'SELECT id, title, description, category, file_path, file_size FROM materials ORDER BY created_at DESC');
+$materials = $materialsResult ? mysqli_fetch_all($materialsResult, MYSQLI_ASSOC) : [];
+$materialsWithFiles = array_values(array_filter($materials, static function ($material) {
+  return !empty($material['file_path']) && is_file(__DIR__ . '/' . $material['file_path']);
+}));
+$firstMaterial = $materialsWithFiles[0] ?? null;
+?>
 <!DOCTYPE html>
 <html lang="id">
   <head>
@@ -58,7 +72,24 @@
       <div class="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside data-aos="fade-right" class="rounded-3xl border border-emerald-300/30 bg-white/80 backdrop-blur-sm p-5 shadow-sm card-glow">
           <h2 class="text-xl font-black text-slate-900">Daftar Modul</h2>
-          <div id="materialList" class="mt-5 space-y-3"></div>
+          <div id="materialList" class="mt-5 space-y-3">
+            <?php if (empty($materials)): ?>
+              <p class="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">Belum ada materi yang tersedia.</p>
+            <?php else: ?>
+              <?php foreach ($materials as $index => $material): ?>
+                <?php $hasFile = !empty($material['file_path']) && is_file(__DIR__ . '/' . $material['file_path']); ?>
+                <a href="<?php echo $hasFile ? '#materialViewer' : '#'; ?>" class="material-item block rounded-2xl border <?php echo $hasFile && $material['id'] === ($firstMaterial['id'] ?? 0) ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-700'; ?> px-4 py-3 transition <?php echo $hasFile ? 'hover:border-emerald-400' : 'cursor-not-allowed opacity-60'; ?>" data-material="<?php echo $hasFile ? 'pdf-viewer.php?id=' . (int) $material['id'] : ''; ?>">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-semibold"><?php echo htmlspecialchars($material['title']); ?></p>
+                      <p class="mt-1 text-xs text-slate-500"><?php echo htmlspecialchars($material['category']); ?></p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-2 py-1 text-xs"><?php echo $hasFile ? 'PDF' : 'File belum ada'; ?></span>
+                  </div>
+                </a>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
         </aside>
 
         <div data-aos="fade-left" class="rounded-3xl border border-emerald-300/30 bg-white/80 backdrop-blur-sm p-3 shadow-sm card-glow">
@@ -67,14 +98,60 @@
               <p class="text-sm font-semibold text-slate-500">Preview Materi</p>
               <h3 class="text-xl font-black bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent">Viewer PDF</h3>
             </div>
-            <span class="rounded-full bg-gradient-to-r from-emerald-100 to-ocean-100 px-3 py-1 text-xs font-semibold bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent">Tanpa Download</span>
+            <div class="flex items-center gap-3">
+              <span class="rounded-full bg-gradient-to-r from-emerald-100 to-ocean-100 px-3 py-1 text-xs font-semibold bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent">Tanpa Download</span>
+              <?php if ($firstMaterial && !empty($firstMaterial['file_path'])): ?>
+                <button id="fullscreenPreviewBtn" type="button" class="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700" title="Buka preview fullscreen">⛶ Fullscreen</button>
+              <?php endif; ?>
+            </div>
           </div>
-          <iframe id="materialViewer" class="material-frame w-full rounded-2xl border border-emerald-300/30" src="" title="Preview PDF materi"></iframe>
+          <?php if ($firstMaterial && !empty($firstMaterial['file_path'])): ?>
+            <iframe id="materialViewer" class="material-frame w-full rounded-2xl border border-emerald-300/30" src="pdf-viewer.php?id=<?php echo (int) $firstMaterial['id']; ?>" title="Preview PDF materi"></iframe>
+          <?php else: ?>
+            <div class="flex min-h-[500px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">Belum ada file materi untuk ditampilkan.</div>
+          <?php endif; ?>
         </div>
       </div>
     </main>
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="app.js"></script>
+    <script>
+      document.querySelectorAll('.material-item').forEach((item) => {
+        item.addEventListener('click', (event) => {
+          const viewer = document.getElementById('materialViewer');
+          const source = item.dataset.material;
+          if (!viewer || !source) return;
+          event.preventDefault();
+          viewer.src = source;
+          document.querySelectorAll('.material-item').forEach((entry) => {
+            entry.classList.remove('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+            entry.classList.add('border-slate-200', 'bg-white', 'text-slate-700');
+          });
+          item.classList.remove('border-slate-200', 'bg-white', 'text-slate-700');
+          item.classList.add('border-emerald-500', 'bg-emerald-50', 'text-emerald-700');
+        });
+      });
+
+      const fullscreenButton = document.getElementById('fullscreenPreviewBtn');
+      if (fullscreenButton) {
+        fullscreenButton.addEventListener('click', async () => {
+          const viewer = document.getElementById('materialViewer');
+          if (!viewer) return;
+
+          try {
+            if (viewer.requestFullscreen) {
+              await viewer.requestFullscreen();
+            } else if (viewer.webkitRequestFullscreen) {
+              viewer.webkitRequestFullscreen();
+            } else {
+              window.open(viewer.src, '_blank', 'noopener');
+            }
+          } catch (error) {
+            window.open(viewer.src, '_blank', 'noopener');
+          }
+        });
+      }
+    </script>
   </body>
 </html>

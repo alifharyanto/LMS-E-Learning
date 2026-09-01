@@ -27,16 +27,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             $file_size = 0;
             $file_type = '';
 
-            if (isset($_FILES['material_file']) && $_FILES['material_file']['error'] === UPLOAD_ERR_OK) {
+            if (!isset($_FILES['material_file']) || $_FILES['material_file']['error'] !== UPLOAD_ERR_OK) {
+                $message = 'File materi PDF wajib dipilih.';
+                $message_type = 'error';
+            } elseif (strtolower(pathinfo($_FILES['material_file']['name'], PATHINFO_EXTENSION)) !== 'pdf') {
+                $message = 'File materi harus berformat PDF.';
+                $message_type = 'error';
+            } else {
                 $upload_dir = __DIR__ . '/Materi/';
                 if (!is_dir($upload_dir)) {
                     mkdir($upload_dir, 0755, true);
                 }
 
-                $file_name = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $_FILES['material_file']['name']);
+                $file_name = time() . '_' . bin2hex(random_bytes(4)) . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $_FILES['material_file']['name']);
                 $file_path = 'Materi/' . $file_name;
                 $file_size = $_FILES['material_file']['size'];
-                $file_type = $_FILES['material_file']['type'];
+                $file_type = 'application/pdf';
 
                 if (!move_uploaded_file($_FILES['material_file']['tmp_name'], $upload_dir . $file_name)) {
                     $message = 'Gagal upload file. Silakan coba lagi.';

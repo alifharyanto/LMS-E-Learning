@@ -128,6 +128,19 @@ function ensureDatabaseSchema($conn)
             question VARCHAR(255) NOT NULL,
             answer TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )",
+        "CREATE TABLE IF NOT EXISTS materials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            category VARCHAR(100) NOT NULL,
+            file_path VARCHAR(255),
+            file_size INT DEFAULT 0,
+            file_type VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_materials_category (category),
+            INDEX idx_materials_created_at (created_at)
         )"
     ];
 
