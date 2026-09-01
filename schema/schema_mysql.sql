@@ -1,13 +1,8 @@
-USE db_learning;
+CREATE DATABASE IF NOT EXISTS db_learning
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(100) NOT NULL UNIQUE,
-  email VARCHAR(150) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin','student') NOT NULL DEFAULT 'student',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+USE db_learning;
 
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -59,18 +54,62 @@ CREATE TABLE IF NOT EXISTS faqs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Password default: admin123
 INSERT INTO users (username, email, password, role)
-SELECT 'admin', 'admin@courseup.com', '$2y$10$wM.CndeTHn2T5b1V8nC2G.8pLgnG2negL8l75nM4o6zTnmJd9hY6O', 'admin'
+SELECT 'admin', 'admin@courseup.com',
+  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC8L4YqN1QnK4J3Dkq7W', 'admin'
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
 
+-- Password default: student123
 INSERT INTO users (username, email, password, role)
-SELECT 'student', 'student@courseup.com', '$2y$10$XbNw7n9o5pQ7VjQwS0E7t.u9xzFD0u7uMv0YpL1z3G0oJt6hF5M1C', 'student'
+SELECT 'student', 'student@courseup.com',
+  '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC8L4YqN1QnK4J3Dkq7W', 'student'
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'student');
 
-INSERT INTO quiz_questions (question, option_a, option_b, option_c, option_d, answer_index, explanation)
-SELECT 'Bahasa markup yang digunakan untuk struktur halaman web adalah?', 'HTML', 'CSS', 'JavaScript', 'PHP', 0, 'HTML adalah bahasa markup utama untuk membangun struktur konten web.'
+INSERT INTO quiz_questions
+  (question, option_a, option_b, option_c, option_d, answer_index, explanation)
+SELECT 'Bahasa markup yang digunakan untuk struktur halaman web adalah?',
+  'HTML', 'CSS', 'JavaScript', 'PHP', 0,
+  'HTML adalah bahasa markup utama untuk membangun struktur konten web.'
 WHERE NOT EXISTS (SELECT 1 FROM quiz_questions WHERE question = 'Bahasa markup yang digunakan untuk struktur halaman web adalah?');
 
+INSERT INTO quiz_questions
+  (question, option_a, option_b, option_c, option_d, answer_index, explanation)
+SELECT 'CSS dipakai untuk tujuan utama apa?',
+  'Menghubungkan database', 'Mengatur tampilan dan layout', 'Memproses data', 'Mengirim email', 1,
+  'CSS berfungsi untuk styling, layout, dan visual halaman web.'
+WHERE NOT EXISTS (SELECT 1 FROM quiz_questions WHERE question = 'CSS dipakai untuk tujuan utama apa?');
+
+INSERT INTO quiz_questions
+  (question, option_a, option_b, option_c, option_d, answer_index, explanation)
+SELECT 'Apa fungsi utama JavaScript pada frontend web?',
+  'Menyimpan file PDF', 'Menangani interaksi dan logika halaman', 'Membuat sertifikat', 'Menyusun query SQL', 1,
+  'JavaScript digunakan untuk interaksi, validasi, dan logika di sisi client.'
+WHERE NOT EXISTS (SELECT 1 FROM quiz_questions WHERE question = 'Apa fungsi utama JavaScript pada frontend web?');
+
+INSERT INTO quiz_questions
+  (question, option_a, option_b, option_c, option_d, answer_index, explanation)
+SELECT 'Tag semantic HTML yang paling tepat untuk judul utama halaman adalah?',
+  '<div>', '<section>', '<h1>', '<span>', 2,
+  '<h1> adalah heading utama yang paling tepat untuk judul halaman.'
+WHERE NOT EXISTS (SELECT 1 FROM quiz_questions WHERE question = 'Tag semantic HTML yang paling tepat untuk judul utama halaman adalah?');
+
 INSERT INTO faqs (question, answer)
-SELECT 'Bagaimana cara mengakses kursus materi?', 'Buka halaman Kursus Materi lalu pilih modul yang ingin dibaca. Materi akan tampil langsung di viewer PDF tanpa perlu download.'
+SELECT 'Bagaimana cara mengakses kursus materi?',
+  'Buka halaman Kursus Materi lalu pilih modul yang ingin dibaca. Materi akan tampil langsung di viewer PDF tanpa perlu download.'
 WHERE NOT EXISTS (SELECT 1 FROM faqs WHERE question = 'Bagaimana cara mengakses kursus materi?');
+
+INSERT INTO faqs (question, answer)
+SELECT 'Apakah saya harus login dulu untuk melihat profil?',
+  'Ya. Halaman profil dan dashboard hanya bisa diakses setelah akun dibuat dan login berhasil.'
+WHERE NOT EXISTS (SELECT 1 FROM faqs WHERE question = 'Apakah saya harus login dulu untuk melihat profil?');
+
+INSERT INTO faqs (question, answer)
+SELECT 'Apakah soal dapat diubah oleh admin?',
+  'Ya. Admin dapat menambah, edit, dan hapus soal dari panel admin.'
+WHERE NOT EXISTS (SELECT 1 FROM faqs WHERE question = 'Apakah soal dapat diubah oleh admin?');
+
+INSERT INTO faqs (question, answer)
+SELECT 'Apakah forum bisa dikomentari?',
+  'Ya. Setiap postingan forum dapat dibalas dengan komentar yang otomatis tersimpan di database.'
+WHERE NOT EXISTS (SELECT 1 FROM faqs WHERE question = 'Apakah forum bisa dikomentari?');
