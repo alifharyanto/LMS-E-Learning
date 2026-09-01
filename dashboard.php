@@ -44,6 +44,12 @@ mysqli_stmt_execute($latest_query);
 $latest_result = mysqli_stmt_get_result($latest_query);
 $latest_data = mysqli_fetch_assoc($latest_result);
 $latest_activity = $latest_data['latest'] ?? null;
+
+// Fetch FAQs
+$faq_query = mysqli_prepare($koneksi, 'SELECT id, question, answer FROM faqs ORDER BY created_at DESC LIMIT 5');
+mysqli_stmt_execute($faq_query);
+$faq_result = mysqli_stmt_get_result($faq_query);
+$faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -149,6 +155,36 @@ $latest_activity = $latest_data['latest'] ?? null;
             </div>
           <?php endif; ?>
         </div>
+      </section>
+
+      <section class="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm" data-aos="fade-up">
+        <div class="flex items-center justify-between gap-3 mb-6">
+          <h2 class="text-xl font-black text-slate-900">Pertanyaan yang Sering Diajukan</h2>
+          <a href="help-center.php" class="text-xs font-semibold text-blue-600 hover:text-blue-700 transition">Lihat Semua →</a>
+        </div>
+        
+        <?php if (empty($faqs)): ?>
+          <p class="text-sm text-slate-500 text-center py-8">Belum ada FAQ yang tersedia.</p>
+        <?php else: ?>
+          <div class="space-y-3">
+            <?php foreach ($faqs as $faq): ?>
+              <details class="group rounded-xl border border-slate-200 bg-slate-50 p-4 cursor-pointer transition hover:border-blue-300 hover:bg-blue-50">
+                <summary class="flex items-center justify-between font-medium text-slate-700 marker:content-none">
+                  <span class="flex items-center gap-3">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600 group-open:bg-blue-600 group-open:text-white transition">?</span>
+                    <span class="group-open:text-blue-600 transition"><?php echo htmlspecialchars($faq['question']); ?></span>
+                  </span>
+                  <svg class="h-5 w-5 text-slate-400 group-open:rotate-180 group-open:text-blue-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                  </svg>
+                </summary>
+                <div class="mt-4 pl-9 text-sm text-slate-600 leading-relaxed">
+                  <?php echo htmlspecialchars($faq['answer']); ?>
+                </div>
+              </details>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       </section>
     </main>
 
