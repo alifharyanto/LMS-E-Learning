@@ -41,7 +41,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Masuk | CourseUp</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = { theme: { extend: { colors: { brand: { blue: '#2563EB', dark: '#111111' } } } } };
+      tailwind.config = { 
+        theme: { 
+          extend: { 
+            colors: { 
+              brand: { blue: '#2563EB', dark: '#111111' },
+              ocean: {
+                50: '#f0fdfa',
+                100: '#ccfbf1',
+                600: '#0d9488',
+                700: '#0f766e',
+              },
+              emerald: {
+                600: '#16a34a',
+              }
+            } 
+          } 
+        } 
+      };
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -49,32 +66,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body data-page="auth" class="bg-slate-50 text-slate-900 antialiased">
-    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.12),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.12),_transparent_30%)] px-4 py-12 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl shadow-slate-200">
+  <body data-page="auth" class="bg-gradient-to-br from-slate-50 to-emerald-50 text-slate-900 antialiased">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.1),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(22,163,74,0.1),_transparent_30%)] px-4 py-12 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-6xl overflow-hidden rounded-[32px] border border-emerald-200/50 bg-white shadow-2xl shadow-emerald-200/30">
         <div class="grid min-h-[760px] lg:grid-cols-2">
-          <div class="hidden bg-slate-900 p-10 text-white lg:flex lg:flex-col lg:justify-between">
+          <div class="hidden bg-gradient-to-br from-slate-900 to-ocean-700 p-10 text-white lg:flex lg:flex-col lg:justify-between">
             <div>
               <a href="index.php" class="inline-flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-black text-white">C</div>
-                <div><span class="text-2xl font-black tracking-tight">Course</span><span class="text-2xl font-black tracking-tight text-blue-500">Up</span></div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-ocean-600 to-emerald-600 text-lg font-black text-white">C</div>
+                <div><span class="text-2xl font-black tracking-tight">Course</span><span class="text-2xl font-black tracking-tight text-emerald-400">Up</span></div>
               </a>
             </div>
             <div>
-              <p class="text-sm uppercase tracking-[0.25em] text-slate-300">Selamat datang</p>
+              <p class="text-sm uppercase tracking-[0.25em] text-emerald-200">Selamat datang</p>
               <h1 class="mt-6 text-4xl font-black leading-tight">Belajar lebih cerdas, lebih fokus, lebih siap.</h1>
-              <p class="mt-5 max-w-md text-base text-slate-300">Akses materi belajar, latihan soal, forum diskusi, dan dashboard progres di satu platform modern.</p>
+              <p class="mt-5 max-w-md text-base text-emerald-100">Akses materi belajar, latihan soal, forum diskusi, dan dashboard progres di satu platform modern.</p>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
-              <div class="rounded-2xl bg-white/5 p-4"><p class="text-2xl font-black text-white">12K+</p><p class="text-sm text-slate-300">Siswa aktif</p></div>
-              <div class="rounded-2xl bg-white/5 p-4"><p class="text-2xl font-black text-white">150+</p><p class="text-sm text-slate-300">Modul PDF</p></div>
+              <div class="rounded-2xl bg-white/10 p-4"><p class="text-2xl font-black text-white">12K+</p><p class="text-sm text-emerald-200">Siswa aktif</p></div>
+              <div class="rounded-2xl bg-white/10 p-4"><p class="text-2xl font-black text-white">150+</p><p class="text-sm text-emerald-200">Modul PDF</p></div>
             </div>
           </div>
 
           <div class="flex items-center justify-center p-6 sm:p-10">
             <div class="w-full max-w-md">
               <div class="mb-8 text-center lg:text-left">
-                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Masuk akun</p>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent">Masuk akun</p>
                 <h2 class="mt-3 text-3xl font-black text-slate-900">Selamat datang kembali</h2>
               </div>
 
@@ -84,18 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php endif; ?>
                 <div>
                   <label for="identity" class="mb-1.5 block text-sm font-medium text-slate-700">Username atau Email</label>
-                  <input id="identity" name="identity" type="text" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="student atau student@courseup.com" required />
+                  <input id="identity" name="identity" type="text" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" placeholder="student atau student@courseup.com" required />
                 </div>
                 <div>
                   <label for="password" class="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
-                  <input id="password" name="password" type="password" class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white" placeholder="Masukkan password" required />
+                  <input id="password" name="password" type="password" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" placeholder="Masukkan password" required />
                 </div>
-                <button type="submit" class="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-700">Masuk ke CourseUp</button>
+                <button type="submit" class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:from-ocean-800 hover:to-emerald-700 hover:shadow-emerald-500/50">Masuk ke CourseUp</button>
               </form>
 
               <div class="mt-6 flex items-center justify-center gap-2 text-sm text-slate-600">
                 <span>Belum punya akun?</span>
-                <a href="register.php" class="font-semibold text-blue-600 hover:text-blue-700">Daftar sekarang</a>
+                <a href="register.php" class="font-semibold text-emerald-600 hover:text-emerald-700">Daftar sekarang</a>
               </div>
 
               <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">

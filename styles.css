@@ -6,18 +6,194 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
+/* ============ GRADIENT & BACKGROUND ANIMATIONS ============ */
+
 .hero-pattern {
-  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 35%),
-    radial-gradient(circle at bottom right, rgba(59, 130, 246, 0.14), transparent 30%);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 25%, #155e75 50%, #047857 75%, #065f46 100%);
+  background-size: 400% 400%;
+  animation: liquidGradient 15s ease infinite;
+}
+
+@keyframes liquidGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.hero-glow {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.3;
+  filter: blur(80px);
+  animation: floatGlow 8s ease-in-out infinite;
+}
+
+.hero-glow-1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.4), transparent);
+  top: -50px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.hero-glow-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.3), transparent);
+  bottom: -100px;
+  right: -150px;
+  animation-delay: 3s;
+}
+
+@keyframes floatGlow {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -30px);
+  }
+}
+
+/* ============ GLASSMORPHISM & CARD EFFECTS ============ */
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .card-shadow {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
 }
 
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.card-glow:hover::before {
+  left: 100%;
+}
+
+/* ============ HOVER & INTERACTION EFFECTS ============ */
+
+.micro-lift {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.micro-lift:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px rgba(16, 185, 129, 0.2);
+}
+
+.card-hover-glow {
+  transition: all 0.3s ease;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.card-hover-glow:hover {
+  border-color: rgba(16, 185, 129, 0.6);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.2), inset 0 0 30px rgba(16, 185, 129, 0.05);
+}
+
+/* ============ BUTTON ANIMATIONS ============ */
+
+.btn-pulse {
+  position: relative;
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+.btn-ocean {
+  background: linear-gradient(135deg, #0f766e 0%, #065f46 100%);
+  transition: all 0.3s ease;
+}
+
+.btn-ocean:hover {
+  background: linear-gradient(135deg, #115e59 0%, #064e3b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+}
+
+/* ============ PARALLAX & SCROLL ANIMATIONS ============ */
+
+.parallax-element {
+  transition: transform 0.1s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* ============ NAVBAR SCROLL EFFECT ============ */
+
+.navbar-scroll {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* ============ SECTION STYLING ============ */
+
+.section-title {
+  background: linear-gradient(135deg, #0f766e 0%, #065f46 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-divider {
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.3), transparent);
+  height: 1px;
+  margin: 3rem 0;
+}
+
+/* ============ MATERIAL FRAME & QUIZ SCROLL ============ */
+
 .material-frame {
   min-height: 420px;
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .quiz-scroll {
@@ -25,8 +201,50 @@ body {
   overflow-y: auto;
 }
 
+.quiz-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quiz-scroll::-webkit-scrollbar-track {
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 10px;
+}
+
+.quiz-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #0f766e, #065f46);
+  border-radius: 10px;
+}
+
+.quiz-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #115e59, #064e3b);
+}
+
+/* ============ RESPONSIVE DESIGN ============ */
+
 @media (max-width: 768px) {
   .material-frame {
     min-height: 300px;
+  }
+  
+  .hero-glow-1 {
+    width: 250px;
+    height: 250px;
+    top: -30px;
+    left: -80px;
+  }
+
+  .hero-glow-2 {
+    width: 300px;
+    height: 300px;
+    bottom: -50px;
+    right: -100px;
+  }
+  
+  .micro-lift:hover {
+    transform: translateY(-4px);
+  }
+  
+  .btn-pulse {
+    animation: pulse-glow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }

@@ -82,6 +82,35 @@ CREATE TABLE IF NOT EXISTS faqs (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== TABLE: contacts ==========
+CREATE TABLE IF NOT EXISTS contacts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  email VARCHAR(150) NOT NULL,
+  phone VARCHAR(20),
+  subject VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  status ENUM('unread', 'read', 'replied') NOT NULL DEFAULT 'unread',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_status (status),
+  INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ========== TABLE: materials ==========
+CREATE TABLE IF NOT EXISTS materials (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  category VARCHAR(100) NOT NULL,
+  file_path VARCHAR(255),
+  file_size INT,
+  file_type VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_category (category),
+  INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ========== SEED DATA: Users ==========
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@courseup.com', '$2y$10$YourHashedPasswordHere', 'admin'),
