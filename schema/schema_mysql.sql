@@ -119,16 +119,7 @@ ON DUPLICATE KEY UPDATE username=username;
 
 -- ========== SEED DATA: Quiz Questions ==========
 INSERT INTO quiz_questions (question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES
-('Bahasa markup yang digunakan untuk struktur halaman web adalah?', 'HTML', 'CSS', 'JavaScript', 'PHP', 0, 'HTML adalah bahasa markup utama untuk membangun struktur konten web.'),
-('CSS dipakai untuk tujuan utama apa?', 'Menghubungkan database', 'Mengatur tampilan dan layout', 'Memproses data', 'Mengirim email', 1, 'CSS berfungsi untuk styling, layout, dan visual halaman web.'),
-('Apa fungsi utama JavaScript pada frontend web?', 'Menyimpan file PDF', 'Menangani interaksi dan logika halaman', 'Membuat sertifikat', 'Menyusun query SQL', 1, 'JavaScript digunakan untuk interaksi, validasi, dan logika di sisi client.'),
-('Tag semantic HTML yang paling tepat untuk judul utama halaman adalah?', '<div>', '<section>', '<h1>', '<span>', 2, '<h1> adalah heading utama yang paling tepat untuk judul halaman.'),
-('Apa kepanjangan dari HTTP?', 'Hyper Text Transfer Protocol', 'High Technology Terminal Protocol', 'Hyperlink Text Transmission Plan', 'Home Telephone Transmission Process', 0, 'HTTP (HyperText Transfer Protocol) adalah protokol untuk transfer data di web.'),
-('Mana yang merupakan framework JavaScript?', 'Bootstrap', 'Tailwind CSS', 'React', 'MySQL', 2, 'React adalah library JavaScript yang populer untuk membangun UI interaktif.'),
-('Apa itu REST API?', 'Rapid Electronic System Transmission', 'Real-time Electronic Service Transfer', 'Representational State Transfer API', 'Remote Error System Transfer', 2, 'REST API adalah arsitektur untuk membuat web service yang scalable.'),
-('Berapa jumlah dimensi dalam grid CSS?', '1 dimensi', '2 dimensi', '3 dimensi', '4 dimensi', 1, 'CSS Grid adalah sistem layout 2D untuk mengatur elemen di baris dan kolom.'),
-('Element HTML mana yang digunakan untuk formulir input?', '<form>', '<table>', '<div>', '<span>', 0, '<form> digunakan untuk mengumpulkan data input dari pengguna.'),
-('Apa perbedaan utama antara let dan var di JavaScript?', 'Scope dan hoisting', 'Tipe data', 'Performa', 'Tidak ada perbedaan', 0, 'let memiliki block scope sedangkan var memiliki function scope, juga berbeda dalam hoisting behavior.')
+('Bahasa markup yang digunakan untuk struktur halaman web adalah?', 'HTML', 'CSS', 'JavaScript', 'PHP', 0, 'HTML adalah bahasa markup utama untuk membangun struktur konten web.')
 ON DUPLICATE KEY UPDATE question=question;
 
 -- ========== SEED DATA: FAQs ==========
