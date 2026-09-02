@@ -177,25 +177,25 @@ $faqs = mysqli_fetch_all($faqs_result, MYSQLI_ASSOC);
           </div>
 
           <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <article data-aos="fade-up" class="card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-300/30 bg-gradient-to-br from-white to-emerald-50/30 p-6 shadow-sm">
+            <article data-aos="fade-up" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-300/30 bg-gradient-to-br from-white to-emerald-50/30 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-ocean-100 text-xl text-emerald-700">📚</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Materi Interaktif</h3>
               <p class="mt-3 text-sm leading-6 text-slate-600">Akses modul PDF lengkap langsung di platform, tidak perlu mengunduh dulu.</p>
             </article>
 
-            <article data-aos="fade-up" data-aos-delay="100" class="card-glow card-hover-glow micro-lift rounded-3xl border border-ocean-300/30 bg-gradient-to-br from-white to-ocean-50/30 p-6 shadow-sm">
+            <article data-aos="fade-up" data-aos-delay="100" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-ocean-300/30 bg-gradient-to-br from-white to-ocean-50/30 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-900 to-ocean-900 text-xl text-white">🧠</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Latihan Soal</h3>
               <p class="mt-3 text-sm leading-6 text-slate-600">Uji pemahaman Anda dengan kuis interaktif dan hasil yang langsung terekam.</p>
             </article>
 
-            <article data-aos="fade-up" data-aos-delay="200" class="card-glow card-hover-glow micro-lift rounded-3xl border border-cyan-300/30 bg-gradient-to-br from-white to-cyan-50/30 p-6 shadow-sm">
+            <article data-aos="fade-up" data-aos-delay="200" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-cyan-300/30 bg-gradient-to-br from-white to-cyan-50/30 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 to-ocean-100 text-xl text-ocean-700">💬</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Forum Diskusi</h3>
               <p class="mt-3 text-sm leading-6 text-slate-600">Siswa dapat bertanya, berbagi ilmu, dan menyelesaikan masalah bersama.</p>
             </article>
 
-            <article data-aos="fade-up" data-aos-delay="300" class="card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white to-emerald-50/50 p-6 shadow-sm">
+            <article data-aos="fade-up" data-aos-delay="300" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white to-emerald-50/50 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-slate-100 text-xl text-emerald-700">📈</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Progress Dashboard</h3>
               <p class="mt-3 text-sm leading-6 text-slate-600">Pantau waktu belajar, nilai, dan perkembangan Anda secara real time.</p>
@@ -212,22 +212,22 @@ $faqs = mysqli_fetch_all($faqs_result, MYSQLI_ASSOC);
           </div>
 
           <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <div data-aos="zoom-in" class="card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-300/30 bg-gradient-to-br from-white to-emerald-50/50 p-6 shadow-sm">
+            <div data-aos="zoom-in" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-300/30 bg-gradient-to-br from-white to-emerald-50/50 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-cyan-100 text-2xl">📐</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Matematika</h3>
               <p class="mt-2 text-sm text-slate-600">Aljabar, geometri, dan logika.</p>
             </div>
-            <div data-aos="zoom-in" data-aos-delay="100" class="card-glow card-hover-glow micro-lift rounded-3xl border border-ocean-300/30 bg-gradient-to-br from-white to-ocean-50/50 p-6 shadow-sm">
+            <div data-aos="zoom-in" data-aos-delay="100" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-ocean-300/30 bg-gradient-to-br from-white to-ocean-50/50 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-ocean-100 to-slate-100 text-2xl">⚛️</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Fisika</h3>
               <p class="mt-2 text-sm text-slate-600">Gerak, energi, dan eksperimen ilmiah.</p>
             </div>
-            <div data-aos="zoom-in" data-aos-delay="200" class="card-glow card-hover-glow micro-lift rounded-3xl border border-cyan-300/30 bg-gradient-to-br from-white to-cyan-50/50 p-6 shadow-sm">
+            <div data-aos="zoom-in" data-aos-delay="200" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-cyan-300/30 bg-gradient-to-br from-white to-cyan-50/50 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 to-ocean-100 text-2xl">💻</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Pemrograman Web</h3>
               <p class="mt-2 text-sm text-slate-600">HTML, CSS, JavaScript, dan UX.</p>
             </div>
-            <div data-aos="zoom-in" data-aos-delay="300" class="card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white to-emerald-50/30 p-6 shadow-sm">
+            <div data-aos="zoom-in" data-aos-delay="300" class="home-card card-glow card-hover-glow micro-lift rounded-3xl border border-emerald-200/30 bg-gradient-to-br from-white to-emerald-50/30 p-6 shadow-sm">
               <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-green-100 text-2xl">🗣️</div>
               <h3 class="mt-5 text-xl font-bold text-slate-900">Bahasa Inggris</h3>
               <p class="mt-2 text-sm text-slate-600">Speaking, grammar, dan reading skill.</p>

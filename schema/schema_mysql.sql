@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(100) NOT NULL UNIQUE,
   email VARCHAR(150) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  full_name VARCHAR(150) DEFAULT '',
+  profile_photo VARCHAR(255) DEFAULT '',
   role ENUM('admin', 'student') NOT NULL DEFAULT 'student',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -14,9 +16,20 @@ CREATE TABLE IF NOT EXISTS users (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== TABLE: quiz_categories ==========
+CREATE TABLE IF NOT EXISTS quiz_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  parent_id INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES quiz_categories(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_parent_name (parent_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ========== TABLE: quiz_questions ==========
 CREATE TABLE IF NOT EXISTS quiz_questions (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  category_id INT DEFAULT NULL,
   question TEXT NOT NULL,
   option_a VARCHAR(255) NOT NULL,
   option_b VARCHAR(255) NOT NULL,
@@ -26,6 +39,8 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   explanation TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES quiz_categories(id) ON DELETE SET NULL,
+  INDEX idx_category_id (category_id),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -33,11 +48,15 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
 CREATE TABLE IF NOT EXISTS quiz_results (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
+  category_id INT DEFAULT NULL,
   score INT NOT NULL,
   total INT NOT NULL,
   percent INT NOT NULL,
+  correct_answers INT NOT NULL DEFAULT 0,
+  note TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (category_id) REFERENCES quiz_categories(id) ON DELETE SET NULL,
   INDEX idx_user_id (user_id),
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -96,6 +115,15 @@ CREATE TABLE IF NOT EXISTS contacts (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== TABLE: contact_attempts ==========
+CREATE TABLE IF NOT EXISTS contact_attempts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(150) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_contact_email (email),
+  INDEX idx_contact_time (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ========== TABLE: materials ==========
 CREATE TABLE IF NOT EXISTS materials (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -111,6 +139,18 @@ CREATE TABLE IF NOT EXISTS materials (
   INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ========== TABLE: study_sessions ==========
+CREATE TABLE IF NOT EXISTS study_sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  page_name VARCHAR(100) NOT NULL,
+  minutes_spent INT NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_page_name (page_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ========== SEED DATA: Users ==========
 INSERT INTO users (username, email, password, role) VALUES
 ('admin', 'admin@courseup.com', '$2y$10$YourHashedPasswordHere', 'admin'),
@@ -118,8 +158,15 @@ INSERT INTO users (username, email, password, role) VALUES
 ON DUPLICATE KEY UPDATE username=username;
 
 -- ========== SEED DATA: Quiz Questions ==========
-INSERT INTO quiz_questions (question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES
-('Bahasa markup yang digunakan untuk struktur halaman web adalah?', 'HTML', 'CSS', 'JavaScript', 'PHP', 0, 'HTML adalah bahasa markup utama untuk membangun struktur konten web.')
+INSERT INTO quiz_categories (name, parent_id) VALUES
+('Web Development', NULL),
+('Design', NULL);
+
+INSERT INTO quiz_questions (category_id, question, option_a, option_b, option_c, option_d, answer_index, explanation)
+SELECT id, 'Bahasa markup yang digunakan untuk struktur halaman web adalah?', 'HTML', 'CSS', 'JavaScript', 'PHP', 0, 'HTML adalah bahasa markup utama untuk membangun struktur konten web.'
+FROM quiz_categories
+WHERE name = 'Web Development' AND parent_id IS NULL
+LIMIT 1;
 ON DUPLICATE KEY UPDATE question=question;
 
 -- ========== SEED DATA: FAQs ==========
