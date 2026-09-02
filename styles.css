@@ -4,6 +4,100 @@ html {
 
 body {
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============ DARK MODE STYLES ============ */
+
+body.dark-mode {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+body.dark-mode .hero-pattern {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 25%, #0d5a5a 50%, #0d4437 75%, #064e3b 100%) !important;
+}
+
+body.dark-mode header,
+body.dark-mode nav {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+body.dark-mode .text-slate-700,
+body.dark-mode .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .text-slate-900 {
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode .bg-white,
+body.dark-mode section {
+  background-color: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode .from-white {
+  background-color: #1e293b !important;
+}
+
+body.dark-mode article,
+body.dark-mode [data-aos="zoom-in"],
+body.dark-mode .card-glow {
+  background: linear-gradient(to bottom right, #1e293b, #0f172a) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+body.dark-mode footer {
+  background: linear-gradient(to bottom, #1e293b, #0f172a) !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode h1,
+body.dark-mode h2,
+body.dark-mode h3 {
+  color: #e2e8f0 !important;
+}
+
+body.dark-mode p,
+body.dark-mode span:not(.bg-gradient-to-r) {
+  color: #cbd5e1 !important;
+}
+
+/* Dark mode toggle button */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f766e, #059669);
+  border: 2px solid rgba(16, 185, 129, 0.5);
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+  padding: 0;
+  color: white;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.12);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  border-color: rgba(16, 185, 129, 0.8);
+}
+
+body.dark-mode .theme-toggle {
+  background: linear-gradient(135deg, #059669, #0f766e);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+body.dark-mode .theme-toggle:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
 }
 
 /* ============ GRADIENT & BACKGROUND ANIMATIONS ============ */
@@ -173,6 +267,37 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
+/* ============ NAVBAR LINK ANIMATIONS ============ */
+
+.nav-link {
+  position: relative;
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: color 0.3s ease;
+  overflow: hidden;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.2), rgba(5, 150, 105, 0.2));
+  transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: -1;
+}
+
+.nav-link:hover {
+  color: #059669;
+}
+
+.nav-link:hover::before {
+  left: 0;
+}
+
 /* ============ SECTION STYLING ============ */
 
 .section-title {
@@ -219,6 +344,230 @@ body {
 
 .quiz-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #115e59, #064e3b);
+}
+
+/* ============ ENHANCED ANIMATIONS FOR EDUCATION WEBSITE ============ */
+
+/* Gradient text animation */
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in from right */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Bounce in scale */
+@keyframes bounceInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Glow pulse */
+@keyframes glowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.8));
+  }
+}
+
+/* Shimmer effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Rotate animation */
+@keyframes rotateIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* Enhanced title animations */
+h1, h2, h3 {
+  transition: all 0.3s ease;
+}
+
+h1 {
+  background: linear-gradient(135deg, #0f766e, #059669, #0f766e);
+  background-size: 200% 200%;
+  animation: gradientFlow 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Button enhanced animations */
+button, a[class*="btn"], a[class*="rounded-full"] {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card hover effects tanpa 3D tilt */
+article, .card-glow, [data-aos="zoom-in"] {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+article:hover, 
+.card-glow:hover, 
+[data-aos="zoom-in"]:hover {
+  transform: translateY(-8px);
+}
+
+/* Stagger animation for multiple elements */
+[data-aos="fade-up"]:nth-child(1) { animation-delay: 0s; }
+[data-aos="fade-up"]:nth-child(2) { animation-delay: 0.1s; }
+[data-aos="fade-up"]:nth-child(3) { animation-delay: 0.2s; }
+[data-aos="fade-up"]:nth-child(4) { animation-delay: 0.3s; }
+
+[data-aos="zoom-in"]:nth-child(1) { animation-delay: 0s; }
+[data-aos="zoom-in"]:nth-child(2) { animation-delay: 0.1s; }
+[data-aos="zoom-in"]:nth-child(3) { animation-delay: 0.2s; }
+[data-aos="zoom-in"]:nth-child(4) { animation-delay: 0.3s; }
+
+/* Enhanced icon animations */
+.flex > div:first-child {
+  transition: all 0.3s ease;
+}
+
+article:hover .flex > div:first-child,
+[data-aos="zoom-in"]:hover .flex > div:first-child {
+  animation: glowPulse 1s ease infinite;
+  transform: scale(1.3) rotate(5deg);
+  filter: brightness(1.3);
+}
+
+/* Text reveal animation */
+span[class*="bg-gradient"] {
+  background: linear-gradient(135deg, #0f766e, #059669, #0f766e);
+  background-size: 200% 200%;
+  animation: gradientFlow 3s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Link hover improvement */
+a:not([class]) {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+a:not([class])::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #0f766e, #059669);
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+a:not([class]):hover::after {
+  width: 100%;
+}
+
+/* Scroll progress indicator */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0f766e, #059669, #0f766e);
+  width: 0;
+  z-index: 999;
+  animation: none;
+}
+
+/* Enhanced navbar on scroll */
+nav {
+  transition: all 0.3s ease;
+}
+
+/* Number counter glow */
+.text-3xl, .text-2xl {
+  transition: all 0.3s ease;
+}
+
+.fade-in-up:hover .text-3xl {
+  color: #10b981;
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+}
+
+/* Interactive background shapes */
+.hero-pattern::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+  animation: backgroundShift 8s ease infinite;
+}
+
+@keyframes backgroundShift {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, 20px);
+  }
 }
 
 /* ============ RESPONSIVE DESIGN ============ */
