@@ -10,14 +10,85 @@ if ($user['role'] !== 'student') {
     redirect('admin.php');
 }
 
-// Fetch quiz results
+$message = '';
+$message_type = 'success';
+$csrf_token = generateCSRFToken();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_profile') {
+    if (!validateCSRFToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Token validasi gagal. Silakan coba lagi.';
+        $message_type = 'error';
+    } else {
+        $full_name = trim($_POST['full_name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+
+        if ($full_name === '' || $email === '') {
+            $message = 'Nama lengkap dan email wajib diisi.';
+            $message_type = 'error';
+        } else {
+            $existing = mysqli_prepare($koneksi, 'SELECT id FROM users WHERE email = ? AND id != ? LIMIT 1');
+            mysqli_stmt_bind_param($existing, 'si', $email, $user['id']);
+            mysqli_stmt_execute($existing);
+            $result = mysqli_stmt_get_result($existing);
+            $existingUser = mysqli_fetch_assoc($result);
+            mysqli_stmt_close($existing);
+
+            if ($existingUser) {
+                $message = 'Email sudah digunakan oleh akun lain.';
+                $message_type = 'error';
+            } else {
+                $profile_photo = $user['profile_photo'] ?? '';
+                if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK && $_FILES['profile_photo']['size'] > 0) {
+                    $uploadDir = __DIR__ . '/uploads/profiles/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+
+                    $fileExt = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
+                    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+                    if (!in_array($fileExt, $allowed, true)) {
+                        $message = 'Format foto profil harus JPG, PNG, atau WEBP.';
+                        $message_type = 'error';
+                    } else {
+                        $fileName = 'user_' . $user['id'] . '_' . time() . '.' . $fileExt;
+                        $targetPath = $uploadDir . $fileName;
+                        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $targetPath)) {
+                            $profile_photo = 'uploads/profiles/' . $fileName;
+                            if (!empty($user['profile_photo']) && file_exists(__DIR__ . '/' . $user['profile_photo'])) {
+                                unlink(__DIR__ . '/' . $user['profile_photo']);
+                            }
+                        } else {
+                            $message = 'Gagal mengunggah foto profil.';
+                            $message_type = 'error';
+                        }
+                    }
+                }
+
+                if ($message_type !== 'error') {
+                    $stmt = mysqli_prepare($koneksi, 'UPDATE users SET full_name = ?, email = ?, profile_photo = ? WHERE id = ?');
+                    mysqli_stmt_bind_param($stmt, 'sssi', $full_name, $email, $profile_photo, $user['id']);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $message = 'Profil berhasil diperbarui.';
+                        $message_type = 'success';
+                        refreshAuthenticatedUser($koneksi);
+                        $user = $_SESSION['user'];
+                    } else {
+                        $message = 'Gagal menyimpan profil.';
+                        $message_type = 'error';
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            }
+        }
+    }
+}
+
 $resultQuery = mysqli_prepare($koneksi, 'SELECT score, total, percent, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC');
 mysqli_stmt_bind_param($resultQuery, 'i', $user['id']);
 mysqli_stmt_execute($resultQuery);
 $results = mysqli_stmt_get_result($resultQuery);
 $results = mysqli_fetch_all($results, MYSQLI_ASSOC);
 
-// Calculate stats
 $quizzes_taken = count($results);
 $avg_score = 0;
 if ($quizzes_taken > 0) {
@@ -29,7 +100,6 @@ if ($quizzes_taken > 0) {
     $avg_score = round($avg_data['avg_percent'] ?? 0);
 }
 
-// Forum activity
 $forum_threads_query = mysqli_prepare($koneksi, 'SELECT COUNT(*) as count FROM forum_threads WHERE user_id = ?');
 mysqli_stmt_bind_param($forum_threads_query, 'i', $user['id']);
 mysqli_stmt_execute($forum_threads_query);
@@ -37,7 +107,6 @@ $forum_result = mysqli_stmt_get_result($forum_threads_query);
 $forum_data = mysqli_fetch_assoc($forum_result);
 $forum_threads_count = $forum_data['count'] ?? 0;
 
-// Latest activity date
 $latest_query = mysqli_prepare($koneksi, 'SELECT MAX(created_at) as latest FROM quiz_results WHERE user_id = ?');
 mysqli_stmt_bind_param($latest_query, 'i', $user['id']);
 mysqli_stmt_execute($latest_query);
@@ -45,7 +114,21 @@ $latest_result = mysqli_stmt_get_result($latest_query);
 $latest_data = mysqli_fetch_assoc($latest_result);
 $latest_activity = $latest_data['latest'] ?? null;
 
-// Fetch FAQs
+$studyQuery = mysqli_prepare($koneksi, 'SELECT SUM(minutes_spent) AS total_minutes FROM study_sessions WHERE user_id = ?');
+mysqli_stmt_bind_param($studyQuery, 'i', $user['id']);
+mysqli_stmt_execute($studyQuery);
+$studyResult = mysqli_stmt_get_result($studyQuery);
+$studyData = mysqli_fetch_assoc($studyResult);
+$totalStudyMinutes = (int) ($studyData['total_minutes'] ?? 0);
+$learning_hours = intdiv($totalStudyMinutes, 60);
+$learning_minutes = $totalStudyMinutes % 60;
+
+$latestStudyQuery = mysqli_prepare($koneksi, 'SELECT page_name, created_at FROM study_sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1');
+mysqli_stmt_bind_param($latestStudyQuery, 'i', $user['id']);
+mysqli_stmt_execute($latestStudyQuery);
+$latestStudyResult = mysqli_stmt_get_result($latestStudyQuery);
+$latest_study = mysqli_fetch_assoc($latestStudyResult);
+
 $faq_query = mysqli_prepare($koneksi, 'SELECT id, question, answer FROM faqs ORDER BY created_at DESC LIMIT 5');
 mysqli_stmt_execute($faq_query);
 $faq_result = mysqli_stmt_get_result($faq_query);
@@ -78,11 +161,14 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
           <a href="quiz.php" class="transition hover:text-emerald-600">Latihan Soal</a>
           <a href="forum.php" class="transition hover:text-emerald-600">Forum</a>
           <a href="help-center.php" class="transition hover:text-emerald-600">Help Center</a>
+          <?php if (($user['role'] ?? '') === 'admin'): ?>
+            <a href="admin.php" class="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">Panel Admin</a>
+          <?php endif; ?>
         </div>
         <div class="flex items-center gap-3">
           <a href="logout.php" class="rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:border-red-500">Keluar</a>
           <a href="dashboard.php" class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-300 bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/20 transition">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar pengguna" class="h-full w-full object-cover" />
+            <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Avatar pengguna" class="h-full w-full object-cover" />
           </a>
         </div>
       </nav>
@@ -93,19 +179,19 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
         <div class="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div class="flex items-center gap-4">
             <div class="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-4 border-emerald-300 bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/20 transition">
-              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Profil siswa" class="h-full w-full object-cover" />
+              <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Profil siswa" class="h-full w-full object-cover" />
             </div>
             <div>
               <span class="inline-flex rounded-full border border-emerald-300/50 bg-emerald-50/50 backdrop-blur-sm px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">👤 Profil Siswa</span>
-              <h1 class="mt-2 text-3xl font-black text-slate-900"><?php echo htmlspecialchars($user['username']); ?></h1>
+              <h1 class="mt-2 text-3xl font-black text-slate-900"><?php echo htmlspecialchars($user['full_name'] ?: $user['username']); ?></h1>
               <p class="text-sm text-slate-500"><?php echo htmlspecialchars($user['email']); ?></p>
             </div>
           </div>
 
           <div class="rounded-2xl bg-gradient-to-br from-ocean-100 to-emerald-100 px-5 py-4 text-left border border-emerald-300/50 card-glow">
             <span class="inline-flex rounded-full border border-ocean-300/50 bg-ocean-100/50 px-2 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-ocean-700">⏱️ Waktu Belajar</span>
-            <p class="mt-2 text-3xl font-black bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent">4j 30m</p>
-            <p class="text-sm text-slate-600">Minggu ini</p>
+            <p class="mt-2 text-3xl font-black bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent"><?php echo $learning_hours; ?>j <?php echo $learning_minutes; ?>m</p>
+            <p class="text-sm text-slate-600">Total belajar</p>
           </div>
         </div>
       </section>
@@ -158,34 +244,61 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
         </div>
       </section>
 
-      <section class="mt-8 rounded-3xl border border-emerald-300/30 bg-white/80 backdrop-blur-sm p-5 shadow-sm card-glow" data-aos="fade-up">
-        <div class="flex items-center justify-between gap-3 mb-6">
-          <h2 class="text-xl font-black text-slate-900">❓ Pertanyaan yang Sering Diajukan</h2>
-          <a href="help-center.php" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition">Lihat Semua →</a>
-        </div>
-        
-        <?php if (empty($faqs)): ?>
-          <p class="text-sm text-slate-500 text-center py-8">Belum ada FAQ yang tersedia.</p>
-        <?php else: ?>
-          <div class="space-y-3">
-            <?php foreach ($faqs as $faq): ?>
-              <details class="group rounded-xl border border-emerald-300/30 bg-emerald-50/50 backdrop-blur-sm p-4 cursor-pointer transition hover:border-emerald-300/50 hover:bg-emerald-50">
-                <summary class="flex items-center justify-between font-medium text-slate-700 marker:content-none">
-                  <span class="flex items-center gap-3">
-                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-ocean-100 to-emerald-100 text-xs font-bold text-emerald-700 group-open:bg-gradient-to-br group-open:from-ocean-600 group-open:to-emerald-600 group-open:text-white transition">?</span>
-                    <span class="group-open:text-emerald-600 transition"><?php echo htmlspecialchars($faq['question']); ?></span>
-                  </span>
-                  <svg class="h-5 w-5 text-slate-400 group-open:rotate-180 group-open:text-emerald-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                  </svg>
-                </summary>
-                <div class="mt-4 pl-9 text-sm text-slate-600 leading-relaxed">
-                  <?php echo htmlspecialchars($faq['answer']); ?>
-                </div>
-              </details>
-            <?php endforeach; ?>
+      <section class="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-3xl border border-emerald-300/30 bg-white/80 backdrop-blur-sm p-5 shadow-sm card-glow" data-aos="fade-up">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-xl font-black text-slate-900">✏️ Edit Profil</h2>
+            <span class="rounded-full border border-emerald-300/50 bg-emerald-50/50 px-3 py-1 text-xs font-semibold text-emerald-700">Akun</span>
           </div>
-        <?php endif; ?>
+
+          <?php if ($message): ?>
+            <div class="mt-4 rounded-2xl border <?php echo $message_type === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-red-300 bg-red-50 text-red-700'; ?> p-3 text-sm font-semibold">
+              <?php echo htmlspecialchars($message); ?>
+            </div>
+          <?php endif; ?>
+
+          <form method="POST" enctype="multipart/form-data" class="mt-5 space-y-4">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>" />
+            <input type="hidden" name="action" value="update_profile" />
+
+            <div class="flex items-center gap-4">
+              <div class="h-20 w-20 overflow-hidden rounded-full border-4 border-emerald-200 bg-emerald-50">
+                <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Foto Profil" class="h-full w-full object-cover" />
+              </div>
+              <div class="flex-1">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Foto profil</label>
+                <input type="file" name="profile_photo" accept="image/*" class="block w-full text-sm text-slate-600 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Nama lengkap</label>
+              <input type="text" name="full_name" value="<?php echo htmlspecialchars($user['full_name'] ?: $user['username']); ?>" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" required />
+            </div>
+
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+              <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" required />
+            </div>
+
+            <button type="submit" class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:shadow-emerald-500/50">Simpan Profil</button>
+          </form>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-300/30 bg-white/80 backdrop-blur-sm p-5 shadow-sm card-glow" data-aos="fade-up" data-aos-delay="100">
+          <h2 class="text-xl font-black text-slate-900">⏱️ Jam Belajar</h2>
+          <p class="mt-4 text-4xl font-black bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent"><?php echo $learning_hours; ?>j <?php echo $learning_minutes; ?>m</p>
+          <p class="mt-2 text-sm text-slate-600">Total waktu belajar di Kursus Materi</p>
+          <div class="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-50/50 p-4">
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Riwayat terakhir</p>
+            <?php if ($latest_study): ?>
+              <p class="mt-2 text-sm font-medium text-slate-700"><?php echo date('d M Y H:i', strtotime($latest_study['created_at'])); ?></p>
+              <p class="text-sm text-slate-600">Halaman: <?php echo htmlspecialchars($latest_study['page_name']); ?></p>
+            <?php else: ?>
+              <p class="mt-2 text-sm text-slate-600">Belum ada riwayat belajar.</p>
+            <?php endif; ?>
+          </div>
+        </div>
       </section>
     </main>
 

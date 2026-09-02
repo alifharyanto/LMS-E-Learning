@@ -143,6 +143,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && $user['role'] === 'admin' 
           </div>
         <?php endif; ?>
 
+        <!-- Contact Form Section -->
+        <div class="mt-8 rounded-2xl border border-emerald-300/30 bg-gradient-to-br from-white/50 to-emerald-50/50 backdrop-blur-sm p-6 shadow-sm card-glow">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-2xl">💬</span>
+            <h2 class="text-lg font-bold text-slate-900">Hubungi Kami</h2>
+          </div>
+          <p class="text-sm text-slate-600 mb-5">Punya pertanyaan yang belum terjawab? Hubungi tim support CourseUp kami langsung.</p>
+          
+          <form id="contactForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama *</label>
+                <input type="text" name="name" required class="w-full rounded-lg border border-emerald-300/30 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500 focus:bg-white transition" placeholder="Nama Anda">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
+                <input type="email" name="email" required class="w-full rounded-lg border border-emerald-300/30 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500 focus:bg-white transition" placeholder="Email Anda">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Subjek *</label>
+              <input type="text" name="subject" required class="w-full rounded-lg border border-emerald-300/30 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500 focus:bg-white transition" placeholder="Subjek pesan">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pesan *</label>
+              <textarea name="message" rows="4" required class="w-full rounded-lg border border-emerald-300/30 bg-white/50 px-4 py-2 text-sm outline-none focus:border-emerald-500 focus:bg-white transition" placeholder="Tuliskan pesan Anda..."></textarea>
+            </div>
+            <button type="submit" class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/30 transition">Kirim Pesan</button>
+          </form>
+
+          <div id="contactResponse" class="mt-4" style="display:none;">
+            <div class="rounded-lg border border-emerald-300/50 bg-emerald-50/50 p-3">
+              <p id="contactMessage" class="text-sm font-semibold text-emerald-700"></p>
+            </div>
+          </div>
+        </div>
+
         <!-- Admin Add FAQ Form -->
         <?php if ($user && $user['role'] === 'admin'): ?>
           <div class="mt-8 rounded-2xl border border-emerald-300/50 bg-gradient-to-br from-emerald-50/50 to-ocean-50/50 p-6 backdrop-blur-sm">
@@ -235,5 +272,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && $user['role'] === 'admin' 
 
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="app.js"></script>
+    <script>
+      document.getElementById('contactForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const response = await fetch('process_contact.php', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        const responseDiv = document.getElementById('contactResponse');
+        const messageDiv = document.getElementById('contactMessage');
+        
+        if (data.success) {
+          messageDiv.textContent = '✅ Pesan berhasil dikirim! Tim kami akan segera menghubungi Anda.';
+          messageDiv.parentElement.className = 'rounded-lg border border-emerald-300/50 bg-emerald-50/50 p-3';
+          messageDiv.className = 'text-sm font-semibold text-emerald-700';
+          e.target.reset();
+        } else {
+          messageDiv.textContent = '❌ ' + (data.message || 'Gagal mengirim pesan. Silakan coba lagi.');
+          messageDiv.parentElement.className = 'rounded-lg border border-orange-300/50 bg-orange-50/50 p-3';
+          messageDiv.className = 'text-sm font-semibold text-orange-700';
+        }
+        
+        responseDiv.style.display = 'block';
+        setTimeout(() => {
+          responseDiv.style.display = 'none';
+        }, 5000);
+      });
+    </script>
   </body>
 </html>

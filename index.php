@@ -1,3 +1,10 @@
+<?php
+require __DIR__ . '/koneksi.php';
+
+$user = $_SESSION['user'] ?? null;
+$faqs_result = mysqli_query($koneksi, 'SELECT id, question, answer FROM faqs ORDER BY created_at DESC LIMIT 6');
+$faqs = mysqli_fetch_all($faqs_result, MYSQLI_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="id">
   <head>
@@ -74,11 +81,14 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <a href="login.php" class="hidden rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 hover:border-emerald-500 sm:inline-flex">Masuk</a>
-          <a href="register.php" class="inline-flex rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:shadow-emerald-500/50 hover:scale-105">Daftar</a>
-          <a href="dashboard.php" class="ml-1 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-ocean-50 transition hover:scale-110 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20" aria-label="Dashboard pengguna">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar pengguna" class="h-full w-full object-cover" />
-          </a>
+          <?php if ($user): ?>
+            <a href="<?php echo $user['role'] === 'admin' ? 'admin.php' : 'dashboard.php'; ?>" class="ml-1 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-ocean-50 transition hover:scale-110 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20" aria-label="Dashboard pengguna">
+              <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Avatar pengguna" class="h-full w-full object-cover" />
+            </a>
+          <?php else: ?>
+            <a href="login.php" class="hidden rounded-full border border-emerald-300 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 hover:border-emerald-500 sm:inline-flex">Masuk</a>
+            <a href="register.php" class="inline-flex rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:shadow-emerald-500/50 hover:scale-105">Daftar</a>
+          <?php endif; ?>
         </div>
       </nav>
     </header>
@@ -100,7 +110,11 @@
             </p>
             <div class="mt-8 flex flex-wrap items-center gap-4">
               <a href="courses.php" class="btn-pulse btn-ocean rounded-full px-6 py-3 text-sm font-semibold text-white transition">Mulai Belajar</a>
-              <a href="register.php" class="micro-lift rounded-full border border-emerald-300/50 bg-white/10 backdrop-blur-sm px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition">Buat Akun</a>
+              <?php if (!$user): ?>
+                <a href="register.php" class="micro-lift rounded-full border border-emerald-300/50 bg-white/10 backdrop-blur-sm px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition">Buat Akun</a>
+              <?php else: ?>
+                <a href="<?php echo $user['role'] === 'admin' ? 'admin.php' : 'dashboard.php'; ?>" class="micro-lift rounded-full border border-emerald-300/50 bg-white/10 backdrop-blur-sm px-6 py-3 text-sm font-semibold text-white hover:bg-white/20 transition">Masuk Dashboard</a>
+              <?php endif; ?>
             </div>
             <div class="mt-10 flex flex-wrap gap-8 text-left">
               <div class="fade-in-up" style="animation-delay: 0.1s">

@@ -122,6 +122,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
             mysqli_stmt_close($stmt);
         }
     }
+    // Add Quiz Category
+    elseif (isset($_POST['action']) && $_POST['action'] === 'add_category') {
+        $category_name = trim($_POST['category_name'] ?? '');
+        $parent_id = isset($_POST['parent_id']) && $_POST['parent_id'] !== '' ? (int) $_POST['parent_id'] : null;
+
+        if ($category_name !== '') {
+            $stmt = mysqli_prepare($koneksi, 'INSERT INTO quiz_categories (name, parent_id) VALUES (?, ?)');
+            mysqli_stmt_bind_param($stmt, 'si', $category_name, $parent_id);
+            if (mysqli_stmt_execute($stmt)) {
+                $message = 'Kategori quiz berhasil ditambahkan!';
+                $message_type = 'success';
+            } else {
+                $message = 'Kategori quiz gagal ditambahkan.';
+                $message_type = 'error';
+            }
+            mysqli_stmt_close($stmt);
+        } else {
+            $message = 'Nama kategori wajib diisi.';
+            $message_type = 'error';
+        }
+    }
+    // Delete Quiz Category
+    elseif (isset($_POST['action']) && $_POST['action'] === 'delete_category') {
+        $category_id = (int)($_POST['category_id'] ?? 0);
+        if ($category_id > 0) {
+            $stmt = mysqli_prepare($koneksi, 'DELETE FROM quiz_categories WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'i', $category_id);
+            if (mysqli_stmt_execute($stmt)) {
+                $message = 'Kategori quiz berhasil dihapus!';
+                $message_type = 'success';
+            } else {
+                $message = 'Kategori quiz gagal dihapus.';
+                $message_type = 'error';
+            }
+            mysqli_stmt_close($stmt);
+        }
+    }
     // Add Quiz
     elseif (isset($_POST['action']) && $_POST['action'] === 'add_quiz') {
         $question = trim($_POST['question'] ?? '');
@@ -131,10 +168,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
         $option_d = trim($_POST['option_d'] ?? '');
         $answer_index = (int)($_POST['answer_index'] ?? 0);
         $explanation = trim($_POST['explanation'] ?? '');
+        $category_id = isset($_POST['category_id']) && $_POST['category_id'] !== '' ? (int) $_POST['category_id'] : null;
 
         if ($question && $option_a && $option_b && $option_c && $option_d && in_array($answer_index, [0, 1, 2, 3])) {
-            $stmt = mysqli_prepare($koneksi, 'INSERT INTO quiz_questions (question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            mysqli_stmt_bind_param($stmt, 'sssssss', $question, $option_a, $option_b, $option_c, $option_d, $answer_index, $explanation);
+            $stmt = mysqli_prepare($koneksi, 'INSERT INTO quiz_questions (category_id, question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            mysqli_stmt_bind_param($stmt, 'isssssss', $category_id, $question, $option_a, $option_b, $option_c, $option_d, $answer_index, $explanation);
             if (mysqli_stmt_execute($stmt)) {
                 $message = 'Soal berhasil ditambahkan!';
                 $message_type = 'success';
@@ -159,6 +197,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['csrf_token'])) {
                 $message_type = 'success';
             } else {
                 $message = 'Gagal menghapus soal.';
+                $message_type = 'error';
+            }
+            mysqli_stmt_close($stmt);
+        }
+    }
+    // Delete Score
+    elseif (isset($_POST['action']) && $_POST['action'] === 'delete_score') {
+        $score_id = (int)($_POST['score_id'] ?? 0);
+        if ($score_id > 0) {
+            $stmt = mysqli_prepare($koneksi, 'DELETE FROM quiz_results WHERE id = ?');
+            mysqli_stmt_bind_param($stmt, 'i', $score_id);
+            if (mysqli_stmt_execute($stmt)) {
+                $message = 'Riwayat skor berhasil dihapus!';
+                $message_type = 'success';
+            } else {
+                $message = 'Gagal menghapus riwayat skor.';
                 $message_type = 'error';
             }
             mysqli_stmt_close($stmt);
@@ -210,8 +264,14 @@ $contacts = mysqli_fetch_all($contacts_result, MYSQLI_ASSOC);
 $materials_result = mysqli_query($koneksi, 'SELECT * FROM materials ORDER BY created_at DESC');
 $materials = mysqli_fetch_all($materials_result, MYSQLI_ASSOC);
 
-$quizzes_result = mysqli_query($koneksi, 'SELECT id, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions ORDER BY created_at DESC');
+$quizzes_result = mysqli_query($koneksi, 'SELECT q.id, q.category_id, q.question, q.option_a, q.option_b, q.option_c, q.option_d, q.answer_index, q.explanation, c.name AS category_name FROM quiz_questions q LEFT JOIN quiz_categories c ON c.id = q.category_id ORDER BY q.created_at DESC');
 $quizzes = mysqli_fetch_all($quizzes_result, MYSQLI_ASSOC);
+
+$categories_result = mysqli_query($koneksi, 'SELECT c.id, c.name, c.parent_id, p.name AS parent_name FROM quiz_categories c LEFT JOIN quiz_categories p ON p.id = c.parent_id ORDER BY c.name ASC');
+$categories = mysqli_fetch_all($categories_result, MYSQLI_ASSOC);
+
+$score_result = mysqli_query($koneksi, 'SELECT qr.id, qr.user_id, qr.score, qr.total, qr.percent, qr.created_at, u.username, u.full_name, c.name AS category_name FROM quiz_results qr LEFT JOIN users u ON u.id = qr.user_id LEFT JOIN quiz_categories c ON c.id = qr.category_id ORDER BY qr.created_at DESC LIMIT 20');
+$scores = mysqli_fetch_all($score_result, MYSQLI_ASSOC);
 
 $faqs_result = mysqli_query($koneksi, 'SELECT id, question, answer FROM faqs ORDER BY created_at DESC');
 $faqs = mysqli_fetch_all($faqs_result, MYSQLI_ASSOC);
@@ -221,6 +281,7 @@ $unread_contacts = count(array_filter($contacts, fn($c) => $c['status'] === 'unr
 $total_materials = count($materials);
 $total_quizzes = count($quizzes);
 $total_faqs = count($faqs);
+$total_categories = count($categories);
 
 $csrf_token = generateCSRFToken();
 $answer_labels = ['A', 'B', 'C', 'D'];
@@ -346,6 +407,9 @@ $answer_labels = ['A', 'B', 'C', 'D'];
                 </button>
                 <button class="tab-btn px-6 py-4 text-sm font-semibold transition" onclick="switchTab(event, 'quiz')">
                     <i data-feather="help-circle" class="w-4 h-4 inline mr-2"></i> Quiz
+                </button>
+                <button class="tab-btn px-6 py-4 text-sm font-semibold transition" onclick="switchTab(event, 'scores')">
+                    <i data-feather="bar-chart-2" class="w-4 h-4 inline mr-2"></i> Skor
                 </button>
                 <button class="tab-btn px-6 py-4 text-sm font-semibold transition" onclick="switchTab(event, 'faq')">
                     <i data-feather="message-circle" class="w-4 h-4 inline mr-2"></i> FAQ
@@ -520,6 +584,51 @@ $answer_labels = ['A', 'B', 'C', 'D'];
             <div id="quiz" class="tab-content p-6">
                 <h2 class="text-xl font-black text-slate-900 mb-6">Kelola Quiz Web Developer</h2>
                 
+                <div class="mb-6 rounded-lg border border-slate-200 bg-white p-6">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4">Tambah Kategori Quiz</h3>
+                    <form method="POST" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                        <input type="hidden" name="action" value="add_category">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-900 mb-2">Nama Kategori *</label>
+                                <input type="text" name="category_name" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Backend">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-900 mb-2">Parent Category</label>
+                                <select name="parent_id" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Tidak ada parent</option>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700">Tambah Kategori</button>
+                    </form>
+                </div>
+
+                <div class="mb-6 rounded-lg border border-slate-200 bg-white p-6">
+                    <h3 class="text-lg font-bold text-slate-900 mb-4">Daftar Kategori</h3>
+                    <?php if (!empty($categories)): ?>
+                        <div class="flex flex-wrap gap-2">
+                            <?php foreach ($categories as $category): ?>
+                                <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                                    <span><?php echo htmlspecialchars($category['name']); ?></span>
+                                    <form method="POST" class="inline" onsubmit="return confirm('Hapus kategori ini?');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                        <input type="hidden" name="action" value="delete_category">
+                                        <input type="hidden" name="category_id" value="<?php echo $category['id']; ?>">
+                                        <button type="submit" class="text-red-600 font-bold">×</button>
+                                    </form>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-sm text-slate-500">Belum ada kategori.</p>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Add Quiz Form -->
                 <div class="mb-6 rounded-lg border border-slate-200 bg-white p-6">
                     <h3 class="text-lg font-bold text-slate-900 mb-4">Tambah Soal Quiz</h3>
@@ -527,6 +636,16 @@ $answer_labels = ['A', 'B', 'C', 'D'];
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                         <input type="hidden" name="action" value="add_quiz">
                         
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">Kategori Quiz</label>
+                            <select name="category_id" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tanpa kategori</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-semibold text-slate-900 mb-2">Pertanyaan *</label>
                             <textarea name="question" rows="2" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tuliskan pertanyaan..."></textarea>
@@ -602,6 +721,40 @@ $answer_labels = ['A', 'B', 'C', 'D'];
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
+            </div>
+
+            <!-- Scores Tab -->
+            <div id="scores" class="tab-content p-6">
+                <h2 class="text-xl font-black text-slate-900 mb-6">Kelola Skor Siswa</h2>
+                <?php if (!empty($scores)): ?>
+                    <div class="space-y-4">
+                        <?php foreach ($scores as $score): ?>
+                            <div class="rounded-lg border border-slate-200 bg-white p-4">
+                                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <p class="font-semibold text-slate-900"><?php echo htmlspecialchars($score['full_name'] ?: $score['username']); ?></p>
+                                        <p class="text-sm text-slate-600"><?php echo htmlspecialchars($score['username']); ?> • <?php echo htmlspecialchars($score['category_name'] ?: 'Umum'); ?></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-lg font-black text-blue-600"><?php echo (int)$score['percent']; ?>%</p>
+                                        <p class="text-xs text-slate-500"><?php echo (int)$score['score']; ?>/<?php echo (int)$score['total']; ?></p>
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-xs text-slate-500"><?php echo date('d M Y H:i', strtotime($score['created_at'])); ?></div>
+                                <form method="POST" class="mt-3 inline" onsubmit="return confirm('Hapus skor ini?');">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+                                    <input type="hidden" name="action" value="delete_score">
+                                    <input type="hidden" name="score_id" value="<?php echo $score['id']; ?>">
+                                    <button type="submit" class="px-3 py-1 text-xs font-semibold text-white bg-red-600 rounded hover:bg-red-700">Hapus Skor</button>
+                                </form>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 p-6 text-center">
+                        <p class="text-slate-600">Belum ada skor siswa yang tersimpan.</p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- FAQ Tab -->
