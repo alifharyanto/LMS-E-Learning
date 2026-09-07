@@ -11,7 +11,7 @@ $user = $_SESSION['user'] ?? null;
     <title>Hubungi Kami | CourseUp E-Learning</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur-md">

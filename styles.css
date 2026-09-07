@@ -192,6 +192,18 @@ body.dark-mode h3 {
   color: #e2e8f0 !important;
 }
 
+body.dark-mode .dashboard-summary-box,
+body.dark-mode .dashboard-latest-box {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #1f2937 !important;
+}
+
+body.dark-mode .dashboard-summary-box > ul,
+body.dark-mode .dashboard-latest-box :where(.text-slate-700, .text-slate-600) {
+  color: #374151 !important;
+}
+
 body.dark-mode input,
 body.dark-mode textarea,
 body.dark-mode select {
@@ -203,6 +215,18 @@ body.dark-mode select {
 body.dark-mode input::placeholder,
 body.dark-mode textarea::placeholder {
   color: #94a3b8 !important;
+}
+
+body.dark-mode button:not([data-password-toggle]),
+body.dark-mode a[class*="btn"],
+body.dark-mode a[class*="rounded-full"] {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), 0 0 24px rgba(6, 182, 212, 0.16);
+}
+
+body.dark-mode button:not([data-password-toggle]):hover,
+body.dark-mode a[class*="btn"]:hover,
+body.dark-mode a[class*="rounded-full"]:hover {
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.55), 0 0 34px rgba(6, 182, 212, 0.24);
 }
 
 /* Dark mode toggle button */

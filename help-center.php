@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && $user['role'] === 'admin' 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
   </head>
   <body data-page="help" class="bg-gradient-to-b from-slate-50 to-emerald-50 text-slate-900 antialiased">
     <header class="sticky top-0 z-40 border-b border-emerald-300/30 bg-white/70 backdrop-blur-md">
@@ -122,10 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user && $user['role'] === 'admin' 
         <div class="flex items-center gap-3">
           <?php if ($user): ?>
             <a href="dashboard.php" class="ml-1 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-300 bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/20 transition" aria-label="Dashboard pengguna">
-              <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar pengguna" class="h-full w-full object-cover" />
+              <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Avatar pengguna" class="h-full w-full object-cover" />
             </a>
           <?php else: ?>
             <a href="login.php" class="rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/30 transition">Login</a>
+            <a href="register.php" class="rounded-full border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/20">Daftar</a>
           <?php endif; ?>
         </div>
       </nav>

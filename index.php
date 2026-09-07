@@ -60,7 +60,7 @@ $faqs = mysqli_fetch_all($faqs_result, MYSQLI_ASSOC);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
   </head>
   <body data-page="home" class="bg-white text-slate-900 antialiased">
     <header id="navbar" class="sticky top-0 z-40 bg-white/70 backdrop-blur-md border-b border-emerald-200/30 transition-all duration-300">

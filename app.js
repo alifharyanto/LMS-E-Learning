@@ -1,3 +1,13 @@
+function togglePasswordVisibility(toggle) {
+  const passwordInput = document.getElementById(toggle.dataset.passwordToggle);
+  if (!passwordInput) return;
+
+  const isPasswordHidden = passwordInput.type === 'password';
+  passwordInput.type = isPasswordHidden ? 'text' : 'password';
+  toggle.setAttribute('aria-label', isPasswordHidden ? 'Sembunyikan password' : 'Tampilkan password');
+  toggle.setAttribute('title', isPasswordHidden ? 'Sembunyikan password' : 'Tampilkan password');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const themeStorageKey = 'courseup-theme';
   const savedTheme = localStorage.getItem(themeStorageKey);

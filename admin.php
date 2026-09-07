@@ -295,7 +295,7 @@ $answer_labels = ['A', 'B', 'C', 'D'];
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
     <style>
         .tab-btn.active {
             @apply border-b-2 border-blue-600 text-blue-600;

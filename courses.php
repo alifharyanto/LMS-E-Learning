@@ -5,6 +5,7 @@ if (empty($_SESSION['user'])) {
   redirect('login.php');
 }
 
+$user = $_SESSION['user'];
 $materialsResult = mysqli_query($koneksi, 'SELECT id, title, description, category, file_path, file_size FROM materials ORDER BY created_at DESC');
 $materials = $materialsResult ? mysqli_fetch_all($materialsResult, MYSQLI_ASSOC) : [];
 $materialsWithFiles = array_values(array_filter($materials, static function ($material) {
@@ -36,7 +37,7 @@ $firstMaterial = $materialsWithFiles[0] ?? null;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
   </head>
   <body data-page="courses" class="bg-gradient-to-b from-slate-50 to-emerald-50 text-slate-900 antialiased">
     <header class="sticky top-0 z-40 border-b border-emerald-300/30 bg-white/70 backdrop-blur-md">
@@ -56,7 +57,7 @@ $firstMaterial = $materialsWithFiles[0] ?? null;
 
         <div class="flex items-center gap-3">
           <a href="dashboard.php" class="ml-1 flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-300 bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/20 transition" aria-label="Dashboard pengguna">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80" alt="Avatar pengguna" class="h-full w-full object-cover" />
+            <img src="<?php echo !empty($user['profile_photo']) ? htmlspecialchars($user['profile_photo']) : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80'; ?>" alt="Avatar pengguna" class="h-full w-full object-cover" />
           </a>
         </div>
       </nav>

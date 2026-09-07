@@ -32,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'id' => mysqli_insert_id($koneksi),
                 'username' => $username,
                 'email' => $email,
+              'full_name' => '',
+              'profile_photo' => '',
                 'role' => 'student'
             ];
             redirect('dashboard.php');
@@ -70,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
   </head>
   <body data-page="auth" class="bg-gradient-to-br from-slate-50 to-emerald-50 text-slate-900 antialiased">
     <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(15,118,110,0.1),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(22,163,74,0.1),_transparent_30%)] px-4 py-12 sm:px-6 lg:px-8">
@@ -101,6 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 class="mt-3 text-3xl font-black text-slate-900">Buat akun baru</h2>
               </div>
 
+              <a href="index.php" class="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-ocean-700 transition hover:border-emerald-400 hover:bg-emerald-100 hover:text-ocean-800">
+                <span aria-hidden="true">&larr;</span>
+                <span>Kembali ke Beranda</span>
+              </a>
+
               <form method="post" action="" class="space-y-5">
                 <?php if ($message): ?>
                   <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"><?php echo htmlspecialchars($message); ?></div>
@@ -115,7 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div>
                   <label for="registerPassword" class="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
-                  <input id="registerPassword" name="password" type="password" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" placeholder="Buat password" required />
+                  <div class="relative">
+                    <input id="registerPassword" name="password" type="password" class="w-full rounded-2xl border border-emerald-300/30 bg-emerald-50/50 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-emerald-600 focus:bg-white focus:ring-2 focus:ring-emerald-200" placeholder="Buat password" required />
+                    <button type="button" data-password-toggle="registerPassword" onclick="togglePasswordVisibility(this)" class="absolute inset-y-0 right-0 z-10 flex w-12 items-center justify-center text-slate-500 transition hover:text-emerald-700" aria-label="Tampilkan password" title="Tampilkan password">
+                      <span aria-hidden="true">&#128065;</span>
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:from-ocean-800 hover:to-emerald-700 hover:shadow-emerald-500/50">Daftar sekarang</button>
               </form>
@@ -130,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
     </div>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260907"></script>
   </body>
 </html>
 

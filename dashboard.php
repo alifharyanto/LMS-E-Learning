@@ -44,10 +44,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         mkdir($uploadDir, 0755, true);
                     }
 
-                    $fileExt = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
-                    $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-                    if (!in_array($fileExt, $allowed, true)) {
-                        $message = 'Format foto profil harus JPG, PNG, atau WEBP.';
+                  $file = $_FILES['profile_photo'];
+                  $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                  $allowedMimeTypes = [
+                    'jpg' => 'image/jpeg',
+                    'jpeg' => 'image/jpeg',
+                    'png' => 'image/png',
+                    'webp' => 'image/webp'
+                  ];
+                  $fileMimeType = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+                  if (!isset($allowedMimeTypes[$fileExt]) || $allowedMimeTypes[$fileExt] !== $fileMimeType) {
+                    $message = 'Format foto profil harus JPG, PNG, atau WEBP yang valid.';
+                    $message_type = 'error';
+                  } elseif ($file['size'] > 2 * 1024 * 1024) {
+                    $message = 'Ukuran foto profil maksimal 2 MB.';
                         $message_type = 'error';
                     } else {
                         $fileName = 'user_' . $user['id'] . '_' . time() . '.' . $fileExt;
@@ -146,7 +156,7 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260907" />
   </head>
   <body data-page="dashboard" class="bg-gradient-to-b from-slate-50 to-emerald-50 text-slate-900 antialiased">
     <header class="sticky top-0 z-40 border-b border-emerald-300/30 bg-white/70 backdrop-blur-md">
@@ -209,7 +219,7 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
             <div class="mb-2 flex items-center justify-between text-sm text-slate-600"><span>Progress belajar</span><span class="font-semibold text-emerald-600"><?php echo $avg_score; ?>%</span></div>
             <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-ocean-600 to-emerald-600" style="width: <?php echo $avg_score; ?>%"></div></div>
           </div>
-          <div class="mt-8 rounded-2xl bg-gradient-to-br from-emerald-50/50 to-ocean-50/50 border border-emerald-300/30 p-4">
+          <div class="dashboard-summary-box mt-8 rounded-2xl bg-gradient-to-br from-emerald-50/50 to-ocean-50/50 border border-emerald-300/30 p-4">
             <span class="inline-flex rounded-full border border-emerald-300/50 bg-emerald-100/50 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 px-2 py-1">📋 Ringkasan Aktivitas</span>
             <ul class="mt-4 space-y-3 text-sm text-slate-700">
               <li class="flex items-center justify-between"><span>Quiz Diselesaikan</span><span class="font-semibold bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent"><?php echo $quizzes_taken; ?> kuis</span></li>
@@ -289,7 +299,7 @@ $faqs = mysqli_fetch_all($faq_result, MYSQLI_ASSOC);
           <h2 class="text-xl font-black text-slate-900">⏱️ Jam Belajar</h2>
           <p class="mt-4 text-4xl font-black bg-gradient-to-r from-ocean-700 to-emerald-600 bg-clip-text text-transparent"><?php echo $learning_hours; ?>j <?php echo $learning_minutes; ?>m</p>
           <p class="mt-2 text-sm text-slate-600">Total waktu belajar di Kursus Materi</p>
-          <div class="mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-50/50 p-4">
+          <div class="dashboard-latest-box mt-5 rounded-2xl border border-emerald-300/30 bg-emerald-50/50 p-4">
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Riwayat terakhir</p>
             <?php if ($latest_study): ?>
               <p class="mt-2 text-sm font-medium text-slate-700"><?php echo date('d M Y H:i', strtotime($latest_study['created_at'])); ?></p>
