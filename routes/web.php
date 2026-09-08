@@ -1,0 +1,45 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ForumController;
+use App\Http\Controllers\QuizController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AdminController;
+
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
+Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+Route::get('/courses', [CourseController::class, 'index'])->middleware('auth')->name('courses');
+Route::get('/pdf-viewer/{id}', [CourseController::class, 'pdf'])->whereNumber('id')->middleware('auth')->name('pdf-viewer');
+Route::get('/quiz', [QuizController::class, 'index'])->middleware('auth')->name('quiz');
+Route::post('/quiz', [QuizController::class, 'index'])->middleware('auth')->name('quiz.submit');
+Route::get('/forum', [ForumController::class, 'index'])->name('forum');
+Route::post('/forum/threads', [ForumController::class, 'store'])->middleware('auth')->name('forum.threads.store');
+Route::post('/forum/threads/{thread}/comments', [ForumController::class, 'comment'])->middleware('auth')->name('forum.comments.store');
+Route::delete('/forum/threads/{thread}', [ForumController::class, 'destroy'])->middleware('auth')->name('forum.threads.destroy');
+Route::delete('/forum/comments/{comment}', [ForumController::class, 'destroyComment'])->middleware('auth')->name('forum.comments.destroy');
+Route::get('/help-center', fn () => view('help-center', ['faqs' => \App\Models\Faq::query()->latest('created_at')->get()]))->name('help');
+Route::get('/contact', fn () => view('contact'))->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'role:student'])->name('dashboard');
+Route::post('/dashboard/profile', [DashboardController::class, 'update'])->middleware(['auth', 'role:student'])->name('dashboard.profile');
+Route::get('/admin', [AdminController::class, 'index'])->middleware(['auth', 'role:admin'])->name('admin');
+Route::post('/admin', [AdminController::class, 'store'])->middleware(['auth', 'role:admin'])->name('admin.store');
+Route::delete('/admin/materials/{material}', [AdminController::class, 'destroyMaterial'])->middleware(['auth', 'role:admin'])->name('admin.materials.destroy');
+Route::post('/admin/categories', [AdminController::class, 'category'])->middleware(['auth', 'role:admin'])->name('admin.categories.store');
+Route::delete('/admin/categories/{category}', [AdminController::class, 'destroyCategory'])->middleware(['auth', 'role:admin'])->name('admin.categories.destroy');
+Route::post('/admin/questions', [AdminController::class, 'question'])->middleware(['auth', 'role:admin'])->name('admin.questions.store');
+Route::delete('/admin/questions/{question}', [AdminController::class, 'destroyQuestion'])->middleware(['auth', 'role:admin'])->name('admin.questions.destroy');
+Route::delete('/admin/results/{result}', [AdminController::class, 'destroyResult'])->middleware(['auth', 'role:admin'])->name('admin.results.destroy');
+Route::post('/admin/faqs', [AdminController::class, 'faq'])->middleware(['auth', 'role:admin'])->name('admin.faqs.store');
+Route::put('/admin/faqs/{faq}', [AdminController::class, 'updateFaq'])->middleware(['auth', 'role:admin'])->name('admin.faqs.update');
+Route::delete('/admin/faqs/{faq}', [AdminController::class, 'destroyFaq'])->middleware(['auth', 'role:admin'])->name('admin.faqs.destroy');
+Route::patch('/admin/contacts/{contact}/read', [AdminController::class, 'markContactRead'])->middleware(['auth', 'role:admin'])->name('admin.contacts.read');
+Route::delete('/admin/contacts/{contact}', [AdminController::class, 'destroyContact'])->middleware(['auth', 'role:admin'])->name('admin.contacts.destroy');
