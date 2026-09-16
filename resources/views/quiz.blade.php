@@ -34,11 +34,18 @@
                         class="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-slate-100 p-3 hover:border-emerald-300"><input
                             type="radio" name="answers[{{ $question->id }}]" value="{{ $loop->index }}"
                             @checked(($answers[$question->id] ?? null) == $loop->index)
-                    required><span>{{ $question->$option }}</span></label>@endforeach@if($result && $question->explanation)
+                        required><span>{{ $question->$option }}</span></label>
+                        @endforeach
+                        @if($result && $question->explanation)
                                 <p class="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600"><b>Penjelasan:</b>
-                            {{ $question->explanation }}</p>@endif
-            </fieldset>@endforeach@if($questions->isNotEmpty())<button
-                class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-6 py-3 font-semibold text-white">{{ $result ? 'Coba Lagi' : 'Kirim Quiz' }}</button>@endif
+                            {{ $question->explanation }}</p>
+                        @endif
+                    </fieldset>
+                    @endforeach
+                    @if($questions->isNotEmpty())
+                    <button
+                        class="w-full rounded-full bg-gradient-to-r from-ocean-700 to-emerald-600 px-6 py-3 font-semibold text-white">{{ $result ? 'Coba Lagi' : 'Kirim Quiz' }}</button>
+                    @endif
             </form>
         </div>
         <aside class="space-y-6">

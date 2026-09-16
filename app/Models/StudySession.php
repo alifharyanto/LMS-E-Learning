@@ -8,5 +8,7 @@ class StudySession extends Model
 {
     protected $table = 'study_sessions';
 
+    public const UPDATED_AT = null;
+
     protected $guarded = [];
 }
