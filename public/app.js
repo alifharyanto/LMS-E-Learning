@@ -30,37 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const themeStorageKey = 'courseup-theme';
-  const savedTheme = localStorage.getItem(themeStorageKey);
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
-  const nav = document.querySelector('header nav');
-
-  const applyTheme = (theme) => {
-    const isDark = theme === 'dark';
-    document.body.classList.toggle('dark-mode', isDark);
-    localStorage.setItem(themeStorageKey, theme);
-
-    const themeToggle = document.querySelector('.theme-toggle');
-    if (themeToggle) {
-      themeToggle.textContent = isDark ? '☀️' : '🌙';
-      themeToggle.setAttribute('aria-label', isDark ? 'Aktifkan light mode' : 'Aktifkan dark mode');
-      themeToggle.setAttribute('title', isDark ? 'Light mode' : 'Dark mode');
-    }
-  };
-
-  if (nav && !nav.querySelector('.theme-toggle')) {
-    const themeToggle = document.createElement('button');
-    themeToggle.type = 'button';
-    themeToggle.className = 'theme-toggle';
-    themeToggle.addEventListener('click', () => {
-      applyTheme(document.body.classList.contains('dark-mode') ? 'light' : 'dark');
-    });
-    nav.appendChild(themeToggle);
-  }
-
-  applyTheme(initialTheme);
-
   // Initialize AOS (Animate On Scroll)
   if (window.AOS) {
     document.querySelectorAll('[data-aos]').forEach((element) => {
