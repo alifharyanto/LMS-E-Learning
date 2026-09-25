@@ -1,7 +1,7 @@
 @extends('layouts.app', ['title' => 'CourseUp | LMS Modern'])
 @section('content')
     <section
-        class="rounded-[32px] bg-gradient-to-br from-slate-900 via-ocean-800 to-emerald-800 px-8 py-20 text-white shadow-xl">
+        class="hero-surface rounded-[32px] bg-gradient-to-br from-slate-900 via-ocean-800 to-emerald-800 px-8 py-20 text-white shadow-xl">
         <p class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-200">Platform belajar modern</p>
         <h1 class="mt-5 max-w-3xl text-5xl font-black leading-tight">Tingkatkan potensi belajar Anda dengan CourseUp.</h1>
         <p class="mt-5 max-w-2xl text-lg text-emerald-100">Materi PDF, latihan soal, forum diskusi, dan dashboard progres

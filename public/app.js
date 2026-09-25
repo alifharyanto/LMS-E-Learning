@@ -9,6 +9,8 @@ function togglePasswordVisibility(toggle) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('is-ready');
+
   const mobileMenuButton = document.getElementById('mobileMenuButton');
   const mobileMenu = document.getElementById('mobileMenu');
   if (mobileMenuButton && mobileMenu) {
@@ -17,6 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
       mobileMenu.classList.toggle('hidden', isOpen);
       mobileMenuButton.setAttribute('aria-expanded', String(!isOpen));
       mobileMenuButton.setAttribute('aria-label', isOpen ? 'Buka menu' : 'Tutup menu');
+    });
+
+    mobileMenu.addEventListener('click', (event) => {
+      if (event.target.closest('a')) {
+        mobileMenu.classList.add('hidden');
+        mobileMenuButton.setAttribute('aria-expanded', 'false');
+        mobileMenuButton.setAttribute('aria-label', 'Buka menu');
+      }
     });
   }
 
@@ -70,16 +80,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Navbar Scroll Effect
   const navbar = document.getElementById('navbar');
   if (navbar) {
-    window.addEventListener('scroll', () => {
+    const updateNavbar = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-      if (scrollTop > 50) {
-        navbar.classList.add('navbar-scroll');
-      } else {
-        navbar.classList.remove('navbar-scroll');
-      }
-    });
+      navbar.classList.toggle('navbar-scroll', scrollTop > 32);
+    };
+
+    updateNavbar();
+    window.addEventListener('scroll', updateNavbar, { passive: true });
   }
+
+  const revealElements = document.querySelectorAll('.site-main > section, .site-main > div > section, .site-main > div > aside, .site-main article, .site-main details');
+  revealElements.forEach((element, index) => {
+    element.dataset.reveal = 'true';
+    element.style.animationDelay = `${Math.min(index * 45, 240)}ms`;
+  });
 
   // Navbar Links Active State
   const navLinks = document.querySelectorAll('nav a[href^="#"]');

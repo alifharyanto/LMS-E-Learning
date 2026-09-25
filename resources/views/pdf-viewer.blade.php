@@ -43,7 +43,7 @@
     </style>
 </head>
 
-<body>
+<body class="pdf-page">
     <div class="toolbar">{{ $material->title }} <span id="status">Memuat preview...</span></div>
     <div id="pages" class="pages">
         <div class="status">Memuat halaman PDF...</div>
