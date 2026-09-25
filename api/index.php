@@ -5,15 +5,19 @@ if (isset($_ENV['VERCEL']) || isset($_SERVER['VERCEL'])) {
         $_SERVER['HTTPS'] = 'on';
     }
 
-    // Set path cache sementara
+    // Path cache & view sementara Vercel
     putenv('VIEW_COMPILED_PATH=/tmp');
     putenv('APP_CONFIG_CACHE=/tmp/config.php');
     putenv('APP_SERVICES_CACHE=/tmp/services.php');
     putenv('APP_PACKAGES_CACHE=/tmp/packages.php');
     putenv('APP_ROUTES_CACHE=/tmp/routes.php');
 
-    // Hapus file compiled view lama di /tmp jika ada perbaikan UI baru
-    array_map('unlink', glob("/tmp/*.php"));
+    // Alihkan log ke errorlog (stdout) agar tidak menulis file laravel.log
+    putenv('LOG_CHANNEL=stderr');
+
+    // Alihkan session dan cache ke driver cookie / array
+    putenv('SESSION_DRIVER=cookie');
+    putenv('CACHE_STORE=array');
 }
 
 require __DIR__ . '/../public/index.php';
