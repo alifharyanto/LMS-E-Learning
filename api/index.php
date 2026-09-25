@@ -1,10 +1,11 @@
 <?php
 
-// Force HTTPS dan URL custom domain
-$_SERVER['HTTPS'] = 'on';
-$_ENV['APP_URL'] = 'https://lms.xi-rekayasa.my.id';
+// Force HTTPS
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
 
-// Storage & Cache sementara untuk Vercel
+// Set storage & cache path ke /tmp Vercel
 $_ENV['APP_CONFIG_CACHE'] = '/tmp/config.php';
 $_ENV['APP_SERVICES_CACHE'] = '/tmp/services.php';
 $_ENV['APP_PACKAGES_CACHE'] = '/tmp/packages.php';
