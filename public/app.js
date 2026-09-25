@@ -9,6 +9,17 @@ function togglePasswordVisibility(toggle) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const mobileMenuButton = document.getElementById('mobileMenuButton');
+  const mobileMenu = document.getElementById('mobileMenu');
+  if (mobileMenuButton && mobileMenu) {
+    mobileMenuButton.addEventListener('click', () => {
+      const isOpen = !mobileMenu.classList.contains('hidden');
+      mobileMenu.classList.toggle('hidden', isOpen);
+      mobileMenuButton.setAttribute('aria-expanded', String(!isOpen));
+      mobileMenuButton.setAttribute('aria-label', isOpen ? 'Buka menu' : 'Tutup menu');
+    });
+  }
+
   const themeStorageKey = 'courseup-theme';
   const savedTheme = localStorage.getItem(themeStorageKey);
   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

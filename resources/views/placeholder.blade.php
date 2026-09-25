@@ -1,15 +1,7 @@
 <!doctype html>
 <html lang="id">
-
 <head>
-    <meta charset="utf-8">
-    <title>{{ $title }} | CourseUp</title>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ $title ?? 'Halaman' }} | CourseUp</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="{{ asset('styles.css') }}"><style>body { display:grid; min-height:100vh; place-items:center; margin:0; padding:20px; background:linear-gradient(145deg,#effcf7,#f8fafc); font-family:'DM Sans',sans-serif; color:#102a43; }.fallback { width:min(100%,560px); padding:clamp(28px,7vw,64px); border:1px solid #ccefe0; border-radius:28px; background:#fff; text-align:center; box-shadow:0 25px 70px rgba(15,118,110,.12); }.logo { color:#0f766e; font:800 28px Manrope,sans-serif; letter-spacing:-.04em; }.logo span { color:#16a34a; }.fallback h1 { margin:28px 0 10px; font:800 clamp(28px,6vw,42px)/1.1 Manrope,sans-serif; }.fallback p { margin:0 auto 28px; color:#627d98; line-height:1.7; }.actions { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; }.actions a,.actions button { border:0; border-radius:12px; padding:12px 18px; color:#fff; background:linear-gradient(100deg,#0f766e,#16a34a); font:700 14px 'DM Sans',sans-serif; text-decoration:none; cursor:pointer; }.actions a.secondary { color:#0f766e; background:#ecfdf5; }</style>
 </head>
-
-<body style="font-family:Arial,sans-serif;max-width:720px;margin:60px auto">
-    <h1>{{ $title }}</h1>
-    <p>Modul Laravel sedang dipindahkan dari aplikasi PHP lama.</p>
-    <form method="post" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form>
-</body>
-
+<body><main class="fallback"><a class="logo" href="{{ route('home') }}">Course<span>Up</span></a><h1>{{ $title ?? 'Halaman sedang disiapkan' }}</h1><p>Halaman ini belum memiliki modul khusus. Anda dapat kembali ke beranda dan melanjutkan belajar dari fitur yang tersedia.</p><div class="actions"><a href="{{ route('home') }}">Kembali ke beranda</a>@auth<a class="secondary" href="{{ auth()->user()->role === 'admin' ? route('admin') : route('dashboard') }}">Buka dashboard</a><form method="post" action="{{ route('logout') }}">@csrf<button type="submit">Keluar</button></form>@else<a class="secondary" href="{{ route('login') }}">Masuk</a>@endauth</div></main></body>
 </html>

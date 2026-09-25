@@ -2,6 +2,12 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (max-width: 640px) {
+  h1 { line-height: 1.12; }
+  .material-frame { min-height: 480px !important; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+}
+
 body {
   animation: pageEnter 0.35s cubic-bezier(.22, 1, .36, 1) both;
 }

@@ -1,27 +1,21 @@
 <!doctype html>
 <html lang="id">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Masuk | CourseUp</title>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Masuk | CourseUp</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="{{ asset('styles.css') }}">
+    <style>
+        :root { --ocean: #0f766e; --green: #16a34a; --ink: #102a43; --muted: #627d98; }
+        * { box-sizing: border-box; } body { margin: 0; min-height: 100vh; font-family: 'DM Sans', sans-serif; color: var(--ink); background: #effcf7; }
+        .auth-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(280px, .9fr) minmax(360px, 1.1fr); overflow: hidden; }
+        .auth-brand { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(28px, 6vw, 76px); color: white; background: linear-gradient(145deg, #123b53 0%, #0f766e 52%, #16a34a 100%); }
+        .auth-brand::after { content: ''; position: absolute; inset: auto -15% -18% auto; width: 390px; height: 390px; border: 1px solid rgba(255,255,255,.22); border-radius: 50%; box-shadow: 0 0 0 34px rgba(255,255,255,.06), 0 0 0 70px rgba(255,255,255,.04); }
+        .brand-link { position: relative; z-index: 1; color: white; text-decoration: none; font: 800 28px Manrope, sans-serif; letter-spacing: -.04em; } .brand-link span { color: #a7f3d0; }
+        .brand-copy { position: relative; z-index: 1; max-width: 490px; } .brand-copy h1 { margin: 0; font: 800 clamp(34px, 4vw, 58px)/1.05 Manrope, sans-serif; letter-spacing: -.05em; } .brand-copy p { max-width: 420px; margin: 22px 0 0; color: #d1fae5; font-size: 17px; line-height: 1.7; }
+        .auth-panel { display: grid; place-items: center; padding: 32px 20px; background: rgba(255,255,255,.78); } .auth-card { width: min(100%, 450px); padding: clamp(24px, 5vw, 48px); border: 1px solid #d7f3e7; border-radius: 28px; background: rgba(255,255,255,.94); box-shadow: 0 24px 70px rgba(15, 118, 110, .13); }
+        .auth-card h2 { margin: 0; font: 800 32px Manrope, sans-serif; letter-spacing: -.04em; } .auth-card .intro { margin: 10px 0 28px; color: var(--muted); line-height: 1.6; } .field { display: grid; gap: 8px; margin-top: 17px; } label { font-size: 14px; font-weight: 700; } input { width: 100%; border: 1px solid #cbded7; border-radius: 13px; padding: 13px 14px; color: var(--ink); font: inherit; outline: none; } input:focus { border-color: var(--ocean); box-shadow: 0 0 0 4px rgba(20,184,166,.13); } .password-wrap { position: relative; } .password-wrap input { padding-right: 70px; } .password-wrap button { position: absolute; right: 7px; top: 7px; border: 0; border-radius: 9px; padding: 7px 9px; color: var(--ocean); background: #ecfdf5; cursor: pointer; }
+        .auth-options { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 18px 0 24px; color: var(--muted); font-size: 13px; } .check { display: flex; align-items: center; gap: 8px; } .check input { width: 16px; height: 16px; accent-color: var(--ocean); } .submit { width: 100%; border: 0; border-radius: 13px; padding: 14px; color: white; background: linear-gradient(100deg, var(--ocean), var(--green)); font: 700 15px 'DM Sans', sans-serif; cursor: pointer; box-shadow: 0 9px 20px rgba(22,163,74,.2); } .error { margin-bottom: 18px; border-radius: 12px; padding: 12px 14px; color: #b42318; background: #fff1f2; font-size: 14px; } .auth-footer { margin: 23px 0 0; text-align: center; color: var(--muted); font-size: 14px; } a { color: var(--ocean); font-weight: 700; text-decoration: none; } .back { display: block; margin-top: 18px; text-align: center; font-size: 13px; }
+        @media (max-width: 760px) { .auth-shell { display: block; } .auth-brand { min-height: 245px; padding: 28px 22px; } .brand-copy { margin-top: 48px; } .brand-copy h1 { font-size: 34px; } .brand-copy p { display: none; } .auth-panel { min-height: calc(100vh - 245px); padding: 24px 16px; } .auth-card { border-radius: 22px; } }
+    </style>
 </head>
-
-<body>
-    <main style="max-width:420px;margin:60px auto;font-family:Arial,sans-serif">
-        <h1>Masuk ke CourseUp</h1>
-        @if ($errors->any())
-        <div style="color:#b42318">{{ $errors->first() }}</div>@endif
-        <form method="post" action="{{ route('login.store') }}">@csrf
-            <label>Username atau Email</label><input name="identity" value="{{ old('identity') }}" required
-                style="display:block;width:100%;margin:8px 0 16px;padding:10px">
-            <label>Password</label><input name="password" type="password" required
-                style="display:block;width:100%;margin:8px 0 16px;padding:10px">
-            <button type="submit">Masuk</button>
-        </form>
-        <p>Belum punya akun? <a href="{{ route('register') }}">Daftar</a></p>
-        <p><a href="{{ route('home') }}">Kembali</a></p>
-    </main>
-</body>
-
+<body><div class="auth-shell"><aside class="auth-brand"><a class="brand-link" href="{{ route('home') }}">Course<span>Up</span></a><div class="brand-copy"><h1>Ruang belajar untuk melangkah lebih jauh.</h1><p>Kelola materi, latihan, dan progres belajar Anda dalam satu tempat yang sederhana.</p></div><small>© {{ date('Y') }} CourseUp</small></aside><main class="auth-panel"><section class="auth-card"><h2>Selamat datang kembali</h2><p class="intro">Masuk untuk melanjutkan perjalanan belajar Anda.</p>@if ($errors->any())<div class="error" role="alert">{{ $errors->first() }}</div>@endif<form method="post" action="{{ route('login.store') }}">@csrf<div class="field"><label for="identity">Username atau email</label><input id="identity" name="identity" value="{{ old('identity') }}" autocomplete="username" required></div><div class="field"><label for="password">Password</label><div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" required><button type="button" data-password-toggle="password" aria-label="Tampilkan password">Lihat</button></div></div><div class="auth-options"><label class="check"><input type="checkbox" name="remember" value="1"> Ingat saya</label><span>Password dapat diubah melalui admin.</span></div><button class="submit" type="submit">Masuk ke CourseUp</button></form><p class="auth-footer">Belum punya akun? <a href="{{ route('register') }}">Daftar sekarang</a></p><a class="back" href="{{ route('home') }}">← Kembali ke beranda</a></section></main></div><script>document.querySelector('[data-password-toggle]').addEventListener('click', function () { const input = document.getElementById(this.dataset.passwordToggle); const visible = input.type === 'text'; input.type = visible ? 'password' : 'text'; this.textContent = visible ? 'Lihat' : 'Sembunyikan'; });</script></body>
 </html>

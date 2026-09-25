@@ -12,8 +12,13 @@ class ForumController extends Controller
 {
     public function index(): View
     {
-        return view('forum', ['threads' => ForumThread::query()->withCount('comments')->latest('created_at')->get()]);
-        return view('forum', ['threads' => ForumThread::query()->with('comments')->withCount('comments')->latest('created_at')->get()]);
+        return view('forum', [
+            'threads' => ForumThread::query()
+                ->with('comments')
+                ->withCount('comments')
+                ->latest('created_at')
+                ->get(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse

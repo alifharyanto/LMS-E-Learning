@@ -33,7 +33,7 @@ class AuthController extends Controller
             return back()->withErrors(['identity' => 'Username/email atau password salah.'])->withInput();
         }
 
-        Auth::login($user);
+        Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
         return redirect()->route($user->role === 'admin' ? 'admin' : 'dashboard');
@@ -50,7 +50,8 @@ class AuthController extends Controller
         $data = $request->validate([
             'username' => ['required', 'string', 'max:100', 'unique:users,username'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'terms' => ['accepted'],
         ]);
 
         $user = User::create([
