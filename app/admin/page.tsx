@@ -1,0 +1,186 @@
+"use client";
+
+import { upload as uploadBlob } from "@vercel/blob/client";
+import { BookOpen, Brain, ChartNoAxesColumn, Check, Inbox, ListChecks, Pencil, Save, Trash2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
+import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
+import { apiRequest } from "@/lib/browser-api";
+
+type Category = { id: number; name: string; questions_count: number };
+type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null };
+type Question = { id: number; question: string };
+type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
+type Result = { id: number; username: string | null; score: number; total: number; percent: number };
+type AdminData = { materials: Material[]; categories: Category[]; questions: Question[]; contacts: Contact[]; results: Result[] };
+type User = { id: number };
+
+export default function AdminPage() {
+  const router = useRouter();
+  const [data, setData] = useState<AdminData | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState("");
+
+  async function refresh() {
+    setData(await apiRequest<AdminData>("/api/v1/admin"));
+  }
+
+  useEffect(() => {
+    Promise.all([apiRequest<AdminData>("/api/v1/admin"), apiRequest<{ user: User }>("/api/v1/auth/me")]).then(([adminData, session]) => {
+      setData(adminData);
+      setUserId(session.user.id);
+    }).catch((requestError) => {
+      if ((requestError as { status?: number }).status === 401) router.replace("/login");
+      else if ((requestError as { status?: number }).status === 403) router.replace("/dashboard");
+      else setError(requestError instanceof Error ? requestError.message : "Panel admin gagal dimuat.");
+    });
+  }, [router]);
+
+  async function submit(event: FormEvent<HTMLFormElement>, endpoint: string, method = "POST") {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const fields = new FormData(form);
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      let body: Record<string, unknown> = Object.fromEntries(fields.entries());
+      const isMaterialMutation = endpoint === "/api/v1/admin/materials" || endpoint.startsWith("/api/v1/admin/materials/");
+      if (isMaterialMutation) {
+        const file = fields.get("material_file");
+        const hasReplacementFile = file instanceof File && file.size > 0;
+        const isCreate = endpoint === "/api/v1/admin/materials";
+        if (!hasReplacementFile && isCreate) throw new Error("Pilih PDF dengan ukuran maksimal 25 MB.");
+        body = { title: fields.get("title"), category: fields.get("category"), description: fields.get("description") };
+        if (hasReplacementFile) {
+          if (file.type !== "application/pdf" || file.size > 25 * 1024 * 1024) throw new Error("Pilih PDF valid dengan ukuran maksimal 25 MB.");
+          const name = file.name.replace(/[^a-zA-Z0-9._-]/g, "").slice(-100) || "material.pdf";
+          if (!userId) throw new Error("Sesi admin tidak ditemukan. Silakan masuk kembali.");
+          const blob = await uploadBlob(`materials/${userId}/${Date.now()}-${name}`, file, { access: "public", handleUploadUrl: "/api/v1/blob-upload", clientPayload: JSON.stringify({ purpose: "material" }), multipart: file.size > 10 * 1024 * 1024 });
+          body = { ...body, file_path: blob.url, file_size: file.size };
+        }
+      }
+      await apiRequest(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      setNotice("Perubahan berhasil disimpan.");
+      form.reset();
+      if (endpoint.startsWith("/api/v1/admin/materials/")) setEditingMaterialId(null);
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Perubahan gagal disimpan.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(endpoint: string) {
+    if (!window.confirm("Yakin ingin menghapus data ini?")) return;
+    try {
+      await apiRequest(endpoint, { method: "DELETE" });
+      setNotice("Data berhasil dihapus.");
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Data gagal dihapus.");
+    }
+  }
+
+  async function markRead(id: number) {
+    try {
+      await apiRequest(`/api/v1/admin/contacts/${id}`, { method: "PATCH" });
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Kontak gagal diperbarui.");
+    }
+  }
+
+  if (!data) return <div className="page-loading">Memuat panel admin...</div>;
+
+  const unreadContacts = data.contacts.filter((contact) => contact.status === "unread").length;
+
+  return <div className="admin-page">
+    <header className="page-heading admin-heading">
+      <span className="eyebrow">Administrasi</span>
+      <h1 className="page-title">Panel Admin</h1>
+      <p className="page-intro">Semua yang perlu dikelola CourseUp, dalam satu ruang kerja.</p>
+    </header>
+    {notice && <p className="status" role="status">{notice}</p>}
+    {error && <p className="status status-error" role="alert">{error}</p>}
+
+    <StaggerGroup className="grid-four admin-metrics" aria-label="Ringkasan panel">
+      <StaggerItem className="admin-metric-item"><div className="metric"><div className="metric-value">{data.materials.length}</div><div className="metric-label">Materi tersedia</div></div></StaggerItem>
+      <StaggerItem className="admin-metric-item"><div className="metric"><div className="metric-value">{data.categories.length}</div><div className="metric-label">Kategori quiz</div></div></StaggerItem>
+      <StaggerItem className="admin-metric-item"><div className="metric"><div className="metric-value">{data.questions.length}</div><div className="metric-label">Soal tersimpan</div></div></StaggerItem>
+      <StaggerItem className="admin-metric-item"><div className="metric"><div className="metric-value">{unreadContacts}</div><div className="metric-label">Pesan belum dibaca</div></div></StaggerItem>
+    </StaggerGroup>
+
+    <Reveal className="admin-layout-reveal"><div className="admin-layout">
+      <nav className="admin-nav" aria-label="Navigasi panel admin">
+        <span className="admin-nav-label">KELOLA</span>
+        <a href="#materials"><span className="admin-nav-link"><BookOpen size={15} />Materi</span><span>{data.materials.length}</span></a>
+        <a href="#quiz"><span className="admin-nav-link"><Brain size={15} />Quiz</span><span>{data.categories.length}</span></a>
+        <a href="#questions"><span className="admin-nav-link"><ListChecks size={15} />Bank soal</span><span>{data.questions.length}</span></a>
+        <a href="#results"><span className="admin-nav-link"><ChartNoAxesColumn size={15} />Hasil belajar</span><span>{data.results.length}</span></a>
+        <a href="#contacts"><span className="admin-nav-link"><Inbox size={15} />Pesan</span><span>{unreadContacts || "0"}</span></a>
+      </nav>
+
+      <div className="admin-sections">
+        <section className="surface surface-pad admin-section" id="materials">
+          <div className="admin-section-heading"><div><span className="list-meta">KONTEN</span><h2 className="surface-title">Materi belajar</h2></div><span className="admin-count">{data.materials.length} materi</span></div>
+          <form className="form-grid admin-form" onSubmit={(event) => void submit(event, "/api/v1/admin/materials")}>
+            <label className="field"><span>Judul</span><input className="input" name="title" required /></label>
+            <label className="field"><span>Kategori</span><input className="input" name="category" required /></label>
+            <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" /></label>
+            <label className="field"><span>PDF · maksimal 25 MB</span><input className="input" name="material_file" type="file" accept="application/pdf" required /></label>
+            <div className="admin-form-action"><MotionButton className="button button-primary" disabled={busy}>Tambah Materi</MotionButton></div>
+          </form>
+          {data.materials.length ? <div className="admin-material-list">{data.materials.map((item) => <article className="admin-material-item" key={item.id}>
+            <div className="admin-material-summary"><div className="admin-material-info"><div className="list-title">{item.title}</div><div className="list-meta">{item.category} · {item.file_size ? `${(item.file_size / (1024 * 1024)).toFixed(1)} MB` : "PDF"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingMaterialId === item.id} onClick={() => setEditingMaterialId(editingMaterialId === item.id ? null : item.id)}><Pencil size={14} />Edit</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/materials/${item.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+            {editingMaterialId === item.id && <form className="admin-material-editor" onSubmit={(event) => void submit(event, `/api/v1/admin/materials/${item.id}`, "PUT")}>
+              <label className="field"><span>Judul materi</span><input className="input" name="title" defaultValue={item.title} required maxLength={255} /></label>
+              <label className="field"><span>Kategori</span><input className="input" name="category" defaultValue={item.category} required maxLength={100} /></label>
+              <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" defaultValue={item.description ?? ""} maxLength={10000} /></label>
+              <label className="field form-span"><span>Ganti PDF · opsional · maksimal 25 MB</span><input className="input" name="material_file" type="file" accept="application/pdf" /></label>
+              <div className="admin-material-editor-actions"><MotionButton className="button button-primary" disabled={busy}><Save size={14} />Simpan perubahan</MotionButton><MotionButton type="button" className="button button-secondary" onClick={() => setEditingMaterialId(null)}><X size={14} />Batal</MotionButton></div>
+            </form>}
+          </article>)}</div> : <p className="empty-state">Belum ada materi yang ditambahkan.</p>}
+        </section>
+
+        <div className="grid-two admin-grid" id="quiz">
+          <section className="surface surface-pad admin-section">
+            <div className="admin-section-heading"><div><span className="list-meta">PENGELOMPOKAN</span><h2 className="surface-title">Kategori quiz</h2></div><span className="admin-count">{data.categories.length} kategori</span></div>
+            <form className="list-row admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}><input className="input" name="category_name" placeholder="Nama kategori" required /><MotionButton className="button button-primary button-small">Tambah</MotionButton></form>
+            {data.categories.length ? data.categories.map((category) => <div className="list-row" key={category.id}><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal</div></div><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada kategori quiz.</p>}
+          </section>
+          <section className="surface surface-pad admin-section">
+            <div className="admin-section-heading"><div><span className="list-meta">KONTEN BARU</span><h2 className="surface-title">Buat soal</h2></div></div>
+            <form className="stack admin-form" onSubmit={(event) => void submit(event, "/api/v1/admin/questions")}>
+              <label className="field"><span>Kategori</span><select className="select" name="category_id" required defaultValue=""><option value="" disabled>Pilih kategori</option>{data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+              <label className="field"><span>Pertanyaan</span><textarea className="textarea" name="question" required /></label>
+              <div className="form-grid">{(["a", "b", "c", "d"] as const).map((letter) => <label className="field" key={letter}><span>Opsi {letter.toUpperCase()}</span><input className="input" name={`option_${letter}`} required /></label>)}</div>
+              <label className="field"><span>Jawaban benar</span><select className="select" name="answer_index"><option value="0">Jawaban A</option><option value="1">Jawaban B</option><option value="2">Jawaban C</option><option value="3">Jawaban D</option></select></label>
+              <label className="field"><span>Penjelasan</span><textarea className="textarea" name="explanation" /></label>
+              <MotionButton className="button button-primary" disabled={busy}>Simpan Soal</MotionButton>
+            </form>
+          </section>
+        </div>
+
+        <section className="surface surface-pad admin-section" id="questions">
+          <div className="admin-section-heading"><div><span className="list-meta">BANK KONTEN</span><h2 className="surface-title">Soal quiz</h2></div><span className="admin-count">{data.questions.length} soal</span></div>
+          {data.questions.length ? data.questions.map((question) => <div className="list-row" key={question.id}><span className="list-title">{question.question}</span><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/questions/${question.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada soal quiz.</p>}
+        </section>
+
+        <section className="surface surface-pad admin-section" id="results">
+          <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar</h2></div><span className="admin-count">{data.results.length} hasil</span></div>
+          {data.results.length ? data.results.map((result) => <div className="list-row" key={result.id}><span>{result.username ?? "Pengguna"}: {result.score}/{result.total} ({result.percent}%)</span><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/results/${result.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada hasil quiz.</p>}
+        </section>
+
+        <section className="surface surface-pad admin-section" id="contacts">
+          <div className="admin-section-heading"><div><span className="list-meta">KOMUNIKASI</span><h2 className="surface-title">Pesan masuk</h2></div><span className="admin-count">{unreadContacts} belum dibaca</span></div>
+          {data.contacts.length ? data.contacts.map((contact) => <div className="list-row admin-contact-row" key={contact.id}><div className="admin-contact-copy"><div className="list-title">{contact.name} · {contact.subject}</div><div className="list-meta">{contact.email} · {new Date(contact.created_at).toLocaleString("id-ID")}</div><p className="page-intro">{contact.message}</p><span className={`admin-contact-status ${contact.status === "unread" ? "is-unread" : ""}`}>{contact.status === "unread" ? "Belum dibaca" : "Sudah dibaca"}</span></div><div className="admin-row-actions">{contact.status === "unread" && <MotionButton type="button" className="button button-secondary button-small" onClick={() => void markRead(contact.id)}><Check size={14} />Tandai dibaca</MotionButton>}<MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/contacts/${contact.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>) : <p className="empty-state">Belum ada pesan masuk.</p>}
+        </section>
+      </div>
+    </div></Reveal>
+  </div>;
+}
