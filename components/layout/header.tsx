@@ -24,7 +24,7 @@ export default function SiteHeader({ user, darkMode, onLogout, onToggleTheme }: 
   const pathname = usePathname() || "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const [quickSearchOpen, setQuickSearchOpen] = useState(false);
-  const navLinks = [["Beranda", "/"], ["Kursus Materi", "/kursus"], ["Latihan Soal", "/latihan"], ["Forum", "/forum"], ["Help Center", "/help-center"]];
+  const navLinks = [["Beranda", "/"], ["Kursus Materi", "/kursus"], ["Latihan Soal", "/latihan"]];
 
   useEffect(() => {
     function handleSearchKeys(event: globalThis.KeyboardEvent) {
