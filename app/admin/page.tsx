@@ -1,7 +1,7 @@
 "use client";
 
 import { upload as uploadBlob } from "@vercel/blob/client";
-import { BookOpen, Brain, ChartNoAxesColumn, Check, Inbox, ListChecks, Pencil, Save, Trash2, X } from "lucide-react";
+import { BookOpen, Brain, ChartNoAxesColumn, Check, FileSpreadsheet, Inbox, ListChecks, Pencil, Save, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
@@ -14,6 +14,9 @@ type Contact = { id: number; name: string; email: string; subject: string; messa
 type Result = { id: number; username: string | null; score: number; total: number; percent: number };
 type AdminData = { materials: Material[]; categories: Category[]; questions: Question[]; contacts: Contact[]; results: Result[] };
 type User = { id: number };
+type ImportError = { rowNumber: number; message: string };
+type ImportRow = { rowNumber: number; category: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; explanation: string };
+type ImportPreview = { totalRows: number; validRows: number; errors: ImportError[]; rows: ImportRow[] };
 
 export default function AdminPage() {
   const router = useRouter();
@@ -23,6 +26,9 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
 
   async function refresh() {
     setData(await apiRequest<AdminData>("/api/v1/admin"));
@@ -92,6 +98,49 @@ export default function AdminPage() {
       await refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Kontak gagal diperbarui.");
+    }
+  }
+
+  async function previewImport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const file = new FormData(event.currentTarget).get("quiz_file");
+    if (!(file instanceof File) || !file.size) {
+      setError("Pilih file CSV, JSON, atau XLSX terlebih dahulu.");
+      return;
+    }
+    setImportBusy(true);
+    setError("");
+    setNotice("");
+    setImportFile(file);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      setImportPreview(await apiRequest<ImportPreview>("/api/v1/admin/questions/import/preview", { method: "POST", body }));
+    } catch (requestError) {
+      setImportPreview(null);
+      setError(requestError instanceof Error ? requestError.message : "File import gagal dibaca.");
+    } finally {
+      setImportBusy(false);
+    }
+  }
+
+  async function confirmImport() {
+    if (!importFile || !importPreview || importPreview.errors.length) return;
+    setImportBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const body = new FormData();
+      body.append("file", importFile);
+      const result = await apiRequest<{ imported: number }>("/api/v1/admin/questions/import", { method: "POST", body });
+      setNotice(`${result.imported} soal berhasil diimport.`);
+      setImportFile(null);
+      setImportPreview(null);
+      await refresh();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Import soal gagal.");
+    } finally {
+      setImportBusy(false);
     }
   }
 
@@ -165,6 +214,21 @@ export default function AdminPage() {
             </form>
           </section>
         </div>
+
+        <section className="surface surface-pad admin-section" id="quiz-import">
+          <div className="admin-section-heading"><div><span className="list-meta">IMPORT MASSAL</span><h2 className="surface-title"><FileSpreadsheet size={16} /> Import soal dari file</h2></div><span className="admin-count">CSV · JSON · XLSX</span></div>
+          <p className="page-intro">Gunakan kolom category, question, option_a, option_b, option_c, option_d, answer_index, dan explanation. Jawaban dapat ditulis A-D atau 0-3. Maksimal 1.000 soal.</p>
+          <form className="admin-import-form" onSubmit={(event) => void previewImport(event)}>
+            <label className="field"><span>File bank soal</span><input className="input" name="quiz_file" type="file" accept=".csv,.json,.xlsx,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required /></label>
+            <MotionButton className="button button-secondary" disabled={importBusy}><FileSpreadsheet size={14} />{importBusy ? "Membaca file..." : "Preview file"}</MotionButton>
+          </form>
+          {importPreview && <div className="admin-import-preview" aria-live="polite">
+            <div className="admin-import-summary"><strong>{importPreview.validRows}/{importPreview.totalRows} baris siap diimport</strong><span>{importPreview.errors.length ? `${importPreview.errors.length} error ditemukan` : "Semua baris valid"}</span></div>
+            {importPreview.errors.length > 0 && <div className="admin-import-errors" role="alert">{importPreview.errors.map((item, index) => <p key={`${item.rowNumber}-${index}`}>Baris {item.rowNumber || "file"}: {item.message}</p>)}</div>}
+            {importPreview.rows.length > 0 && <div className="admin-import-sample"><span className="list-meta">CONTOH BARIS VALID</span>{importPreview.rows.map((row) => <div className="list-row" key={row.rowNumber}><div><div className="list-title">Baris {row.rowNumber} · {row.category}</div><div className="list-meta">{row.question}</div></div><strong>{String.fromCharCode(65 + row.answer_index)}</strong></div>)}</div>}
+            <MotionButton type="button" className="button button-primary" disabled={importBusy || importPreview.errors.length > 0 || !importFile} onClick={() => void confirmImport()}>Import {importPreview.validRows} soal</MotionButton>
+          </div>}
+        </section>
 
         <section className="surface surface-pad admin-section" id="questions">
           <div className="admin-section-heading"><div><span className="list-meta">BANK KONTEN</span><h2 className="surface-title">Soal quiz</h2></div><span className="admin-count">{data.questions.length} soal</span></div>
