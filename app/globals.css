@@ -219,6 +219,14 @@ body, :root[data-theme="dark"] body {
 
 
 .admin-material-list { display: grid; gap: 10px; }
+.admin-import-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.admin-import-preview { display: grid; margin-top: 18px; gap: 13px; }
+.admin-import-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--teal); font-size: 13px; }
+.admin-import-summary span { color: var(--muted); font-size: 12px; }
+.admin-import-errors { max-height: 220px; padding: 12px 14px; overflow: auto; border: 1px solid #efc3be; color: #a13631; background: #fff4f2; font-size: 12px; }
+.admin-import-errors p { margin: 4px 0; }
+.admin-import-sample { display: grid; gap: 0; border-top: 1px solid var(--glass-stroke); }
+.admin-import-sample .list-row { padding: 10px 0; }
 .admin-material-item { min-width: 0; padding: 14px 16px; border: 1.5px solid var(--glass-stroke); background: var(--glass-surface); }
 .admin-material-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .admin-material-info { min-width: 0; }
@@ -267,6 +275,8 @@ body, :root[data-theme="dark"] body {
   .page-wrap .split-layout:not(.forum-layout) { grid-template-columns: minmax(0, 1fr); }
   .admin-material-summary { align-items: flex-start; flex-direction: column; }
   .admin-material-editor { grid-template-columns: minmax(0, 1fr); }
+  .admin-import-form { grid-template-columns: minmax(0, 1fr); }
+  .admin-import-summary { align-items: flex-start; flex-direction: column; gap: 4px; }
   .admin-material-editor .form-span { grid-column: 1; }
   .admin-material-editor-actions { grid-column: 1; }
   .course-reader-heading { flex-direction: column; }
