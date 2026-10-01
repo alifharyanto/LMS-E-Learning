@@ -31,12 +31,19 @@ const starterFiles: WorkspaceFile[] = [
 
 const allowedExtensions = new Set(["html", "htm", "css", "js", "mjs", "cjs", "jsx", "ts", "tsx", "php", "json"]);
 const codeTheme = EditorView.theme({
-  "&": { height: "100%", fontSize: "13px", backgroundColor: "#10191d" },
+  "&": { height: "100%", fontSize: "13px", color: "var(--code-editor-foreground)", backgroundColor: "var(--code-editor-background)" },
   ".cm-scroller": { fontFamily: "'Cascadia Code', 'SFMono-Regular', Consolas, monospace", lineHeight: "1.7", overflow: "auto" },
-  ".cm-gutters": { border: "none", backgroundColor: "#10191d" },
-  ".cm-activeLine": { backgroundColor: "#1b292d" },
-  ".cm-activeLineGutter": { backgroundColor: "#1b292d" },
+  ".cm-gutters": { border: "none", color: "var(--code-editor-foreground)", backgroundColor: "var(--code-editor-background)" },
+  ".cm-activeLine": { backgroundColor: "var(--code-editor-active-line)" },
+  ".cm-activeLineGutter": { backgroundColor: "var(--code-editor-active-line)" },
 }, { dark: true });
+const lightCodeTheme = EditorView.theme({
+  "&": { height: "100%", fontSize: "13px", color: "var(--code-editor-foreground)", backgroundColor: "var(--code-editor-background)" },
+  ".cm-scroller": { fontFamily: "'Cascadia Code', 'SFMono-Regular', Consolas, monospace", lineHeight: "1.7", overflow: "auto" },
+  ".cm-gutters": { border: "none", color: "var(--code-editor-foreground)", backgroundColor: "var(--code-editor-background)" },
+  ".cm-activeLine": { backgroundColor: "var(--code-editor-active-line)" },
+  ".cm-activeLineGutter": { backgroundColor: "var(--code-editor-active-line)" },
+}, { dark: false });
 
 function extensionOf(name: string) {
   return name.split(".").at(-1)?.toLowerCase() ?? "";
@@ -174,6 +181,7 @@ function createPhpDocument(htmlText: string) {
 
 export default function CodeStudio() {
   const router = useRouter();
+  const [editorDarkMode, setEditorDarkMode] = useState(false);
   const [files, setFiles] = useState<WorkspaceFile[]>(starterFiles);
   const [folders, setFolders] = useState<string[]>([]);
   const [activeName, setActiveName] = useState("index.html");
@@ -214,6 +222,14 @@ export default function CodeStudio() {
   const nextLogId = useRef(1);
   const nextAiMessageId = useRef(1);
   const aiMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const syncTheme = () => setEditorDarkMode(document.documentElement.dataset.theme === "dark");
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
 
   const activeFile = files.find((file) => file.name === activeName) ?? files[0];
   const activeExtension = activeFile ? extensionOf(activeFile.name) : "";
@@ -581,7 +597,7 @@ export default function CodeStudio() {
         const expanded = expandedFolders.has(node.path) || explorerSearch.length > 0;
         return <div key={node.path}>
           <button type="button" className={`code-explorer-row code-folder-row ${activeFolder === node.path ? "is-selected" : ""}`} style={{ paddingLeft: 9 + depth * 14 }} onClick={() => toggleFolder(node.path)}>
-            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}{expanded ? <FolderOpen size={14} color="#d5b870" /> : <Folder size={14} color="#d5b870" />}<span>{node.name}</span>
+            {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}{expanded ? <FolderOpen size={14} color="var(--gold)" /> : <Folder size={14} color="var(--gold)" />}<span>{node.name}</span>
           </button>
           {expanded && node.children.length > 0 && <div>{renderExplorerNodes(node.children, depth + 1)}</div>}
         </div>;
@@ -745,7 +761,7 @@ export default function CodeStudio() {
             <div className="code-editor-tab-actions"><span className="code-mode-label"><Braces size={13} />{modeLabel}</span><button type="button" className="code-ai-icon" onClick={openAiPanel} title="Tanya AI tentang project" aria-label="Buka AI assistant"><Sparkles size={14} /></button></div>
           </div>
           <div className="code-editor-body">
-            <CodeMirror value={activeFile?.content ?? ""} height="100%" theme={oneDark} extensions={[...editorExtensions(activeFile?.name ?? "js"), codeTheme]} onChange={updateActiveContent} basicSetup={{ foldGutter: true, bracketMatching: true, closeBrackets: true, autocompletion: true, highlightActiveLine: true }} aria-label={`Editor ${activeFile?.name ?? "kode"}`} />
+            <CodeMirror value={activeFile?.content ?? ""} height="100%" theme={editorDarkMode ? oneDark : "light"} extensions={[...editorExtensions(activeFile?.name ?? "js"), editorDarkMode ? codeTheme : lightCodeTheme]} onChange={updateActiveContent} basicSetup={{ foldGutter: true, bracketMatching: true, closeBrackets: true, autocompletion: true, highlightActiveLine: true }} aria-label={`Editor ${activeFile?.name ?? "kode"}`} />
             {!ready && <div className="code-editor-loading">Menyiapkan workspace...</div>}
           </div>
           <div className="code-editor-status"><span>{activeFile?.name ?? ""}</span><span>{activeExtension.toUpperCase()}</span><span>UTF-8</span><span>LF</span><span>Spaces: 2</span></div>

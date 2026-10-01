@@ -2,15 +2,33 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #12323b;
-  --muted: #64787c;
-  --line: #dce8e3;
-  --paper: #f3f8f5;
-  --white: #fff;
-  --teal: #0f766e;
-  --green: #15803d;
-  --gold: #d39b2f;
-  --red: #bd4a42;
+  color-scheme: light;
+  --ink: #17314a;
+  --muted: #4f6677;
+  --line: #788f9a;
+  --paper: #f6f9f9;
+  --white: #ffffff;
+  --teal: #2860b9;
+  --green: #147d67;
+  --gold: #80c4c0;
+  --red: #b42318;
+  --surface: #ffffff;
+  --surface-secondary: #eaf2f4;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #17314a;
+  --link: #2860b9;
+  --secondary: #239cb5;
+  --focus: #239cb5;
+  --success: #147d67;
+  --warning: #735100;
+  --destructive: #b42318;
+  --success-surface: #e7f5f0;
+  --warning-surface: #fff6d9;
+  --destructive-surface: #fff0ee;
+  --code-editor-background: #f6f9ff;
+  --code-editor-foreground: #17314a;
+  --code-editor-line: #c4d2e5;
+  --code-editor-active-line: #e6eef9;
   --font-body: "DM Sans", "Avenir Next", sans-serif;
   --font-display: "Manrope", "Avenir Next", sans-serif;
 }
@@ -198,6 +216,7 @@ body, :root[data-theme="dark"] body {
 }
 :root[data-theme="dark"] .dashboard-metric-item .metric, :root[data-theme="dark"] .admin-metric-item .metric { box-shadow: 4px 4px 0 var(--teal); }
 :root[data-theme="dark"] .auth-card { border-color: var(--glass-stroke); box-shadow: 7px 7px 0 var(--teal); }
+
 
 .admin-material-list { display: grid; gap: 10px; }
 .admin-material-item { min-width: 0; padding: 14px 16px; border: 1.5px solid var(--glass-stroke); background: var(--glass-surface); }
@@ -934,11 +953,11 @@ body:has(.code-route-shell) { min-height: 100dvh; overflow: hidden; }
 :root[data-theme="dark"] .quiz-category:hover, :root[data-theme="dark"] .quiz-option:hover { background: #1b3535; }
 
 :root {
-  --glass-surface: rgba(255, 255, 255, .58);
-  --glass-stroke: rgba(18, 50, 59, .42);
+  --glass-surface: rgba(255, 255, 255, .84);
+  --glass-stroke: rgba(40, 96, 185, .68);
   --glass-blur: 18px;
   --neo-shadow: 4px 4px 0 var(--ink);
-  --grid-ink: rgba(18, 50, 59, .055);
+  --grid-ink: rgba(23, 49, 74, .055);
 }
 body {
   background-image: linear-gradient(var(--grid-ink) 1px, transparent 1px), linear-gradient(90deg, var(--grid-ink) 1px, transparent 1px);
@@ -1020,10 +1039,10 @@ body {
 .quiz-option { background: color-mix(in srgb, var(--white) 45%, transparent); }
 .quiz-option:hover { border-color: var(--ink); box-shadow: 2px 2px 0 var(--gold); }
 :root[data-theme="dark"] {
-  --glass-surface: rgba(20, 40, 45, .68);
-  --glass-stroke: rgba(228, 240, 237, .34);
-  --neo-shadow: 4px 4px 0 rgba(15, 118, 110, .9);
-  --grid-ink: rgba(228, 240, 237, .055);
+  --glass-surface: rgba(23, 45, 131, .9);
+  --glass-stroke: rgba(193, 208, 242, .48);
+  --neo-shadow: 4px 4px 0 rgba(18, 57, 165, .95);
+  --grid-ink: rgba(193, 208, 242, .08);
 }
 :root[data-theme="dark"] .site-header, :root[data-theme="dark"] .site-footer, :root[data-theme="dark"] .mobile-nav { border-color: var(--line); background: rgba(13, 27, 32, .74); }
 :root[data-theme="dark"] .site-header { box-shadow: 0 3px 0 var(--teal); }
@@ -1054,7 +1073,35 @@ body {
 
 .theme-toggle { display: inline-grid; width: 39px; height: 39px; padding: 0; place-items: center; border: 1px solid #cbded6; border-radius: 50%; color: var(--teal); background: white; font-size: 19px; }
 .theme-toggle:hover { border-color: #76b59d; background: #f0faf4; }
-:root[data-theme="dark"] { color-scheme: dark; --ink: #e4f0ed; --muted: #a7bbb7; --line: #2b4548; --paper: #0d1b20; --white: #14282d; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f1f5ff;
+  --muted: #c1d0f2;
+  --line: #7a8bc2;
+  --paper: #101d70;
+  --white: #172d83;
+  --teal: #1239a5;
+  --green: #13ad96;
+  --gold: #13ad96;
+  --red: #ff938b;
+  --surface: #172d83;
+  --surface-secondary: #1d398e;
+  --primary-foreground: #ffffff;
+  --accent-foreground: #061a3a;
+  --link: #75daef;
+  --secondary: #168eba;
+  --focus: #75daef;
+  --success: #63dfc3;
+  --warning: #ffd878;
+  --destructive: #ff938b;
+  --success-surface: #123d73;
+  --warning-surface: #493b4b;
+  --destructive-surface: #522d67;
+  --code-editor-background: #101d70;
+  --code-editor-foreground: #f1f5ff;
+  --code-editor-line: #29428f;
+  --code-editor-active-line: #1b3282;
+}
 :root[data-theme="dark"] body { color: var(--ink); background: var(--paper); }
 :root[data-theme="dark"] .site-header, :root[data-theme="dark"] .site-footer { border-color: #2b4548; background: #112329f2; }
 :root[data-theme="dark"] .brand-name { color: #e4f0ed; }
@@ -1278,3 +1325,302 @@ body, :root[data-theme="dark"] body {
 }
 :root[data-theme="dark"] .dashboard-metric-item .metric, :root[data-theme="dark"] .admin-metric-item .metric { box-shadow: 4px 4px 0 var(--teal); }
 :root[data-theme="dark"] .auth-card { border-color: var(--glass-stroke); box-shadow: 7px 7px 0 var(--teal); }
+/* Semantic palette overrides follow the layout rules so both themes stay consistent. */
+body { color: var(--ink); background-color: var(--paper); }
+:focus-visible { outline-color: var(--focus); }
+.site-header, .site-footer, .mobile-nav { border-color: var(--line); color: var(--ink); background: color-mix(in srgb, var(--paper) 94%, transparent); }
+.nav-links, .site-footer, .footer-inner { color: var(--muted); }
+.nav-links a:hover, .nav-links a[aria-current="page"], .brand-name span, .text-button, .link-inline { color: var(--link); }
+.page-heading .eyebrow, .field label, .field-label, .field > span { color: var(--ink); }
+.surface, .thread-card, .metric, .faq-row, .faq-reveal, .auth-card, .material-item, .quiz-category, .admin-material-item { border-color: var(--line); color: var(--ink); background: var(--surface); }
+.faq-row, .metric, .material-item, .quiz-category, .quiz-question { color: var(--ink); }
+.button-primary { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal); }
+.button-primary:hover { color: var(--primary-foreground); background: color-mix(in srgb, var(--teal) 86%, black); }
+.button-secondary { border-color: var(--line); color: var(--link); background: var(--surface-secondary); }
+.button-danger { border-color: color-mix(in srgb, var(--destructive) 48%, var(--line)); color: var(--destructive); background: var(--destructive-surface); }
+.theme-toggle, .menu-button { border-color: var(--line); color: var(--link); background: var(--surface); }
+.theme-toggle:hover, .menu-button:hover, .mobile-nav a:hover, .mobile-nav button:hover, .admin-nav a:hover, .admin-nav a:focus-visible { border-color: var(--focus); color: var(--ink); background: var(--surface-secondary); }
+.input, .textarea, .select { border-color: var(--line); color: var(--ink); background: var(--surface); color-scheme: inherit; }
+.input:focus, .textarea:focus, .select:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent); }
+.input::placeholder, .textarea::placeholder { color: var(--muted); opacity: .82; }
+.status { border-color: var(--success); color: var(--success); background: var(--success-surface); }
+.status-error { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
+.empty-state { border-color: var(--line); color: var(--muted); }
+.list-row { border-color: color-mix(in srgb, var(--line) 72%, transparent); }
+.material-item[aria-current="true"], .comment, .quiz-option:hover, .quick-search-result[aria-selected="true"], .quick-search-result:hover { border-color: var(--focus); color: var(--ink); background: color-mix(in srgb, var(--focus) 14%, var(--surface)); }
+.reader-tab.is-active, .faq-row summary::before, .home-path:nth-child(2), .hero .button-primary, .hero-photo-label, .quiz-jump.is-answered, .forum-thread-count, .thread-author-mark, .brand-mark { color: var(--accent-foreground); background: var(--gold); }
+.hero { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal) !important; }
+.hero .eyebrow { color: var(--primary-foreground); }
+.hero h1 span { color: var(--gold); }
+.hero p { color: color-mix(in srgb, var(--primary-foreground) 88%, var(--gold)); }
+.hero .button-primary { border-color: var(--gold); }
+.home-path:first-child { color: var(--primary-foreground); background: var(--teal); }
+.home-path:nth-child(3) { color: var(--ink); background: var(--surface); }
+.home-path:nth-child(3) .home-path-copy small { color: var(--muted); }
+.home-path:first-child .home-path-copy small, .home-path:first-child .home-path-number { color: var(--primary-foreground); }
+.quick-search-dialog { border-color: var(--line); color: var(--ink); background: var(--surface) !important; }
+.quick-search-input-row { border-color: var(--line); color: var(--link); background: var(--surface-secondary); }
+.quick-search-input-row input { color: var(--ink); }
+.quick-search-close:hover { color: var(--accent-foreground); background: var(--gold); }
+.markdown-document { border-color: var(--line); color: var(--ink); background: var(--surface); }
+.markdown-document p, .markdown-document li { color: var(--ink); }
+.markdown-document blockquote { border-color: var(--gold); color: var(--muted); background: var(--surface-secondary); }
+.markdown-document code { border-color: var(--line); color: var(--link); background: var(--surface-secondary); }
+.reader-tab.is-active { border-color: var(--gold); color: var(--accent-foreground); }
+.admin-nav, .admin-material-editor { border-color: var(--line); background: var(--surface); }
+.admin-nav a:hover, .admin-nav a:focus-visible { color: var(--link); }
+.quiz-option, .forum-search, .material-search, .quick-search-trigger { border-color: var(--line); background: var(--surface-secondary); }
+.quiz-category:hover, .surface:hover, .thread-card:hover, .metric:hover { border-color: var(--focus); }
+.page-loading, .material-search, .quick-search-icon { color: var(--secondary); }
+.auth-shell { background: var(--paper); }
+.auth-brand { background: var(--teal); }
+.auth-card { background: var(--surface); }
+.learning-next { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal); }
+.learning-next .eyebrow, .learning-next p { color: var(--primary-foreground); }
+.code-route-shell {
+  --editor-background: var(--code-editor-background);
+  --editor-foreground: var(--code-editor-foreground);
+  --editor-line: var(--code-editor-line);
+  --editor-active-line: var(--code-editor-active-line);
+  background: var(--editor-background);
+  color: var(--editor-foreground);
+}
+.code-route-shell .code-topbar, .code-route-shell .code-explorer, .code-route-shell .code-editor-column, .code-route-shell .code-preview-pane, .code-route-shell .code-terminal-panel { border-color: var(--editor-line); color: var(--editor-foreground); background: var(--editor-background); }
+.code-route-shell .code-editor-tabs, .code-route-shell .code-mobile-switch, .code-route-shell .code-statusbar, .code-route-shell .code-terminal-heading, .code-route-shell .code-terminal-command, .code-route-shell .code-preview-toolbar { border-color: var(--editor-line); color: var(--editor-foreground); background: var(--surface-secondary); }
+.code-route-shell .code-explorer-heading, .code-route-shell .code-explorer-row, .code-route-shell .code-project-name, .code-route-shell .code-open-file-tab, .code-route-shell .code-editor-path, .code-route-shell .code-mode-label, .code-route-shell .code-preview-title, .code-route-shell .code-editor-status, .code-route-shell .code-terminal-heading, .code-route-shell .code-terminal-command { color: var(--editor-foreground); }
+.code-route-shell .code-explorer-project, .code-route-shell .code-explorer-form, .code-route-shell .code-ai-panel, .code-route-shell .code-dialog { border-color: var(--editor-line); color: var(--editor-foreground); background: var(--surface); }
+.code-route-shell .code-explorer-search, .code-route-shell .code-explorer-form input, .code-route-shell .code-terminal-command input, .code-route-shell .code-ai-input, .code-route-shell .code-dialog input { border-color: var(--editor-line); color: var(--editor-foreground); background: var(--surface); }
+.code-route-shell .code-explorer-search input, .code-route-shell .code-terminal-command input { color: var(--editor-foreground); }
+.code-route-shell .code-explorer-row:hover, .code-route-shell .code-explorer-row.is-selected, .code-route-shell .code-mobile-switch button.is-active { color: var(--link); background: var(--editor-active-line); }
+.code-route-shell .code-explorer button, .code-route-shell .code-topbar button, .code-route-shell .code-terminal-panel button { border-color: var(--editor-line); color: var(--editor-foreground); }
+.code-route-shell .code-explorer button:hover, .code-route-shell .code-topbar button:hover, .code-route-shell .code-terminal-panel button:hover { color: var(--link); background: var(--editor-active-line); }
+:root[data-theme="dark"] .hero { border-color: var(--gold); color: var(--ink); background: var(--paper) !important; }
+:root[data-theme="dark"] .hero .eyebrow, :root[data-theme="dark"] .hero h1 span { color: #13ad96; }
+:root[data-theme="dark"] .hero p { color: var(--ink); }
+:root[data-theme="dark"] .hero .button-primary { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
+:root[data-theme="dark"] .brand-mark, :root[data-theme="dark"] .reader-tab.is-active, :root[data-theme="dark"] .faq-row summary::before, :root[data-theme="dark"] .home-path:nth-child(2), :root[data-theme="dark"] .hero-photo-label, :root[data-theme="dark"] .quiz-jump.is-answered, :root[data-theme="dark"] .forum-thread-count, :root[data-theme="dark"] .thread-author-mark { color: var(--accent-foreground); }
+:root[data-theme="dark"] .button-primary:hover { color: var(--accent-foreground); background: color-mix(in srgb, var(--gold) 86%, white); }
+:root[data-theme="dark"] .button-secondary { color: var(--link); background: var(--surface); }
+:root[data-theme="dark"] .button-danger { color: var(--destructive); background: var(--destructive-surface); }
+:root[data-theme="dark"] .home-path:first-child { color: var(--ink); background: var(--teal); }
+:root[data-theme="dark"] .home-path:first-child .home-path-copy small, :root[data-theme="dark"] .home-path:first-child .home-path-number { color: var(--ink); }
+:root[data-theme="dark"] .home-path:nth-child(3) { color: var(--ink); background: var(--surface); }
+:root[data-theme="dark"] .mobile-nav a, :root[data-theme="dark"] .mobile-nav button { color: var(--ink); }
+:root[data-theme="dark"] .auth-brand { background: var(--paper); }
+:root[data-theme="dark"] .auth-brand .brand-mark { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
+:root[data-theme="dark"] .markdown-document { background: var(--surface); }
+:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document code { background: var(--surface-secondary); }
+:root[data-theme="dark"] .quick-search-backdrop { background: rgba(4, 12, 15, .76) !important; }
+:root[data-theme="dark"] .quick-search-dialog { border-color: var(--line); background: var(--surface) !important; }
+:root[data-theme="dark"] .quick-search-input-row { background: var(--surface-secondary); }
+:root[data-theme="dark"] .status { border-color: var(--success); color: var(--success); background: var(--success-surface); }
+:root[data-theme="dark"] .status-error { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
+:root[data-theme="dark"] .faq-reveal { border-color: var(--line); background: var(--surface); }
+:root[data-theme="dark"] .learning-next { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal); }
+:root[data-theme="dark"] .learning-next .eyebrow, :root[data-theme="dark"] .learning-next p { color: var(--primary-foreground); }
+:root[data-theme="dark"] .quiz-progress-track { border-color: var(--line); background: var(--surface-secondary); }
+:root[data-theme="dark"] .quiz-option { border-color: var(--line); background: var(--surface-secondary); }
+:root[data-theme="dark"] .theme-toggle:hover, :root[data-theme="dark"] .menu-button:hover, :root[data-theme="dark"] .mobile-nav a:hover, :root[data-theme="dark"] .mobile-nav button:hover { color: var(--ink); background: var(--surface-secondary); }
+:root[data-theme="dark"] .code-route-shell .code-topbar, :root[data-theme="dark"] .code-route-shell .code-explorer, :root[data-theme="dark"] .code-route-shell .code-editor-column, :root[data-theme="dark"] .code-route-shell .code-preview-pane, :root[data-theme="dark"] .code-route-shell .code-terminal-panel { background: var(--code-editor-background); }
+:root[data-theme="dark"] .code-route-shell .code-editor-tabs, :root[data-theme="dark"] .code-route-shell .code-mobile-switch, :root[data-theme="dark"] .code-route-shell .code-statusbar, :root[data-theme="dark"] .code-route-shell .code-terminal-heading, :root[data-theme="dark"] .code-route-shell .code-terminal-command, :root[data-theme="dark"] .code-route-shell .code-preview-toolbar { background: var(--surface); }
+:root[data-theme="dark"] .site-header, :root[data-theme="dark"] .site-footer, :root[data-theme="dark"] .mobile-nav { border-color: var(--line); background: color-mix(in srgb, var(--paper) 94%, transparent); }
+:root[data-theme="dark"] .theme-toggle, :root[data-theme="dark"] .menu-button { border-color: var(--line); color: var(--link); background: var(--surface); }
+:root[data-theme="dark"] .button-primary { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal); }
+:root[data-theme="dark"] .input, :root[data-theme="dark"] .textarea, :root[data-theme="dark"] .select { border-color: var(--line); color: var(--ink); background: var(--surface-secondary); }
+:root[data-theme="dark"] .surface, :root[data-theme="dark"] .thread-card, :root[data-theme="dark"] .metric, :root[data-theme="dark"] .faq-row, :root[data-theme="dark"] .auth-card, :root[data-theme="dark"] .material-item, :root[data-theme="dark"] .quiz-category { border-color: var(--line); color: var(--ink); background: var(--surface); }
+:root[data-theme="dark"] .faq-row p, :root[data-theme="dark"] .markdown-document p, :root[data-theme="dark"] .markdown-document li { color: var(--ink); }
+:root[data-theme="dark"] .markdown-document { border-color: var(--line); color: var(--ink); background: var(--surface); }
+:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document code { border-color: var(--line); background: var(--surface-secondary); }
+:root[data-theme="dark"] .reader-tab.is-active { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
+:root[data-theme="dark"] .home-path:nth-child(2) .home-path-number, :root[data-theme="dark"] .home-path:nth-child(2) .home-path-copy small { color: var(--accent-foreground); }
+:root[data-theme="dark"] .quiz-category:hover, :root[data-theme="dark"] .quiz-option:hover, :root[data-theme="dark"] .material-item[aria-current="true"], :root[data-theme="dark"] .comment, :root[data-theme="dark"] .admin-nav a:hover, :root[data-theme="dark"] .admin-nav a:focus-visible { border-color: var(--focus); background: var(--surface-secondary); }
+:root[data-theme="dark"] .quick-search-result[aria-selected="true"], :root[data-theme="dark"] .quick-search-result:hover { border-color: var(--focus); color: var(--ink); background: var(--surface-secondary); }
+
+.code-route-shell .code-studio {
+  --editor-bg: var(--editor-background);
+  --editor-soft: var(--surface-secondary);
+  --editor-line: var(--line);
+  --editor-muted: var(--muted);
+  --editor-green: var(--green);
+  border-color: var(--line);
+  color: var(--editor-foreground);
+  background: var(--editor-background);
+}
+.code-route-shell .code-topbar,
+.code-route-shell .code-toolbar,
+.code-route-shell .code-explorer,
+.code-route-shell .code-main-panes,
+.code-route-shell .code-editor-column,
+.code-route-shell .code-preview-pane,
+.code-route-shell .code-terminal-panel,
+.code-route-shell .code-ai-panel { color: var(--editor-foreground); background: var(--editor-background); }
+.code-route-shell .code-editor-tabs,
+.code-route-shell .code-statusbar,
+.code-route-shell .code-terminal-heading,
+.code-route-shell .code-terminal-command,
+.code-route-shell .code-preview-toolbar,
+.code-route-shell .code-right-tabs,
+.code-route-shell .code-ai-composer { color: var(--editor-foreground); background: var(--surface); }
+.code-route-shell .code-pane-heading,
+.code-route-shell .code-mobile-switch,
+.code-route-shell .code-explorer-project,
+.code-route-shell .code-explorer-form,
+.code-route-shell .code-new-file,
+.code-route-shell .code-ai-message,
+.code-route-shell .code-ai-changes,
+.code-route-shell .code-ai-suggestions button,
+.code-route-shell .code-ai-composer-bottom select,
+.code-route-shell .code-dialog { border-color: var(--line); color: var(--editor-foreground); background: var(--surface-secondary); }
+.code-route-shell .code-exit-button,
+.code-route-shell .code-save-button,
+.code-route-shell .code-ai-button,
+.code-route-shell .code-explorer-search,
+.code-route-shell .code-explorer-form input,
+.code-route-shell .code-new-file input,
+.code-route-shell .code-ai-composer textarea,
+.code-route-shell .code-dialog-secondary { border-color: var(--line); color: var(--editor-foreground); background: var(--surface); }
+.code-route-shell .code-brand strong,
+.code-route-shell .code-project-name,
+.code-route-shell .code-sync-state,
+.code-route-shell .code-explorer-heading,
+.code-route-shell .code-explorer-row,
+.code-route-shell .code-explorer-search,
+.code-route-shell .code-explorer-form label,
+.code-route-shell .code-explorer-account,
+.code-route-shell .code-open-file-tab,
+.code-route-shell .code-editor-path,
+.code-route-shell .code-mode-label,
+.code-route-shell .code-editor-status,
+.code-route-shell .code-terminal-heading,
+.code-route-shell .code-terminal-command,
+.code-route-shell .code-preview-tabs > span,
+.code-route-shell .code-preview-tabs > button,
+.code-route-shell .code-view-picker button,
+.code-route-shell .code-device-picker button,
+.code-route-shell .code-right-tabs > button,
+.code-route-shell .code-ai-heading,
+.code-route-shell .code-ai-message,
+.code-route-shell .code-ai-markdown,
+.code-route-shell .code-ai-changes-heading,
+.code-route-shell .code-ai-change-row,
+.code-route-shell .code-ai-thinking,
+.code-route-shell .code-dialog { color: var(--editor-foreground); }
+.code-route-shell .code-sync-state,
+.code-route-shell .code-explorer-empty,
+.code-route-shell .code-explorer-form small,
+.code-route-shell .code-explorer-form label span,
+.code-route-shell .code-explorer-search input::placeholder,
+.code-route-shell .code-new-file span,
+.code-route-shell .code-new-file label,
+.code-route-shell .code-new-file small,
+.code-route-shell .code-mode-label,
+.code-route-shell .code-editor-path,
+.code-route-shell .code-editor-status,
+.code-route-shell .code-terminal-heading,
+.code-route-shell .code-preview-tabs > span,
+.code-route-shell .code-preview-tabs > button,
+.code-route-shell .code-preview-title,
+.code-route-shell .code-right-tabs > button,
+.code-route-shell .code-ai-heading small,
+.code-route-shell .code-ai-welcome > p,
+.code-route-shell .code-ai-changes-heading > span:last-child,
+.code-route-shell .code-ai-change-row,
+.code-route-shell .code-ai-thinking,
+.code-route-shell .code-ai-composer > small,
+.code-route-shell .code-dialog > p,
+.code-route-shell .code-dialog-close { color: var(--muted); }
+.code-route-shell .code-explorer-search input,
+.code-route-shell .code-explorer-form input,
+.code-route-shell .code-new-file input,
+.code-route-shell .code-terminal-command input,
+.code-route-shell .code-ai-composer textarea,
+.code-route-shell .code-ai-composer-bottom select { color: var(--editor-foreground); }
+.code-route-shell .code-explorer-search input::placeholder,
+.code-route-shell .code-new-file input::placeholder,
+.code-route-shell .code-terminal-command input::placeholder,
+.code-route-shell .code-ai-composer textarea::placeholder { color: var(--muted); }
+.code-route-shell .code-folder-row:hover,
+.code-route-shell .code-file-row:hover,
+.code-route-shell .code-folder-row.is-selected,
+.code-route-shell .code-file-row.is-selected,
+.code-route-shell .code-mobile-switch button.is-active,
+.code-route-shell .code-file-tab.is-active,
+.code-route-shell .code-preview-controls button.is-active,
+.code-route-shell .code-right-tabs > button.is-active,
+.code-route-shell .code-ai-message.is-user { border-color: var(--focus); color: var(--ink); background: var(--surface-secondary); }
+.code-route-shell .code-exit-button:hover,
+.code-route-shell .code-save-button:hover,
+.code-route-shell .code-ai-button:hover,
+.code-route-shell .code-explorer button:hover,
+.code-route-shell .code-file-close:hover,
+.code-route-shell .code-add-file:hover,
+.code-route-shell .code-icon-action:hover,
+.code-route-shell .code-preview-controls button:hover,
+.code-route-shell .code-right-tabs > button:hover,
+.code-route-shell .code-dialog-secondary:hover,
+.code-route-shell .code-dialog-close:hover,
+.code-route-shell .code-ai-suggestions button:hover { border-color: var(--focus); color: var(--link); background: var(--surface-secondary); }
+.code-route-shell .code-explorer-search:focus-within,
+.code-route-shell .code-explorer-form input:focus,
+.code-route-shell .code-new-file input:focus,
+.code-route-shell .code-ai-composer textarea:focus { border-color: var(--focus); }
+.code-route-shell .code-preview-stage { background-color: var(--surface-secondary); background-image: radial-gradient(color-mix(in srgb, var(--muted) 42%, transparent) .7px, transparent .7px); }
+.code-route-shell .code-preview-empty,
+.code-route-shell .code-empty-icon,
+.code-route-shell .code-empty-device { border-color: var(--line); color: var(--muted); background: var(--surface); }
+.code-route-shell .code-preview-empty strong { color: var(--ink); }
+.code-route-shell .code-run-button,
+.code-route-shell .code-dialog-primary,
+.code-route-shell .code-ai-composer-bottom button { border-color: var(--teal); color: var(--primary-foreground); background: var(--teal); }
+.code-route-shell .code-run-button:hover,
+.code-route-shell .code-dialog-primary:hover:not(:disabled),
+.code-route-shell .code-ai-composer-bottom button:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 86%, black); }
+.code-route-shell .code-dialog-danger { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
+.code-route-shell .code-dialog-danger:hover { background: color-mix(in srgb, var(--destructive-surface) 75%, var(--destructive)); }
+.code-route-shell .code-ai-error,
+.code-route-shell .code-ai-error .code-dialog-icon,
+.code-route-shell .code-preview-error,
+.code-route-shell .code-explorer-form .is-error,
+.code-route-shell .code-new-file small { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
+.code-route-shell .code-error-dot,
+.code-route-shell .code-sync-state.is-error .code-sync-dot { background: var(--destructive); }
+.code-route-shell .code-sync-state.is-saved .code-sync-dot,
+.code-route-shell .code-live-indicator { background: var(--success); }
+.code-route-shell .code-sync-state.is-saving .code-sync-dot,
+.code-route-shell .code-live-indicator.is-dirty,
+.code-route-shell .code-ai-thinking span { background: var(--warning); }
+:root[data-theme="dark"] .code-route-shell .code-run-button,
+:root[data-theme="dark"] .code-route-shell .code-dialog-primary,
+:root[data-theme="dark"] .code-route-shell .code-ai-composer-bottom button { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
+:root[data-theme="dark"] .code-route-shell .code-run-button:hover,
+:root[data-theme="dark"] .code-route-shell .code-dialog-primary:hover:not(:disabled),
+:root[data-theme="dark"] .code-route-shell .code-ai-composer-bottom button:hover:not(:disabled) { background: color-mix(in srgb, var(--gold) 86%, white); }
+:root[data-theme="dark"] .code-route-shell .code-dialog-danger { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
+:root[data-theme="dark"] .code-route-shell .code-ai-message.is-user { border-color: var(--focus); color: var(--ink); background: var(--surface); }
+:root[data-theme="dark"] .code-route-shell .code-ai-changes > button { color: var(--accent-foreground); }
+.thread-message, .check-row { color: var(--ink); }
+.faq-row[open] summary { color: var(--link); }
+.forum-sort button.is-active, .insight-average, .material-clear { color: var(--accent-foreground); }
+.button-danger:hover { border-color: var(--destructive); color: var(--primary-foreground); background: var(--destructive); }
+.auth-brand .brand-name { color: var(--primary-foreground); }
+.auth-brand .brand-name span { color: var(--gold); }
+:root[data-theme="dark"] .button-danger:hover { color: var(--accent-foreground); }
+.code-route-shell .code-dialog-icon,
+.code-route-shell .code-dialog-icon.is-ai,
+.code-route-shell .code-ai-avatar { border-color: var(--focus); color: var(--secondary); background: var(--surface-secondary); }
+.code-route-shell .code-ai-welcome > strong,
+.code-route-shell .code-ai-heading strong,
+.code-route-shell .code-ai-markdown h1,
+.code-route-shell .code-ai-markdown h2,
+.code-route-shell .code-ai-markdown h3,
+.code-route-shell .code-ai-message-role { color: var(--editor-foreground); }
+.code-route-shell .code-ai-markdown a { color: var(--link); }
+.code-route-shell .code-ai-markdown :not(pre) > code,
+.code-route-shell .code-ai-markdown pre { border-color: var(--line); color: var(--editor-foreground); background: var(--surface); }
+.code-route-shell .code-ai-changes-heading { border-color: var(--line); color: var(--editor-foreground); }
+.code-route-shell .code-ai-changes > button { border-color: var(--success); color: var(--primary-foreground); background: var(--success); }
+.code-route-shell .code-ai-changes > button:hover:not(:disabled) { background: color-mix(in srgb, var(--success) 86%, black); }
+.code-route-shell .code-ai-changes > button:disabled { color: var(--muted); }
+.code-route-shell .code-dialog-danger { color: var(--destructive); }
+.code-route-shell .code-run-button kbd { border-color: var(--line); color: var(--accent-foreground); background: var(--surface); }
+:root[data-theme="dark"] .code-route-shell .code-run-button kbd { color: var(--ink); background: var(--surface-secondary); }
