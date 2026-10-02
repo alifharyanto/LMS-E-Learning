@@ -93,6 +93,24 @@ async function readMaterialPdf(filePath: string) {
   return readFile(join(process.cwd(), "public", relativePath));
 }
 
+async function readMaterialMarkdown(filePath: string) {
+  let content: Buffer;
+  if (filePath.startsWith("https://")) {
+    const remote = new URL(filePath);
+    if (!remote.hostname.endsWith(".blob.vercel-storage.com")) throw new Error("Sumber Markdown tidak diizinkan.");
+    const response = await fetch(remote, { signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) throw new Error("File Markdown tidak dapat diunduh.");
+    if (Number(response.headers.get("content-length") ?? 0) > 5 * 1024 * 1024) throw new Error("Ukuran Markdown melebihi batas 5 MB.");
+    content = Buffer.from(await response.arrayBuffer());
+  } else {
+    const relativePath = filePath.replace(/^\/+/, "");
+    if (!relativePath.startsWith("Materi/") || relativePath.split("/").some((part) => part === "..")) throw new Error("Path Markdown tidak valid.");
+    content = await readFile(join(process.cwd(), "public", relativePath));
+  }
+  if (content.length > 5 * 1024 * 1024) throw new Error("Ukuran Markdown melebihi batas 5 MB.");
+  return content.toString("utf8").replace(/^\uFEFF/, "");
+}
+
 async function routeRequest(request: Request, path: string[]) {
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
@@ -185,10 +203,20 @@ async function routeRequest(request: Request, path: string[]) {
     if (guard.response) return guard.response;
     const materialId = parseId(path[1]);
     if (!materialId) return json({ error: "Materi tidak ditemukan." }, 404);
-    const materials = await queryRows<DataRow[]>("SELECT title, file_path FROM materials WHERE id = ? LIMIT 1", [materialId]);
+    const materials = await queryRows<DataRow[]>("SELECT title, file_path, file_type FROM materials WHERE id = ? LIMIT 1", [materialId]);
     const material = materials[0];
     const filePath = String(material?.file_path ?? "");
-    if (!material || !filePath) return json({ error: "PDF materi tidak tersedia." }, 404);
+    if (!material || !filePath) return json({ error: "File materi tidak tersedia." }, 404);
+
+    if (material.file_type === "text/markdown") {
+      try {
+        const markdown = await readMaterialMarkdown(filePath);
+        if (!markdown.trim()) return json({ error: "File Markdown kosong." }, 422);
+        return json({ markdown, pages: 1 });
+      } catch {
+        return json({ error: "File Markdown tidak dapat dibaca atau melebihi batas 5 MB." }, 422);
+      }
+    }
 
     try {
       const pdfBuffer = await readMaterialPdf(filePath);
@@ -373,14 +401,19 @@ async function routeRequest(request: Request, path: string[]) {
   if (path[0] === "admin" && path.length === 1 && method === "GET") {
     const guard = await roleGuard(request, "admin");
     if (guard.response) return guard.response;
-    const [materials, contacts, categories, questions, results] = await Promise.all([
+    const [materials, contacts, categories, questions, results, studentCounts, registrations, activeToday, activeStudents, quizSummary] = await Promise.all([
       queryRows<DataRow[]>("SELECT id, title, description, category, file_path, file_size, file_type, created_at FROM materials ORDER BY created_at DESC"),
       queryRows<DataRow[]>("SELECT id, name, email, phone, subject, message, status, created_at FROM contacts ORDER BY created_at DESC"),
       queryRows<DataRow[]>("SELECT c.id, c.name, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id GROUP BY c.id, c.name ORDER BY c.name"),
       queryRows<DataRow[]>("SELECT id, category_id, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions ORDER BY created_at DESC"),
       queryRows<DataRow[]>("SELECT r.id, r.user_id, r.score, r.total, r.percent, r.created_at, u.username FROM quiz_results r LEFT JOIN users u ON u.id = r.user_id ORDER BY r.created_at DESC"),
+      queryRows<DataRow[]>("SELECT COUNT(*) AS total, COALESCE(SUM(created_at >= CURDATE()), 0) AS joined_today FROM users WHERE role = 'student'"),
+      queryRows<DataRow[]>("SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date, COUNT(*) AS total FROM users WHERE role = 'student' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(created_at) ORDER BY DATE(created_at)"),
+      queryRows<DataRow[]>("SELECT COUNT(DISTINCT user_id) AS total FROM study_sessions WHERE created_at >= CURDATE()"),
+      queryRows<DataRow[]>("SELECT u.id, u.username, u.full_name, MAX(s.created_at) AS last_active FROM study_sessions s INNER JOIN users u ON u.id = s.user_id WHERE u.role = 'student' AND s.created_at >= CURDATE() GROUP BY u.id, u.username, u.full_name ORDER BY last_active DESC LIMIT 6"),
+      queryRows<DataRow[]>("SELECT COUNT(*) AS attempts, COALESCE(ROUND(AVG(percent)), 0) AS average_percent, COALESCE(SUM(percent >= 70), 0) AS passed FROM quiz_results WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"),
     ]);
-    return json({ materials, contacts, categories, questions, results });
+    return json({ materials, contacts, categories, questions, results, overview: { total_students: Number(studentCounts[0]?.total ?? 0), joined_today: Number(studentCounts[0]?.joined_today ?? 0), active_today: Number(activeToday[0]?.total ?? 0), registrations, active_students: activeStudents, quiz_30d: { attempts: Number(quizSummary[0]?.attempts ?? 0), average_percent: Number(quizSummary[0]?.average_percent ?? 0), passed: Number(quizSummary[0]?.passed ?? 0) } } });
   }
 
   if (path[0] === "admin" && path[1] === "materials" && path.length === 2 && method === "POST") {
@@ -391,17 +424,21 @@ async function routeRequest(request: Request, path: string[]) {
     const description = textField(body ?? {}, "description", 10_000);
     const category = textField(body ?? {}, "category", 100);
     const filePath = textField(body ?? {}, "file_path", 2000);
+    const fileType = body?.file_type;
+    const maximumSize = fileType === "text/markdown" ? 5 * 1024 * 1024 : 25 * 1024 * 1024;
     const fileSize = Number(body?.file_size);
     let uploadedFile: URL;
     try {
       uploadedFile = new URL(filePath);
     } catch {
-      return json({ error: "Upload PDF belum selesai atau URL tidak valid." }, 422);
+      return json({ error: "Upload file belum selesai atau URL tidak valid." }, 422);
     }
-    if (!title || !category || uploadedFile.protocol !== "https:" || !uploadedFile.hostname.endsWith(".blob.vercel-storage.com") || !uploadedFile.pathname.startsWith(`/materials/${guard.user.id}/`) || !Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > 25 * 1024 * 1024) {
-      return json({ error: "Judul, kategori, dan PDF valid maksimal 25 MB wajib diisi." }, 422);
+    const validType = fileType === "application/pdf" || fileType === "text/markdown";
+    const expectedExtension = fileType === "text/markdown" ? ".md" : ".pdf";
+    if (!title || !category || !validType || !uploadedFile.pathname.toLowerCase().endsWith(expectedExtension) || uploadedFile.protocol !== "https:" || !uploadedFile.hostname.endsWith(".blob.vercel-storage.com") || !uploadedFile.pathname.startsWith(`/materials/${guard.user.id}/`) || !Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > maximumSize) {
+      return json({ error: "Judul, kategori, file PDF/Markdown valid, dan ukuran sesuai batas wajib diisi." }, 422);
     }
-    const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type) VALUES (?, ?, ?, ?, ?, 'application/pdf')", [title, description, category, uploadedFile.toString(), fileSize]);
+    const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type) VALUES (?, ?, ?, ?, ?, ?)", [title, description, category, uploadedFile.toString(), fileSize, fileType]);
     return json({ success: true, id: result.insertId }, 201);
   }
 
@@ -414,9 +451,10 @@ async function routeRequest(request: Request, path: string[]) {
     const title = textField(body ?? {}, "title", 255);
     const description = textField(body ?? {}, "description", 10_000);
     const category = textField(body ?? {}, "category", 100);
+    const fileType = body?.file_type;
     if (!title || !category) return json({ error: "Judul dan kategori wajib diisi." }, 422);
 
-    const current = await queryRows<DataRow[]>("SELECT id FROM materials WHERE id = ? LIMIT 1", [id]);
+    const current = await queryRows<DataRow[]>("SELECT id, file_type FROM materials WHERE id = ? LIMIT 1", [id]);
     if (!current.length) return json({ error: "Materi tidak ditemukan." }, 404);
 
     const filePath = textField(body ?? {}, "file_path", 2000);
@@ -425,14 +463,18 @@ async function routeRequest(request: Request, path: string[]) {
       try {
         uploadedFile = new URL(filePath);
       } catch {
-        return json({ error: "URL PDF pengganti tidak valid." }, 422);
+        return json({ error: "URL file pengganti tidak valid." }, 422);
       }
       const fileSize = Number(body?.file_size);
-      if (uploadedFile.protocol !== "https:" || !uploadedFile.hostname.endsWith(".blob.vercel-storage.com") || !uploadedFile.pathname.startsWith(`/materials/${guard.user.id}/`) || !Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > 25 * 1024 * 1024) {
-        return json({ error: "PDF pengganti harus berupa file Blob milik admin ini, maksimal 25 MB." }, 422);
+      const validType = fileType === "application/pdf" || fileType === "text/markdown";
+      const expectedExtension = fileType === "text/markdown" ? ".md" : ".pdf";
+      const maximumSize = fileType === "text/markdown" ? 5 * 1024 * 1024 : 25 * 1024 * 1024;
+      if (!validType || !uploadedFile.pathname.toLowerCase().endsWith(expectedExtension) || uploadedFile.protocol !== "https:" || !uploadedFile.hostname.endsWith(".blob.vercel-storage.com") || !uploadedFile.pathname.startsWith(`/materials/${guard.user.id}/`) || !Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > maximumSize) {
+        return json({ error: "File pengganti harus PDF atau Markdown milik admin ini dan sesuai batas ukuran." }, 422);
       }
-      await execute("UPDATE materials SET title = ?, description = ?, category = ?, file_path = ?, file_size = ?, file_type = 'application/pdf' WHERE id = ?", [title, description, category, uploadedFile.toString(), fileSize, id]);
+      await execute("UPDATE materials SET title = ?, description = ?, category = ?, file_path = ?, file_size = ?, file_type = ? WHERE id = ?", [title, description, category, uploadedFile.toString(), fileSize, fileType, id]);
     } else {
+      if (fileType && fileType !== current[0].file_type) return json({ error: "Pilih file baru saat mengganti format materi." }, 422);
       await execute("UPDATE materials SET title = ?, description = ?, category = ? WHERE id = ?", [title, description, category, id]);
     }
     return json({ success: true });

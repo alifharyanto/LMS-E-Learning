@@ -8,6 +8,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!blobToken) {
+    return json({ error: "Upload belum dikonfigurasi. Tambahkan BLOB_READ_WRITE_TOKEN ke environment server." }, 503);
+  }
+  if (blobToken.startsWith("eyJ")) {
+    return json({ error: "BLOB_READ_WRITE_TOKEN berisi token OIDC. Gunakan token Read-Write dari Blob store Vercel untuk upload browser." }, 503);
+  }
+
   try {
     const body = await request.json() as HandleUploadBody;
     const result = await handleUpload({
@@ -33,10 +41,12 @@ export async function POST(request: Request) {
         if (!pathname.startsWith(prefix) || !filename || filename.includes("/") || filename.includes("..")) {
           throw new Error("Nama file upload tidak valid.");
         }
+        const isMarkdown = isMaterial && filename.toLowerCase().endsWith(".md");
+        if (isMaterial && !isMarkdown && !filename.toLowerCase().endsWith(".pdf")) throw new Error("File materi harus PDF atau Markdown .md.");
 
         return {
-          allowedContentTypes: isMaterial ? ["application/pdf"] : ["image/jpeg", "image/png", "image/webp"],
-          maximumSizeInBytes: isMaterial ? 25 * 1024 * 1024 : 2 * 1024 * 1024,
+          allowedContentTypes: isMaterial ? isMarkdown ? ["text/markdown"] : ["application/pdf"] : ["image/jpeg", "image/png", "image/webp"],
+          maximumSizeInBytes: isMaterial ? isMarkdown ? 5 * 1024 * 1024 : 25 * 1024 * 1024 : 2 * 1024 * 1024,
           addRandomSuffix: true,
           validUntil: Date.now() + 60 * 60 * 1000,
           tokenPayload: JSON.stringify({ userId: user.id, purpose }),
