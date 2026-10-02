@@ -227,7 +227,7 @@ async function routeRequest(request: Request, path: string[]) {
     const guard = await roleGuard(request, "student");
     if (guard.response) return guard.response;
     const [results, averages, threads, study] = await Promise.all([
-      queryRows<DataRow[]>("SELECT id, score, total, percent, note, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC", [guard.user.id]),
+      queryRows<DataRow[]>("SELECT id, score, total, percent, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC", [guard.user.id]),
       queryRows<DataRow[]>("SELECT COALESCE(ROUND(AVG(percent)), 0) AS average FROM quiz_results WHERE user_id = ?", [guard.user.id]),
       queryRows<DataRow[]>("SELECT COUNT(*) AS total FROM forum_threads WHERE user_id = ?", [guard.user.id]),
       queryRows<DataRow[]>("SELECT COALESCE(SUM(minutes_spent), 0) AS minutes FROM study_sessions WHERE user_id = ?", [guard.user.id]),
