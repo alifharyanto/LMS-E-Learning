@@ -1643,3 +1643,130 @@ body { color: var(--ink); background-color: var(--paper); }
   .student-roster-row { grid-template-columns: 46px minmax(0, 1fr); gap: 10px; }
   .student-roster-number { width: 38px; height: 36px; }
 }
+
+.code-route-shell .code-topbar {
+  min-height: 56px;
+  padding: 0 18px;
+}
+.code-route-shell .code-brand-mark {
+  width: 32px;
+  height: 32px;
+  border-color: var(--line);
+  border-radius: 7px;
+  color: var(--teal);
+  background: var(--surface-secondary);
+}
+.code-route-shell .code-brand strong { font-size: 14px; }
+.code-route-shell .code-project-name { font-size: 11px; }
+.code-route-shell .code-workbench { grid-template-columns: 238px minmax(0, 1fr); }
+.code-route-shell .code-explorer {
+  border-right-color: var(--line);
+  background: var(--surface);
+}
+.code-route-shell .code-explorer-heading {
+  min-height: 42px;
+  padding: 0 14px;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.code-route-shell .code-explorer-project {
+  min-height: 34px;
+  margin: 0 8px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: var(--surface-secondary);
+  font-size: 10px;
+}
+.code-route-shell .code-explorer-actions { min-height: 36px; }
+.code-route-shell .code-explorer-actions button {
+  width: 29px;
+  height: 29px;
+  border-radius: 5px;
+}
+.code-route-shell .code-explorer-search {
+  min-height: 34px;
+  margin: 2px 10px 10px;
+  padding: 0 9px;
+  border-radius: 6px;
+}
+.code-route-shell .code-explorer-search input { font-size: 11px; }
+.code-route-shell .code-explorer-row { height: 29px; }
+.code-route-shell .code-folder-row,
+.code-route-shell .code-file-row > button { font-size: 11px; }
+.code-route-shell .code-editor-column,
+.code-route-shell .code-preview-pane { background: var(--editor-background); }
+.code-route-shell .code-editor-tabs,
+.code-route-shell .code-preview-toolbar,
+.code-route-shell .code-right-tabs {
+  min-height: 40px;
+  border-color: var(--line);
+  background: var(--surface);
+}
+.code-route-shell .code-open-file-tab,
+.code-route-shell .code-right-tabs > button { font-size: 11px; }
+.code-route-shell .code-editor-status {
+  min-height: 25px;
+  font-size: 9px;
+}
+.code-route-shell .code-resize-handle {
+  background: var(--surface-secondary);
+}
+.code-route-shell .code-resize-handle span { background: var(--line); }
+.code-route-shell .code-preview-pane { border-left-color: var(--line); }
+.code-route-shell .code-terminal-resize { background: var(--surface-secondary); }
+.code-route-shell .code-terminal-resize span { background: var(--line); }
+.code-route-shell .code-terminal-panel { border-color: var(--line); }
+.code-route-shell .code-terminal-heading {
+  min-height: 35px;
+  padding: 0 12px;
+  border-color: var(--line);
+  font-size: 10px;
+}
+.code-route-shell .code-terminal-heading > button:first-child { font-size: 10px; }
+.code-route-shell .code-output-content { font-size: 11px; }
+.code-route-shell .code-terminal-command {
+  min-height: 38px;
+  flex-basis: 38px;
+  border-color: var(--line);
+}
+.code-route-shell .code-terminal-command input { font-size: 11px; }
+.code-route-shell .code-preview-stage {
+  background-color: var(--surface-secondary);
+  background-image: none;
+}
+.code-route-shell .code-preview-empty {
+  border-radius: 8px;
+  box-shadow: none;
+}
+.code-route-shell .code-save-button,
+.code-route-shell .code-ai-button,
+.code-route-shell .code-exit-button,
+.code-route-shell .code-run-button { border-radius: 6px; }
+.code-route-shell .code-ai-button {
+  border-color: var(--line);
+  color: var(--muted);
+  background: var(--surface);
+}
+.code-route-shell .code-ai-button:hover {
+  border-color: var(--focus);
+  color: var(--link);
+  background: var(--surface-secondary);
+}
+.code-route-shell .code-statusbar {
+  min-height: 27px;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 801px) and (max-width: 1100px) {
+  .code-route-shell .code-workbench { grid-template-columns: 205px minmax(0, 1fr); }
+  .code-route-shell .code-topbar { padding: 0 12px; }
+  .code-route-shell .code-project-name { display: none; }
+}
+
+@media (max-width: 800px) {
+  .code-route-shell .code-topbar { min-height: 46px; padding: 0 8px; }
+  .code-route-shell .code-workbench { display: block; }
+  .code-route-shell .code-explorer { background: var(--surface); }
+  .code-route-shell .code-terminal-command { min-height: 32px; flex-basis: 32px; }
+}

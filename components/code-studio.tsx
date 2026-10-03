@@ -9,7 +9,7 @@ import { php } from "@codemirror/lang-php";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import ReactMarkdown from "react-markdown";
-import { ArrowLeft, Bot, Braces, Check, ChevronDown, ChevronRight, CircleAlert, Code2, FileCode2, FileJson2, FilePlus2, FileText, Folder, FolderOpen, FolderPlus, Monitor, MoreHorizontal, PanelRight, Play, Save, Search, Send, Smartphone, Sparkles, Terminal, Trash2, X } from "lucide-react";
+import { ArrowLeft, Bot, Braces, Check, ChevronDown, ChevronRight, CircleAlert, Code2, FileCode2, FileJson2, FilePlus2, FileText, Folder, FolderOpen, FolderPlus, Monitor, PanelRight, Play, Save, Search, Send, Smartphone, Sparkles, Terminal, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { apiRequest } from "@/lib/browser-api";
 
@@ -214,7 +214,7 @@ export default function CodeStudio() {
   const [outputOpen, setOutputOpen] = useState(true);
   const [terminalHeight, setTerminalHeight] = useState(190);
   const [terminalCommand, setTerminalCommand] = useState("");
-  const [paneRatio, setPaneRatio] = useState(54);
+  const [paneRatio, setPaneRatio] = useState(56);
   const mainPanesRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLIFrameElement>(null);
   const runButtonRef = useRef<HTMLButtonElement>(null);
@@ -583,11 +583,10 @@ export default function CodeStudio() {
     event.preventDefault();
     const command = terminalCommand.trim();
     setTerminalCommand("");
-    if (!nativeMode || command !== "npm run dev") {
-      addOutput(`Command tidak tersedia: ${command || "(kosong)"}. Untuk preview React Native, jalankan npm run dev.`, "error");
+    if (command !== "npm run dev") {
+      addOutput(`Perintah belum tersedia: ${command || "(kosong)"}. Gunakan npm run dev untuk memperbarui preview.`, "error");
       return;
     }
-    addOutput("> npm run dev", "info");
     void runCode();
   }
 
@@ -645,6 +644,7 @@ export default function CodeStudio() {
 
     if (phpMode) {
       const entryFile = files.some((file) => file.name === "index.php") ? "index.php" : activeName;
+      addOutput("> npm run dev", "info");
       addOutput("> Menjalankan PHP di sandbox terkonfigurasi...", "info");
       try {
         const result = await apiRequest<{ html: string; output: string }>("/api/v1/code-workspace/run-php", {
@@ -663,6 +663,7 @@ export default function CodeStudio() {
       return;
     }
 
+    addOutput("> npm run dev", "info");
     addOutput("> Menjalankan preview web...", "info");
     setPreviewDocument(createWebDocument(files));
     setPreviewKind("web");
@@ -710,11 +711,11 @@ export default function CodeStudio() {
   return <section className="code-studio" aria-label="Code editor workspace">
     <header className="code-topbar">
       <button type="button" className="code-exit-button" aria-label="Keluar dari editor" title="Keluar dari editor" onClick={() => leaveEditor()}><ArrowLeft size={16} /><span>Keluar</span></button>
-      <div className="code-brand"><span className="code-brand-mark"><Code2 size={16} /></span><strong>CourseUp <span>Code</span></strong><span className="code-project-name">latihan-saya</span></div>
+      <div className="code-brand"><span className="code-brand-mark"><Code2 size={16} /></span><strong>Editor <span>Kode</span></strong><span className="code-project-name">Project Saya</span></div>
       <div className="code-top-actions">
         <span className={`code-sync-state is-${isDirty ? "saving" : syncState}`} title={isDirty ? "Perubahan belum tersimpan" : syncMessage}><span className="code-sync-dot" />{isDirty ? "Belum disimpan" : syncState === "loading" ? "Memuat" : syncState === "saving" ? "Menyimpan" : syncState === "saved" ? "Tersimpan" : syncState === "local" ? "Lokal" : "Offline"}</span>
         <button type="button" className="code-save-button" onClick={() => void saveWorkspace()} title="Simpan workspace"><Save size={14} /><span>Simpan</span></button>
-        <button type="button" className="code-ai-button" onClick={openAiPanel} title="Buka CourseUp AI"><Sparkles size={14} /><span>AI Generate</span></button>
+        <button type="button" className="code-ai-button" onClick={openAiPanel} title="Minta bantuan AI"><Sparkles size={14} /><span>Tanya AI</span></button>
         <button className="code-run-button" ref={runButtonRef} type="button" onClick={() => nativeMode ? terminalInputRef.current?.focus() : void runCode()}><Play size={14} fill="currentColor" /><span>{nativeMode ? "Terminal" : "Run"}</span>{!nativeMode && <kbd>Ctrl ↵</kbd>}</button>
       </div>
     </header>
@@ -727,14 +728,14 @@ export default function CodeStudio() {
 
     <div className="code-workbench">
       <aside className={`code-explorer ${activePanel === "explorer" ? "is-mobile-open" : ""}`} aria-label="Explorer project">
-        <div className="code-explorer-heading"><span>EXPLORER</span><button type="button" aria-label="Menu Explorer" title="Menu Explorer"><MoreHorizontal size={16} /></button></div>
-        <button type="button" className="code-explorer-project" onClick={() => setActiveFolder("")}><ChevronDown size={13} /><strong>LATIHAN SAYA</strong></button>
+        <div className="code-explorer-heading"><span>File dan folder</span></div>
+        <button type="button" className="code-explorer-project" onClick={() => setActiveFolder("")}><ChevronDown size={13} /><strong>PROJECT SAYA</strong></button>
         <div className="code-explorer-actions">
           <button type="button" aria-label="File baru" title="File baru" onClick={() => { setNewFileOpen((open) => !open); setNewFolderOpen(false); setNewFileError(""); }}><FilePlus2 size={15} /></button>
           <button type="button" aria-label="Folder baru" title="Folder baru" onClick={toggleFolderDialog}><FolderPlus size={15} /></button>
           <button type="button" aria-label="Simpan semua" title="Simpan semua" onClick={() => void saveWorkspace()}><Save size={14} /></button>
         </div>
-        <label className="code-explorer-search"><Search size={13} /><input value={explorerSearch} placeholder="Cari file" onChange={(event) => setExplorerSearch(event.target.value)} /><kbd>⌘ P</kbd></label>
+        <label className="code-explorer-search"><Search size={13} /><input value={explorerSearch} placeholder="Cari file atau folder" onChange={(event) => setExplorerSearch(event.target.value)} /><kbd>⌘ P</kbd></label>
         {newFileOpen && <form className="code-explorer-form" onSubmit={createFile}>
           <label htmlFor="new-code-file">File baru {activeFolder && <span>di {activeFolder}</span>}</label>
           <input id="new-code-file" autoFocus value={newFileName} placeholder="index.html" onChange={(event) => { setNewFileName(event.target.value); setNewFileError(""); }} onKeyDown={(event) => { if (event.key === "Escape") setNewFileOpen(false); }} />
@@ -769,9 +770,9 @@ export default function CodeStudio() {
           <section className={`code-terminal-panel ${outputOpen ? "is-open" : "is-collapsed"}`} style={{ height: outputOpen ? `${terminalHeight}px` : "34px" }} aria-label="Terminal output">
             <div className="code-terminal-heading"><button type="button" onClick={() => setOutputOpen((open) => !open)}><ChevronDown size={13} className={outputOpen ? "" : "is-collapsed"} /><Terminal size={14} />{nativeMode ? "TERMINAL SIMULASI" : "TERMINAL"}</button><span>{output.length} baris</span><button type="button" className="code-terminal-clear" onClick={() => setOutput([])} aria-label="Hapus output" title="Hapus output"><Trash2 size={13} /></button></div>
             {outputOpen && <div className="code-output-content" aria-live="polite">
-              {output.length ? output.map((line) => <div className={`code-output-line is-${line.level}`} key={line.id}><span>{line.level === "error" ? "×" : line.level === "info" ? "›" : "●"}</span><code>{line.text}</code></div>) : <p>Terminal siap. {nativeMode ? "Ketik npm run dev lalu Enter untuk compile preview." : "Log compile akan tampil di sini."}</p>}
+              {output.length ? output.map((line) => <div className={`code-output-line is-${line.level}`} key={line.id}><span>{line.level === "error" ? "×" : line.level === "info" ? "›" : "●"}</span><code>{line.text}</code></div>) : <p>Terminal siap. Ketik npm run dev untuk memperbarui preview.</p>}
             </div>}
-            {nativeMode && outputOpen && <form className="code-terminal-command" onSubmit={submitTerminalCommand}><span>›</span><input ref={terminalInputRef} aria-label="Terminal command" value={terminalCommand} onChange={(event) => setTerminalCommand(event.target.value)} placeholder="npm run dev" autoComplete="off" spellCheck={false} /><button type="submit" aria-label="Jalankan command" title="Tekan Enter untuk menjalankan"><Send size={13} /></button></form>}
+            {outputOpen && <form className="code-terminal-command" onSubmit={submitTerminalCommand}><span>›</span><input ref={terminalInputRef} aria-label="Perintah terminal" value={terminalCommand} onChange={(event) => setTerminalCommand(event.target.value)} placeholder="npm run dev" autoComplete="off" spellCheck={false} /><button type="submit" aria-label="Jalankan perintah" title="Tekan Enter untuk menjalankan preview"><Send size={13} /></button></form>}
           </section>
         </section>
 
@@ -780,7 +781,7 @@ export default function CodeStudio() {
         <section className={`code-preview-pane ${activePanel === "preview" ? "is-mobile-active" : ""}`} aria-label="Preview project">
           <div className="code-right-tabs" role="tablist" aria-label="Panel kanan">
             <button type="button" role="tab" aria-selected={rightPanel === "preview"} className={rightPanel === "preview" ? "is-active" : ""} onClick={() => setRightPanel("preview")}><PanelRight size={13} />Preview</button>
-            <button type="button" role="tab" aria-selected={rightPanel === "ai"} className={rightPanel === "ai" ? "is-active" : ""} onClick={() => setRightPanel("ai")}><Sparkles size={13} />AI Generate</button>
+            <button type="button" role="tab" aria-selected={rightPanel === "ai"} className={rightPanel === "ai" ? "is-active" : ""} onClick={() => setRightPanel("ai")}><Sparkles size={13} />Bantuan AI</button>
             {rightPanel === "preview" && <div className="code-preview-controls">
               {nativeMode ? <div className="code-device-picker" aria-label="Bingkai preview mobile">
                 <button type="button" className={selectedDevice === "iphone" ? "is-active" : ""} onClick={() => selectNativeDevice("iphone")} title="Preview iPhone 15 Pro, layar 6.1 inci">iPhone 6.1″</button>
