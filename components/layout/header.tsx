@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { LayoutDashboard, LogOut, Menu, ShieldCheck, UserRound, X } from "lucide-react";
+import { Menu, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MotionButton, MotionLink } from "@/components/ui/motion";
@@ -40,7 +40,7 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
       <div className="nav-primary-nav">
         <div className="nav-links">{navLinks.map(([label, href]) => <MotionLink key={href} href={href} aria-current={pathname === href ? "page" : undefined}>{label}</MotionLink>)}</div>
       </div>
-      {user ? <div className="account-menu desktop-only"><MotionButton type="button" className="account-menu-button" aria-label={`Profil ${user.username}`} aria-haspopup="true"><span className="account-menu-avatar"><UserRound size={17} /></span></MotionButton><div className="account-menu-panel"><MotionLink className="account-menu-item" href={user.role === "admin" ? "/admin" : "/dashboard"}>{user.role === "admin" ? <ShieldCheck size={14} /> : <LayoutDashboard size={14} />}<span>{user.role === "admin" ? "Panel Admin" : "Dashboard"}</span></MotionLink><MotionButton className="account-menu-item danger" onClick={onLogout}><LogOut size={14} /><span>Keluar</span></MotionButton></div></div> : <div className="nav-actions"><MotionLink className="button button-secondary button-small" href="/login">Masuk</MotionLink><MotionLink className="button button-primary button-small" href="/register">Daftar</MotionLink></div>}
+      {user ? <MotionLink className="desktop-profile-button desktop-only" href={user.role === "admin" ? "/admin" : "/dashboard"} aria-label={user.role === "admin" ? "Panel Admin" : "Dashboard"}><UserRound size={22} strokeWidth={1.8} /></MotionLink> : <div className="nav-actions"><MotionLink className="button button-secondary button-small" href="/login">Masuk</MotionLink><MotionLink className="button button-primary button-small" href="/register">Daftar</MotionLink></div>}
       <div className="mobile-header-actions">
         <MotionLink
           className="mobile-profile-button"
@@ -78,10 +78,6 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
               <span>{label}</span>
             </MotionLink>)}
             {user ? <>
-              <MotionLink className="mobile-nav-link" href={user.role === "admin" ? "/admin" : "/dashboard"} onClick={() => setMenuOpen(false)}>
-                <span className="mobile-nav-emoji" aria-hidden="true">{user.role === "admin" ? <ShieldCheck size={22} /> : <LayoutDashboard size={22} />}</span>
-                <span>{user.role === "admin" ? "Panel Admin" : "Dashboard"}</span>
-              </MotionLink>
               <MotionButton className="mobile-nav-link mobile-nav-logout" onClick={() => { setMenuOpen(false); onLogout(); }}>
                 <span className="mobile-nav-emoji" aria-hidden="true">🚪</span>
                 <span>Keluar</span>

@@ -56,17 +56,7 @@ button { cursor: pointer; }
 .nav-links a:hover, .nav-links a:focus-visible, .nav-links a[aria-current="page"] { color: var(--teal); }
 .nav-links a:hover::after, .nav-links a:focus-visible::after, .nav-links a[aria-current="page"]::after { transform: scaleX(1); }
 .nav-actions { gap: 9px; }
-.account-menu { position: relative; display: inline-flex; margin-left: auto; align-items: center; }
-.account-menu-button { display: inline-flex; width: 39px; height: 39px; padding: 0; align-items: center; justify-content: center; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.7); color: var(--ink); cursor: pointer; }
-.account-menu-avatar { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; background: linear-gradient(135deg, var(--red), var(--teal)); color: var(--primary-foreground); font-size: 12px; font-weight: 800; }
-.account-menu-meta { display: grid; text-align: left; line-height: 1.1; }
-.account-menu-meta strong { font-size: 12px; }
-.account-menu-meta small { color: var(--muted); font-size: 10px; }
-.account-menu-panel { position: absolute; top: calc(100% + 10px); left: 0; display: grid; min-width: 190px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.98); box-shadow: 0 16px 28px rgba(36,55,47,.12); opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .2s ease, transform .2s ease; }
-.account-menu:hover .account-menu-panel, .account-menu:focus-within .account-menu-panel { opacity: 1; pointer-events: auto; transform: translateY(0); }
-.account-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 38px; padding: 9px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font-weight: 700; text-align: left; }
-.account-menu-item:hover { background: var(--surface-secondary); }
-.account-menu-item.danger { color: var(--red); }
+.desktop-profile-button { display: inline-flex; width: 44px; height: 44px; margin-left: auto; padding: 0; align-items: center; justify-content: center; border: 1px solid #cddbcc; border-radius: 10px; background: white; color: #55796b; cursor: pointer; }
 .desktop-only { display: inline-flex; }
 .mobile-header-actions { display: none; }
 .menu-button { display: none; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--teal); font-size: 20px; }
@@ -253,7 +243,7 @@ body, :root[data-theme="dark"] body {
 .admin-material-editor-actions { display: flex; grid-column: 1 / -1; flex-wrap: wrap; gap: 9px; }
 .page-wrap .split-layout:not(.forum-layout) { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr); gap: 18px; }
 .course-library { display: flex; min-width: 0; flex-direction: column; }
-.course-library .material-list { flex: 1; }
+.course-library .material-list { flex: 1; align-content: start; }
 .course-reader { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 .course-reader-heading { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .course-reader-heading > div { min-width: 0; }
