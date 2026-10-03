@@ -1,14 +1,62 @@
 [
   {
     "no_absen": 1,
-    "nama": "Alya Putri",
-    "jenis_kelamin": "P",
+    "nama": "Adhira Restu Hidayat",
+    "jenis_kelamin": "L",
     "kelas": "XI RPL"
   },
   {
     "no_absen": 2,
-    "nama": "Bima Pratama",
-    "jenis_kelamin": "L",
+    "nama": "Ahmad Satrya Pratama",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+    {
+    "no_absen": 3,
+    "nama": "Azis Afandi",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+    {
+    "no_absen": 4,
+    "nama": "Cantika Aprilia Mulyanti",
+    "jenis_kelamin": "P", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 5,
+    "nama": "Dimas Radithya Saputra",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 6,
+    "nama": "Fadhil Alfaris",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 7,
+    "nama": "Fakhri Ridwan Alfaridzy",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 8,
+    "nama": "Farras Rabbany",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 9,
+    "nama": "Fathan Rizky Ramadhan",
+    "jenis_kelamin": "L", 
+    "kelas": "XI RPL"
+  },
+      {
+    "no_absen": 10,
+    "nama": "Gergorios Geovani Eugollion Putra Dinata",
+    "jenis_kelamin": "P", 
     "kelas": "XI RPL"
   }
 ]
