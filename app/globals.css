@@ -1296,7 +1296,7 @@ body, :root[data-theme="dark"] body {
 body { color: var(--ink); background-color: var(--paper); }
 :focus-visible { outline-color: var(--focus); }
 .site-header, .site-footer, .mobile-nav { border-color: var(--line); color: var(--ink); background: color-mix(in srgb, var(--paper) 94%, transparent); }
-.site-header { border: 0; box-shadow: none; }
+.site-header { border: 0; border-bottom: 3px solid var(--teal); box-shadow: none; }
 .nav-links, .site-footer, .footer-inner { color: var(--muted); }
 .nav-links a:hover, .nav-links a[aria-current="page"], .brand-name span, .text-button, .link-inline { color: var(--link); }
 .page-heading .eyebrow, .field label, .field-label, .field > span { color: var(--ink); }
@@ -1869,4 +1869,164 @@ body { color: var(--ink); background-color: var(--paper); }
   .course-detail .markdown-document { padding: 20px; }
   .course-detail .markdown-document h1 { font-size: 25px; }
   .course-detail .material-frame { height: 70vh; min-height: 440px; }
+}
+
+.code-route-shell {
+  width: auto;
+  max-width: 100vw;
+  height: 100dvh;
+}
+.code-route-shell .code-topbar {
+  min-height: 60px;
+  padding: 0 clamp(16px, 2vw, 28px);
+  gap: 16px;
+}
+.code-route-shell .code-brand,
+.code-route-shell .code-top-actions { gap: 10px; }
+.code-route-shell .code-brand strong { font-size: 14px; }
+.code-route-shell .code-project-name { font-size: 11px; }
+.code-route-shell .code-sync-state {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.code-route-shell .code-save-button,
+.code-route-shell .code-ai-button,
+.code-route-shell .code-run-button {
+  min-height: 40px;
+  padding: 0 13px;
+  gap: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.code-route-shell .code-workbench { grid-template-columns: clamp(230px, 22vw, 290px) minmax(0, 1fr); }
+.code-route-shell .code-explorer-heading { min-height: 46px; padding: 0 16px; font-size: 10px; }
+.code-route-shell .code-explorer-heading .code-explorer-close { display: none; }
+.code-route-shell .code-explorer-project { min-height: 36px; padding: 0 12px; }
+.code-route-shell .code-explorer-actions { min-height: 40px; padding: 0 10px; gap: 5px; }
+.code-route-shell .code-explorer-actions button { width: 32px; height: 32px; }
+.code-route-shell .code-explorer-row { height: 34px; }
+.code-route-shell .code-folder-row,
+.code-route-shell .code-file-row > button { font-size: 12px; }
+.code-route-shell .code-mobile-switch button:focus-visible,
+.code-route-shell .code-explorer button:focus-visible,
+.code-route-shell .code-topbar button:focus-visible,
+.code-route-shell .code-right-tabs > button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 800px) {
+  .code-route-shell .code-sync-state { display: none; }
+  .code-route-shell .code-topbar {
+    min-height: 56px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .code-route-shell .code-exit-button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    border-radius: 9px;
+  }
+  .code-route-shell .code-brand { gap: 7px; }
+  .code-route-shell .code-brand strong {
+    display: inline;
+    font-size: 11px;
+  }
+  .code-route-shell .code-brand-mark { width: 28px; height: 28px; }
+  .code-route-shell .code-top-actions { gap: 5px; }
+  .code-route-shell .code-save-button,
+  .code-route-shell .code-ai-button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 9px;
+  }
+  .code-route-shell .code-run-button {
+    min-width: 56px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 9px;
+    border-radius: 9px;
+  }
+  .code-route-shell .code-mobile-switch {
+    min-height: 48px;
+    padding: 0 8px;
+    gap: 5px;
+  }
+  .code-route-shell .code-mobile-switch button {
+    min-height: 42px;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .code-route-shell .code-explorer {
+    width: min(340px, calc(100vw - 32px));
+    box-shadow: 12px 0 32px rgba(0, 0, 0, .3);
+  }
+  .code-route-shell .code-explorer-heading {
+    min-height: 52px;
+    padding: 0 14px;
+    justify-content: space-between;
+    font-size: 12px;
+    letter-spacing: .02em;
+  }
+  .code-route-shell .code-explorer-heading .code-explorer-close {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+  }
+  .code-route-shell .code-explorer-project { min-height: 42px; padding: 0 13px; font-size: 11px; }
+  .code-route-shell .code-explorer-actions { min-height: 46px; }
+  .code-route-shell .code-explorer-actions button { width: 36px; height: 36px; }
+  .code-route-shell .code-explorer-search { min-height: 42px; }
+  .code-route-shell .code-explorer-row { height: 40px; }
+  .code-route-shell .code-folder-row,
+  .code-route-shell .code-file-row > button { font-size: 13px; }
+  .code-route-shell .code-workbench:has(.code-explorer.is-mobile-open)::before {
+    position: absolute;
+    z-index: 14;
+    inset: 0;
+    content: "";
+    background: rgba(5, 12, 14, .48);
+  }
+  .code-route-shell .code-explorer.is-mobile-open { z-index: 15; }
+  .code-route-shell .code-editor-tabs,
+  .code-route-shell .code-preview-toolbar,
+  .code-route-shell .code-right-tabs { min-height: 44px; }
+  .code-route-shell .code-right-tabs > button { min-height: 42px; padding: 0 11px; font-size: 12px; }
+  .code-route-shell .code-view-picker button { min-width: 38px; height: 36px; }
+  .code-route-shell .code-statusbar {
+    min-height: 31px;
+    padding: 0 10px max(0px, env(safe-area-inset-bottom));
+    font-size: 9px;
+  }
+  .code-route-shell .code-statusbar > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .code-route-shell .code-statusbar > span:nth-child(2),
+  .code-route-shell .code-statusbar > span:nth-child(3) { display: none; }
+  .code-route-shell .code-preview-controls { gap: 4px; }
+  .code-route-shell .code-preview-tabs > span,
+  .code-route-shell .code-preview-tabs > button { min-height: 38px; }
+  .code-route-shell .code-device-picker button { min-height: 34px; }
+}
+
+@media (max-width: 360px) {
+  .code-route-shell .code-topbar { padding: 0 7px; gap: 5px; }
+  .code-route-shell .code-exit-button { width: 32px; min-width: 32px; }
+  .code-route-shell .code-brand { gap: 5px; }
+  .code-route-shell .code-brand strong { font-size: 10px; }
+  .code-route-shell .code-top-actions { gap: 3px; }
+  .code-route-shell .code-save-button,
+  .code-route-shell .code-ai-button { width: 32px; min-width: 32px; }
+  .code-route-shell .code-run-button { min-width: 50px; padding: 0 7px; }
 }

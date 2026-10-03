@@ -20,7 +20,7 @@ type SiteHeaderProps = {
 export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
   const pathname = usePathname() || "/";
   const [menuOpen, setMenuOpen] = useState(false);
-  const navLinks = [["Beranda", "/"], ["Kursus Materi", "/kursus"], ["Latihan Soal", "/latihan"]];
+  const navLinks = [["Beranda", "/"], ["Kursus Materi", "/kursus"], ["Latihan Soal", "/latihan"], ["Code Editor", "/code"]];
 
   return <header className="site-header">
     <nav className="nav-inner" aria-label="Navigasi utama">

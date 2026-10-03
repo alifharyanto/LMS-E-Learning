@@ -714,21 +714,21 @@ export default function CodeStudio() {
       <div className="code-brand"><span className="code-brand-mark"><Code2 size={16} /></span><strong>Editor <span>Kode</span></strong><span className="code-project-name">Project Saya</span></div>
       <div className="code-top-actions">
         <span className={`code-sync-state is-${isDirty ? "saving" : syncState}`} title={isDirty ? "Perubahan belum tersimpan" : syncMessage}><span className="code-sync-dot" />{isDirty ? "Belum disimpan" : syncState === "loading" ? "Memuat" : syncState === "saving" ? "Menyimpan" : syncState === "saved" ? "Tersimpan" : syncState === "local" ? "Lokal" : "Offline"}</span>
-        <button type="button" className="code-save-button" onClick={() => void saveWorkspace()} title="Simpan workspace"><Save size={14} /><span>Simpan</span></button>
-        <button type="button" className="code-ai-button" onClick={openAiPanel} title="Minta bantuan AI"><Sparkles size={14} /><span>Tanya AI</span></button>
-        <button className="code-run-button" ref={runButtonRef} type="button" onClick={() => nativeMode ? terminalInputRef.current?.focus() : void runCode()}><Play size={14} fill="currentColor" /><span>{nativeMode ? "Terminal" : "Run"}</span>{!nativeMode && <kbd>Ctrl ↵</kbd>}</button>
+        <button type="button" className="code-save-button" aria-label="Simpan workspace" onClick={() => void saveWorkspace()} title="Simpan workspace"><Save size={14} /><span>Simpan</span></button>
+        <button type="button" className="code-ai-button" aria-label="Minta bantuan AI" onClick={openAiPanel} title="Minta bantuan AI"><Sparkles size={14} /><span>Tanya AI</span></button>
+        <button className="code-run-button" ref={runButtonRef} type="button" aria-label={nativeMode ? "Buka terminal" : "Jalankan project"} onClick={() => nativeMode ? terminalInputRef.current?.focus() : void runCode()}><Play size={14} fill="currentColor" /><span>{nativeMode ? "Terminal" : "Run"}</span>{!nativeMode && <kbd>Ctrl ↵</kbd>}</button>
       </div>
     </header>
 
     <div className="code-mobile-switch" role="tablist" aria-label="Panel editor">
-      <button type="button" className={activePanel === "explorer" ? "is-active" : ""} onClick={() => setActivePanel("explorer")}><Folder size={14} />Files</button>
-      <button type="button" className={activePanel === "editor" ? "is-active" : ""} onClick={() => setActivePanel("editor")}><Code2 size={14} />Editor</button>
-      <button type="button" className={activePanel === "preview" ? "is-active" : ""} onClick={() => setActivePanel("preview")}><PanelRight size={14} />Preview</button>
+      <button type="button" role="tab" aria-selected={activePanel === "explorer"} aria-controls="code-explorer-panel" className={activePanel === "explorer" ? "is-active" : ""} onClick={() => setActivePanel("explorer")}><Folder size={14} />Files</button>
+      <button type="button" role="tab" aria-selected={activePanel === "editor"} aria-controls="code-editor-panel" className={activePanel === "editor" ? "is-active" : ""} onClick={() => setActivePanel("editor")}><Code2 size={14} />Editor</button>
+      <button type="button" role="tab" aria-selected={activePanel === "preview"} aria-controls="code-preview-panel" className={activePanel === "preview" ? "is-active" : ""} onClick={() => setActivePanel("preview")}><PanelRight size={14} />Preview</button>
     </div>
 
     <div className="code-workbench">
-      <aside className={`code-explorer ${activePanel === "explorer" ? "is-mobile-open" : ""}`} aria-label="Explorer project">
-        <div className="code-explorer-heading"><span>File dan folder</span></div>
+      <aside id="code-explorer-panel" className={`code-explorer ${activePanel === "explorer" ? "is-mobile-open" : ""}`} aria-label="Explorer project">
+        <div className="code-explorer-heading"><span>File dan folder</span><button type="button" className="code-explorer-close" aria-label="Tutup panel file" title="Tutup panel file" onClick={() => setActivePanel("editor")}><X size={16} /></button></div>
         <button type="button" className="code-explorer-project" onClick={() => setActiveFolder("")}><ChevronDown size={13} /><strong>PROJECT SAYA</strong></button>
         <div className="code-explorer-actions">
           <button type="button" aria-label="File baru" title="File baru" onClick={() => { setNewFileOpen((open) => !open); setNewFolderOpen(false); setNewFileError(""); }}><FilePlus2 size={15} /></button>
@@ -755,7 +755,7 @@ export default function CodeStudio() {
       </aside>
 
       <main className="code-main-panes" ref={mainPanesRef} style={{ gridTemplateColumns: `${paneRatio}fr 8px ${100 - paneRatio}fr` }}>
-        <section className={`code-editor-column ${activePanel === "editor" ? "is-mobile-active" : ""}`} aria-label="Editor kode dan terminal">
+        <section id="code-editor-panel" className={`code-editor-column ${activePanel === "editor" ? "is-mobile-active" : ""}`} aria-label="Editor kode dan terminal">
           <div className="code-editor-tabs">
             <div className="code-open-file-tab is-active">{activeFile ? fileTypeIcon(activeFile.name) : <FileText size={14} />}<span>{activeFile?.name ?? "Pilih file"}</span>{isDirty && <i title="Belum tersimpan" />}</div>
             {activeFile && <span className="code-editor-path">{activeFile.name.replace(/[^/]+$/, "")}</span>}
@@ -778,7 +778,7 @@ export default function CodeStudio() {
 
         <div className="code-resize-handle" role="separator" aria-orientation="vertical" aria-label="Ubah ukuran editor dan preview" onPointerDown={handleDividerDown}><span /></div>
 
-        <section className={`code-preview-pane ${activePanel === "preview" ? "is-mobile-active" : ""}`} aria-label="Preview project">
+        <section id="code-preview-panel" className={`code-preview-pane ${activePanel === "preview" ? "is-mobile-active" : ""}`} aria-label="Preview project">
           <div className="code-right-tabs" role="tablist" aria-label="Panel kanan">
             <button type="button" role="tab" aria-selected={rightPanel === "preview"} className={rightPanel === "preview" ? "is-active" : ""} onClick={() => setRightPanel("preview")}><PanelRight size={13} />Preview</button>
             <button type="button" role="tab" aria-selected={rightPanel === "ai"} className={rightPanel === "ai" ? "is-active" : ""} onClick={() => setRightPanel("ai")}><Sparkles size={13} />Bantuan AI</button>
