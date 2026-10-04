@@ -26,6 +26,7 @@ Run `npm run dev` and open `http://localhost:3000`.
 - Keep the existing database and tables; this app does not run migrations or modify the Laravel database schema.
 - In cPanel, enable Remote MySQL and grant the database user access to the existing database. The host must permit connections from Vercel; confirm any firewall, outbound IP, and TLS requirements with the hosting provider.
 - Add `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL`, and `APP_SESSION_SECRET` in the Vercel project's Environment Variables for each environment.
+- Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in each production environment. Login and registration fail closed when this distributed rate-limit service is missing or unavailable. Local development can run without these values, but authentication rate limiting will be disabled.
 - Create a Vercel Blob store and set `BLOB_READ_WRITE_TOKEN` in Vercel. New material PDFs and profile photos are stored in Blob, not on the deployment filesystem.
 - Code workspaces use private Vercel Blob storage at `code-workspaces/{userId}/workspace.json`; students must be signed in for cross-device sync. Anonymous workspaces remain in the current browser. The server allows up to 50 files, 1 MB per file, and 20 MB per account. Supported extensions are `.html`, `.htm`, `.css`, `.js`, `.mjs`, `.cjs`, `.jsx`, `.ts`, `.tsx`, `.php`, and `.json`.
 - PHP execution is forwarded to a separate isolated runner using `PHP_RUNNER_URL`; set `PHP_RUNNER_TOKEN` if the runner requires a bearer token. The runner accepts `POST` JSON `{ "files": [{ "name": "index.php", "content": "..." }], "entryFile": "index.php", "userId": 123 }` and must return `{ "html": "...", "output": "..." }`. Run untrusted PHP in a sandbox with CPU, memory, process, filesystem, network, and execution-time limits; never execute it in the Next.js process. The Next.js proxy requires HTTPS in production, allows 10 seconds, and caps the response at 2 MB.
@@ -37,7 +38,7 @@ Run `npm run dev` and open `http://localhost:3000`.
 
 ## API
 
-Each resource has its own Route Handler under `app/api/v1/`, for example `faq/route.ts`, `profile/route.ts`, and `auth/login/route.ts`. Shared database logic lives in the private `_handlers/route.ts` module; IDs use resource-specific dynamic segments. Session cookies are HTTP-only and role checks happen on the server.
+Each resource has its own Route Handler under `app/api/v1/`, for example `faq/route.ts`, `profile/route.ts`, and `auth/login/route.ts`. IDs use resource-specific dynamic segments. Session cookies are HTTP-only and role checks happen on the server. Authentication inputs use Zod schemas and bounded request bodies; login and registration use Upstash's distributed sliding-window rate limiter.
 
 Course materials keep the original PDF and expose an authenticated Markdown-reading endpoint at `/api/v1/courses/[id]/markdown`. Text is extracted when requested, so no database migration is needed. Scanned/image-only or invalid PDFs fall back to the original PDF viewer with an explanation.
 

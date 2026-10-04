@@ -109,7 +109,7 @@ export default function KursusPage() {
         </div>
         {materials === null ? (
           <div className="course-catalog-empty" role={error ? "alert" : "status"}>
-            {error ? "Daftar materi tidak dapat dimuat." : "Memuat daftar materi..."}
+            {error ? "Daftar materi tidak dapat dimuat." : "Sedang memuat data materi..."}
           </div>
         ) : materials.length === 0 ? (
           <div className="course-catalog-empty">Belum ada materi yang tersedia.</div>

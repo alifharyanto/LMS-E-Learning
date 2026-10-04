@@ -1,8 +1,9 @@
-import { handleV1 } from "@/app/api/v1/_handlers/route";
+import { FAQS } from "@/lib/faqs";
+import { json } from "@/lib/http";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET(request: Request) {
-  return handleV1(request, ["faqs"]);
+export function GET() {
+  return json({ faqs: FAQS });
 }

@@ -18,6 +18,7 @@ export default function AccountsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [loading, setLoading] = useState(true);
 
   async function refresh() {
     const result = await apiRequest<{ accounts: Account[] }>("/api/v1/admin/accounts");
@@ -27,12 +28,16 @@ export default function AccountsPage() {
   useEffect(() => {
     let active = true;
     apiRequest<{ accounts: Account[] }>("/api/v1/admin/accounts").then(({ accounts: loadedAccounts }) => {
-      if (active) setAccounts(loadedAccounts);
+      if (active) {
+        setAccounts(loadedAccounts);
+        setLoading(false);
+      }
     }).catch((requestError) => {
       if (!active) return;
       if ((requestError as { status?: number }).status === 401) router.replace("/login");
       else if ((requestError as { status?: number }).status === 403) router.replace("/dashboard");
       else setError(requestError instanceof Error ? requestError.message : "Data akun gagal dimuat.");
+      if (active) setLoading(false);
     });
     return () => { active = false; };
   }, [router]);
@@ -107,6 +112,7 @@ export default function AccountsPage() {
   return <div className="admin-page">
     <header className="page-heading admin-heading"><span className="eyebrow">MANAJEMEN PENGGUNA</span><h1 className="page-title">Akun</h1><p className="page-intro">Kelola identitas dan akses seluruh akun CourseUp.</p></header>
     {notice && <p className="status" role="status">{notice}</p>}{error && <p className="status status-error" role="alert">{error}</p>}
+    {loading && <div className="empty-state" role="status">Sedang memuat data akun...</div>}
     <div className="grid-four admin-metrics" aria-label="Ringkasan akun"><div className="metric"><div className="metric-value">{accounts.length}</div><div className="metric-label">Semua akun</div></div><div className="metric"><div className="metric-value">{accounts.filter((account) => account.role === "student").length}</div><div className="metric-label">Student</div></div><div className="metric"><div className="metric-value">{accounts.filter((account) => account.role === "admin").length}</div><div className="metric-label">Admin</div></div><div className="metric"><div className="metric-value">{accounts.filter((account) => account.account_status === "suspended").length}</div><div className="metric-label">Dinonaktifkan</div></div></div>
     <section className="surface surface-pad admin-section"><div className="admin-section-heading"><div><span className="list-meta">AKUN BARU</span><h2 className="surface-title">Tambah akun</h2></div></div><form className="form-grid admin-form" onSubmit={(event) => void createAccount(event)}><label className="field"><span>Username</span><input className="input" name="username" required maxLength={100} /></label><label className="field"><span>Email</span><input className="input" name="email" type="email" required maxLength={150} /></label><label className="field"><span>Nama lengkap</span><input className="input" name="full_name" maxLength={150} /></label><label className="field"><span>Password awal</span><input className="input" name="password" type="password" minLength={8} autoComplete="new-password" required /></label><label className="field"><span>Role</span><select className="select" name="role" defaultValue="student"><option value="student">Student</option><option value="admin">Admin</option></select></label><div className="admin-form-action"><MotionButton className="button button-primary" disabled={busy}><Plus size={15} />Buat akun</MotionButton></div></form></section>
     <section className="surface surface-pad admin-section"><div className="admin-section-heading"><div><span className="list-meta">DIREKTORI</span><h2 className="surface-title">Semua akun</h2></div><span className="admin-count">{visibleAccounts.length} dari {accounts.length}</span></div><label className="account-search"><Search size={16} /><input className="input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, username, atau email" aria-label="Cari akun" /></label>

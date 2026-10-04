@@ -1,6 +1,7 @@
 import "server-only";
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { parse } from "csv-parse/sync";
 
 export const maxQuizImportRows = 1000;
 export const maxQuizImportBytes = 5 * 1024 * 1024;
@@ -56,10 +57,38 @@ async function rowsFromFile(file: File) {
     });
   }
 
-  const workbook = XLSX.read(Buffer.from(await file.arrayBuffer()), { type: "buffer", raw: false });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (filename.endsWith(".csv")) {
+    return parse(await file.text(), {
+      bom: true,
+      columns: (headers: string[]) => headers.map(normalizeColumn),
+      skip_empty_lines: true,
+      trim: true,
+      max_record_size: 64 * 1024,
+    }) as Record<string, unknown>[];
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const fileBuffer = Buffer.from(await file.arrayBuffer());
+  await workbook.xlsx.load(fileBuffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+  const sheet = workbook.worksheets[0];
   if (!sheet) throw new Error("File tidak memiliki sheet yang bisa dibaca.");
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "", raw: false });
+
+  const headers = (sheet.getRow(1).values as unknown[]).slice(1).map(normalizeColumn);
+  const lastRow = Math.min(sheet.rowCount, maxQuizImportRows + 2);
+  const rows: Record<string, unknown>[] = [];
+  for (let rowNumber = 2; rowNumber <= lastRow; rowNumber += 1) {
+    const values = sheet.getRow(rowNumber).values as unknown[];
+    rows.push(Object.fromEntries(headers.map((header, index) => {
+      const value = values[index + 1];
+      if (value && typeof value === "object") {
+        if ("text" in value) return [header, value.text];
+        if ("result" in value) return [header, value.result];
+        return [header, ""];
+      }
+      return [header, value ?? ""];
+    })));
+  }
+  return rows;
 }
 
 export async function parseQuizImport(file: File): Promise<ParsedQuizImport> {
