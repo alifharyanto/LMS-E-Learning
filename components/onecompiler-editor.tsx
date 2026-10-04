@@ -31,6 +31,8 @@ import { useEffect, useRef, useState } from "react";
 
 type ConsoleTab = "Console" | "I/O" | "AI Agent" | "Preview";
 type ToolPanel = "files" | "history" | "settings";
+type RunState = "ready" | "running" | "success" | "error";
+type WorkspaceSaveState = "saving" | "saved" | "error";
 type WorkspaceFile = { name: string; content: string };
 type FileKind = "java" | "html" | "css" | "javascript" | "typescript" | "json" | "markdown" | "python" | "text";
 type FileType = { kind: FileKind; label: string; extension: string; baseName: string; language: string };
@@ -121,7 +123,12 @@ export default function OneCompilerEditor() {
   const [tab, setTab] = useState<ConsoleTab>("Console");
   const [output, setOutput] = useState("");
   const [previewDocument, setPreviewDocument] = useState("");
+  const [previewRunVersion, setPreviewRunVersion] = useState(0);
   const [hasRun, setHasRun] = useState(false);
+  const [runState, setRunState] = useState<RunState>("ready");
+  const [consoleOpen, setConsoleOpen] = useState(true);
+  const [workspaceReady, setWorkspaceReady] = useState(false);
+  const [workspaceSaveState, setWorkspaceSaveState] = useState<WorkspaceSaveState>("saved");
   const [saved, setSaved] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
   const [toolPanel, setToolPanel] = useState<ToolPanel | null>(null);
@@ -137,9 +144,60 @@ export default function OneCompilerEditor() {
   }, [dark]);
 
   useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      try {
+        const persisted = localStorage.getItem("onecompiler-workspace-v1");
+        if (persisted) {
+          const parsed: unknown = JSON.parse(persisted);
+          if (
+            parsed &&
+            typeof parsed === "object" &&
+            "files" in parsed &&
+            Array.isArray(parsed.files) &&
+            parsed.files.every((file) => file && typeof file.name === "string" && typeof file.content === "string")
+          ) {
+            const restoredFiles = parsed.files as WorkspaceFile[];
+            if (restoredFiles.length) {
+              const restoredName = "activeName" in parsed && typeof parsed.activeName === "string" &&
+                restoredFiles.some((file) => file.name === parsed.activeName)
+                ? parsed.activeName
+                : restoredFiles[0].name;
+              if (active) {
+                setFiles(restoredFiles);
+                setActiveName(restoredName);
+                setSource(restoredFiles.find((file) => file.name === restoredName)?.content ?? "");
+              }
+            }
+          }
+        }
+      } catch {
+        if (active) announce("Workspace tersimpan tidak dapat dibuka");
+      } finally {
+        if (active) setWorkspaceReady(true);
+      }
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!workspaceReady) return;
+    const timeout = window.setTimeout(() => {
+      try {
+        localStorage.setItem("onecompiler-workspace-v1", JSON.stringify({ files, activeName }));
+        setWorkspaceSaveState("saved");
+      } catch {
+        setWorkspaceSaveState("error");
+      }
+    }, 450);
+    return () => window.clearTimeout(timeout);
+  }, [activeName, files, workspaceReady]);
+
+  useEffect(() => {
     function receivePreviewMessage(event: MessageEvent) {
       if (event.source !== previewRef.current?.contentWindow || event.data?.type !== "code-editor-output") return;
       setOutput((current) => current ? `${current}\n${event.data.text}` : event.data.text);
+      if (event.data.level === "error") setRunState("error");
     }
     window.addEventListener("message", receivePreviewMessage);
     return () => window.removeEventListener("message", receivePreviewMessage);
@@ -153,6 +211,8 @@ export default function OneCompilerEditor() {
   function updateSource(value: string | undefined) {
     const nextSource = value ?? "";
     setSource(nextSource);
+    setSaved(false);
+    setWorkspaceSaveState("saving");
     setFiles((current) => current.map((file) => file.name === activeName ? { ...file, content: nextSource } : file));
   }
 
@@ -162,6 +222,7 @@ export default function OneCompilerEditor() {
     setActiveName(name);
     setSource(file.content);
     setFileOpen(true);
+    setWorkspaceSaveState("saving");
     setToolPanel(null);
   }
 
@@ -177,6 +238,7 @@ export default function OneCompilerEditor() {
     setFiles((current) => [...current, { name, content }]);
     setActiveName(name);
     setSource(content);
+    setWorkspaceSaveState("saving");
     setFileOpen(true);
     setToolPanel(null);
     setOpenMenu(null);
@@ -192,6 +254,7 @@ export default function OneCompilerEditor() {
   function closeFile(name: string) {
     const remaining = files.filter((file) => file.name !== name);
     setFiles(remaining);
+    setWorkspaceSaveState("saving");
     if (name !== activeName) return;
     const nextFile = remaining[0];
     if (nextFile) {
@@ -204,6 +267,7 @@ export default function OneCompilerEditor() {
   }
 
   function resetCode() {
+    if (!window.confirm(`Reset isi ${activeName}? Perubahan saat ini akan hilang.`)) return;
     updateSource(activeName === "Main.java" ? starterCode : "");
     setHasRun(false);
     setOpenMenu(null);
@@ -242,25 +306,35 @@ export default function OneCompilerEditor() {
   function runCode() {
     if (!fileOpen) return;
     const activeKind = fileTypeForName(activeName).kind;
+    setRunState("running");
+    setConsoleOpen(true);
     if (["html", "css", "javascript"].includes(activeKind)) {
       const currentFiles = files.map((file) => file.name === activeName ? { ...file, content: source } : file);
       setFiles(currentFiles);
       setPreviewDocument(createPreviewDocument(currentFiles));
+      setPreviewRunVersion((version) => version + 1);
       setOutput("");
       setTab("Preview");
     } else if (activeKind === "java") {
       setOutput(mockJavaOutput(source));
       setTab("Console");
+      setRunState("success");
     } else {
       setOutput(`${fileTypeForName(activeName).label} file is ready. Run Java or HTML/CSS/JavaScript to execute a preview.`);
       setTab("Console");
+      setRunState("success");
     }
     setHasRun(true);
     setOpenMenu(null);
   }
 
   function saveCode() {
-    localStorage.setItem(`code-editor-${activeName}`, source);
+    try {
+      localStorage.setItem(`code-editor-${activeName}`, source);
+    } catch {
+      announce("Code tidak dapat disimpan di perangkat ini");
+      return;
+    }
     setHistory((items) => [source, ...items.filter((item) => item !== source)].slice(0, 5));
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1600);
@@ -284,14 +358,19 @@ export default function OneCompilerEditor() {
     } catch {
       announce("Clipboard access unavailable");
     }
+    setOpenMenu(null);
   }
 
   function toggleToolPanel(panel: ToolPanel) {
     setOpenMenu(null);
     if (panel === "history") {
       const key = `code-editor-${activeName}`;
-      const persisted = localStorage.getItem(key);
-      if (persisted !== null) setHistory((items) => [persisted, ...items.filter((item) => item !== persisted)].slice(0, 5));
+      try {
+        const persisted = localStorage.getItem(key);
+        if (persisted !== null) setHistory((items) => [persisted, ...items.filter((item) => item !== persisted)].slice(0, 5));
+      } catch {
+        announce("Riwayat penyimpanan tidak dapat dibuka");
+      }
     }
     setToolPanel((current) => current === panel ? null : panel);
   }
@@ -313,13 +392,21 @@ export default function OneCompilerEditor() {
           <button className="oc-action oc-run-button" type="button" onClick={runCode}><Play size={17} fill="currentColor" />Run</button>
           <button className="oc-icon-button oc-more-button" type="button" aria-label="More options" aria-expanded={openMenu === "more"} onClick={() => setOpenMenu((current) => current === "more" ? null : "more")}><EllipsisVertical size={21} /></button>
           {openMenu === "language" && <div className="oc-top-popover oc-language-menu" role="menu">{fileTypes.map((fileType) => <button className={fileType.kind === fileTypeForName(activeName).kind ? "is-selected" : ""} key={fileType.kind} type="button" role="menuitem" onClick={() => selectFileType(fileType.kind)}><span>{fileType.label}</span>{fileType.kind === fileTypeForName(activeName).kind && <span>Selected</span>}</button>)}</div>}
-          {openMenu === "more" && <div className="oc-top-popover oc-more-menu" role="menu"><button type="button" role="menuitem" onClick={() => void copyCode()}><Code2 size={16} />Copy code</button><button type="button" role="menuitem" onClick={resetCode}><X size={16} />Reset editor</button></div>}
+          {openMenu === "more" && <div className="oc-top-popover oc-more-menu" role="menu">
+            <button type="button" role="menuitem" onClick={saveCode}><Save size={16} />Save code</button>
+            <button type="button" role="menuitem" onClick={() => void copyCode()}><Code2 size={16} />Copy code</button>
+            <button type="button" role="menuitem" onClick={resetCode}><X size={16} />Reset editor</button>
+            <button type="button" role="menuitem" onClick={() => void shareCode()}><Share2 size={16} />Share link</button>
+            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/contact"); }}><Bug size={16} />Report a bug</button>
+            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/register"); }}><Rocket size={16} />Upgrade</button>
+            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/login"); }}>Login</button>
+          </div>}
         </div>
 
         <div className="oc-account-group">
           <button className="oc-icon-button oc-utility-button" type="button" aria-label="Report a bug" title="Contact support" onClick={() => router.push("/contact")}><Bug size={19} /></button>
           <button className="oc-icon-button oc-utility-button" type="button" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setDark((value) => !value)}>{dark ? <Moon size={19} /> : <Sun size={19} />}</button>
-          <button className="oc-outline-button oc-save-button" type="button" onClick={saveCode}><Save size={19} />{saved ? "Saved" : "Save"}</button>
+          <button className="oc-outline-button oc-save-button" type="button" onClick={saveCode}><Save size={17} />{saved ? "Tersimpan" : "Simpan"}</button>
           <button className="oc-icon-button oc-utility-button" type="button" aria-label="Copy share link" onClick={() => void shareCode()}><Share2 size={19} /></button>
           <button className="oc-outline-button oc-login-button" type="button" onClick={() => router.push("/login")}>Login</button>
         </div>
@@ -382,7 +469,7 @@ export default function OneCompilerEditor() {
         </div>
       </section>
 
-      <section className="oc-console-pane" aria-label="Program output">
+      <section className={`oc-console-pane${consoleOpen ? "" : " is-hidden"}`} aria-label="Program output">
         <div className="oc-console-tabs" role="tablist" aria-label="Output panels">
           <button className={tab === "Console" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Console"} onClick={() => setTab("Console")}><SquareTerminal size={16} />Console</button>
           <button className={tab === "I/O" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "I/O"} onClick={() => setTab("I/O")}><SquareTerminal size={16} />I/O</button>
@@ -390,7 +477,7 @@ export default function OneCompilerEditor() {
           <button className={tab === "Preview" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Preview"} onClick={() => setTab("Preview")}><Code2 size={16} />Preview</button>
         </div>
         <div className="oc-console-content" role="tabpanel">
-          {tab === "Preview" && previewDocument ? <iframe ref={previewRef} className="oc-preview-frame" title="HTML CSS JavaScript preview" sandbox="allow-scripts" srcDoc={previewDocument} /> : tab === "Console" && hasRun ? <pre className="oc-output">{output || "No console output"}</pre> : (
+          {tab === "Preview" && previewDocument ? <iframe key={previewRunVersion} ref={previewRef} onLoad={() => setRunState((state) => state === "running" ? "success" : state)} className="oc-preview-frame" title="HTML CSS JavaScript preview" sandbox="allow-scripts" srcDoc={previewDocument} /> : tab === "Console" && hasRun ? <pre className="oc-output">{output || "No console output"}</pre> : (
             <div className="oc-empty-state">
               {tab === "Console" ? <><SquareTerminal className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Live Console</strong><span>Click Run to start</span></> : tab === "I/O" ? <><SquareTerminal className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Program I/O</strong></> : tab === "AI Agent" ? <><Sparkles className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>AI Agent</strong></> : <><Code2 className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Web Preview</strong><span>Run an HTML, CSS, or JavaScript file</span></>}
             </div>
@@ -399,7 +486,18 @@ export default function OneCompilerEditor() {
       </section>
 
       <footer className="oc-statusbar">
-        <div className="oc-status-left"><span><CheckCircle2 size={15} />Ready</span><button className="oc-status-action oc-terminal-status" type="button" onClick={() => setTab("Console")}><SquareTerminal size={15} />Terminal</button></div>
+        <div className="oc-status-left">
+          <span className={`oc-run-status is-${runState}`} role="status">
+            {runState === "error" ? <Bug size={15} /> : <CheckCircle2 size={15} />}
+            {runState === "running" ? "Running..." : runState === "success" ? "Run selesai" : runState === "error" ? "Perlu diperbaiki" : "Siap"}
+          </span>
+          <span className={`oc-workspace-status is-${workspaceSaveState}`} aria-live="polite">
+            <Save size={13} />{workspaceSaveState === "saving" ? "Menyimpan..." : workspaceSaveState === "error" ? "Belum tersimpan" : "Tersimpan lokal"}
+          </span>
+          <button className="oc-status-action oc-terminal-status" type="button" aria-expanded={consoleOpen} onClick={() => setConsoleOpen((open) => !open)}>
+            <SquareTerminal size={15} />{consoleOpen ? "Sembunyikan output" : "Tampilkan output"}
+          </button>
+        </div>
         <div className="oc-status-right"><button className="oc-status-action" type="button" onClick={() => setDark((value) => !value)}>{dark ? "Dark" : "Light"} <ArrowLeftRight size={15} /></button><a className="oc-status-action" href="https://docs.oracle.com/en/java/" target="_blank" rel="noreferrer">Wiki <BookOpen size={16} /></a><button className="oc-status-action" type="button" onClick={() => announce("Internet connection active")}>Internet <Wifi size={16} /></button></div>
       </footer>
       {toast && <div className="oc-toast" role="status">{toast}</div>}

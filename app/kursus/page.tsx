@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BookOpen, FileText, Search } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, FileText, Play, Search } from "lucide-react";
 import { MotionLink, Reveal } from "@/components/ui/motion";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
+import { readCourseProgress, type CourseProgress } from "@/lib/course-progress";
 import { createCourseSearchIndex, searchCourseMaterials } from "@/lib/course-search";
 import { getCourseMaterialSlug, type CourseMaterial } from "@/lib/course-slug";
 
@@ -13,7 +14,23 @@ export default function KursusPage() {
   const [materials, setMaterials] = useState<CourseMaterial[] | null>(null);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState<CourseProgress | null>(null);
   const [indexingContent, setIndexingContent] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      try {
+        const savedProgress = readCourseProgress();
+        if (active) setProgress(savedProgress);
+      } catch {
+        if (!active) return;
+        setProgress({ completedIds: [], lastOpenedId: null });
+        setError("Progress belajar tidak dapat dibaca dari perangkat ini.");
+      }
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,6 +99,16 @@ export default function KursusPage() {
   const availableMaterials = useMemo(() => materials ?? [], [materials]);
   const searchIndex = useMemo(() => createCourseSearchIndex(availableMaterials), [availableMaterials]);
   const filteredMaterials = searchCourseMaterials(searchIndex, search);
+  const categories = useMemo(() => {
+    const grouped = new Map<string, CourseMaterial[]>();
+    for (const material of filteredMaterials) {
+      grouped.set(material.category, [...(grouped.get(material.category) ?? []), material]);
+    }
+    return Array.from(grouped.entries());
+  }, [filteredMaterials]);
+  const completedIds = progress?.completedIds ?? [];
+  const completedCount = availableMaterials.filter((material) => completedIds.includes(material.id)).length;
+  const continueMaterial = availableMaterials.find((material) => material.id === progress?.lastOpenedId);
 
   return (
     <>
@@ -96,6 +123,19 @@ export default function KursusPage() {
           <div>
             <span className="course-library-label">Perpustakaan belajar</span>
             <h2 className="surface-title"><BookOpen size={17} />Semua materi</h2>
+            <p className="course-progress-summary">
+              <span>{completedCount} dari {availableMaterials.length} materi selesai</span>
+              <span
+                className="course-progress-track"
+                role="progressbar"
+                aria-label="Progress belajar"
+                aria-valuemin={0}
+                aria-valuemax={availableMaterials.length}
+                aria-valuenow={completedCount}
+              >
+                <span style={{ width: `${availableMaterials.length ? completedCount / availableMaterials.length * 100 : 0}%` }} />
+              </span>
+            </p>
           </div>
           <span className="course-count" aria-label={`${filteredMaterials.length} dari ${availableMaterials.length} materi ditampilkan`}>
             {filteredMaterials.length} dari {availableMaterials.length}
@@ -107,6 +147,13 @@ export default function KursusPage() {
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari judul, kategori, deskripsi, atau keyword" aria-label="Cari judul, kategori, deskripsi, atau keyword materi" />
           </label>
         </div>
+        {continueMaterial && (
+          <MotionLink className="course-continue" href={`/kursus/${getCourseMaterialSlug(continueMaterial)}`}>
+            <span className="course-continue-icon"><Play size={15} fill="currentColor" /></span>
+            <span><small>Lanjutkan belajar</small><strong>{continueMaterial.title}</strong></span>
+            <ArrowRight className="course-continue-arrow" size={17} />
+          </MotionLink>
+        )}
         {materials === null ? (
           <div className="course-catalog-empty" role={error ? "alert" : "status"}>
             {error ? "Daftar materi tidak dapat dimuat." : "Sedang memuat data materi..."}
@@ -114,23 +161,38 @@ export default function KursusPage() {
         ) : materials.length === 0 ? (
           <div className="course-catalog-empty">Belum ada materi yang tersedia.</div>
         ) : filteredMaterials.length ? (
-          <div className="course-card-grid">
-            {filteredMaterials.map((material, index) => (
-              <Reveal className="course-card-reveal" key={material.id}>
-                <MotionLink className="surface course-card" href={`/kursus/${getCourseMaterialSlug(material)}`}>
-                  <div className="course-card-topline">
-                    <span className="course-card-icon"><FileText size={18} /></span>
-                    <span className="course-card-format">{material.file_type === "text/markdown" ? "Markdown" : "PDF"}</span>
-                  </div>
-                  <span className="course-card-index">MATERI {String(index + 1).padStart(2, "0")}</span>
-                  <h3>{material.title}</h3>
-                  {material.description && <p>{material.description}</p>}
-                  <div className="course-card-footer">
-                    <span>{material.category}</span>
-                    <span className="course-card-open">Buka materi <ArrowRight size={15} /></span>
-                  </div>
-                </MotionLink>
-              </Reveal>
+          <div className="course-category-list">
+            {categories.map(([category, categoryMaterials]) => (
+              <section className="course-category" key={category} aria-label={`Materi ${category}`}>
+                <div className="course-category-heading">
+                  <h3>{category}</h3>
+                  <span>{categoryMaterials.length} materi</span>
+                </div>
+                <div className="course-card-grid">
+                  {categoryMaterials.map((material, index) => {
+                    const isComplete = completedIds.includes(material.id);
+                    return (
+                      <Reveal className="course-card-reveal" key={material.id}>
+                        <MotionLink className="surface course-card" href={`/kursus/${getCourseMaterialSlug(material)}`}>
+                          <div className="course-card-topline">
+                            <span className="course-card-icon"><FileText size={18} /></span>
+                            <span className={`course-card-format${isComplete ? " is-complete" : ""}`}>
+                              {isComplete ? <><CheckCircle2 size={13} />Selesai</> : material.file_type === "text/markdown" ? "Markdown" : "PDF"}
+                            </span>
+                          </div>
+                          <span className="course-card-index">MATERI {String(index + 1).padStart(2, "0")}</span>
+                          <h3>{material.title}</h3>
+                          {material.description && <p>{material.description}</p>}
+                          <div className="course-card-footer">
+                            <span>{material.category}</span>
+                            <span className="course-card-open">Buka materi <ArrowRight size={15} /></span>
+                          </div>
+                        </MotionLink>
+                      </Reveal>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
           </div>
         ) : (
