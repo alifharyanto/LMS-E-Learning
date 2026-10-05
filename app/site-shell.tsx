@@ -33,7 +33,7 @@ export default function SiteShell({ children }: { children: ReactNode }) {
 
   if (authPage) return <MotionConfig reducedMotion="user"><motion.div key={pathname} className="auth-route" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>{children}</motion.div></MotionConfig>;
 
-  if (pathname === "/code") return <MotionConfig reducedMotion="user"><div className="code-route-shell"><Suspense fallback={<div className="page-loading">Memuat editor...</div>}>{children}</Suspense></div></MotionConfig>;
+  if (pathname === "/code" || pathname.startsWith("/code/live/local/")) return <MotionConfig reducedMotion="user"><div className="code-route-shell"><Suspense fallback={<div className="page-loading">Memuat editor...</div>}>{children}</Suspense></div></MotionConfig>;
 
   return <MotionConfig reducedMotion="user" transition={{ type: "spring", stiffness: 260, damping: 25 }}><div className="site-app">
     <SiteHeader user={user} onLogout={() => void logout()} />

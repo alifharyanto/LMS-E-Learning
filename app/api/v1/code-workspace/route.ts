@@ -6,7 +6,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const workspacePath = (userId: number) => `code-workspaces/${userId}/workspace.json`;
-const supportedExtensions = new Set(["html", "htm", "css", "js", "mjs", "cjs", "jsx", "ts", "tsx", "php", "json"]);
 const maxFileBytes = 1024 * 1024;
 const maxWorkspaceBytes = 20 * 1024 * 1024;
 const maxFiles = 50;
@@ -33,8 +32,6 @@ function validateFiles(value: unknown): { files: WorkspaceFile[]; size: number }
     if (typeof name !== "string" || typeof content !== "string") return null;
     if (!validPath(name)) return null;
 
-    const extension = name.split("/").at(-1)?.split(".").at(-1)?.toLowerCase();
-    if (!extension || !supportedExtensions.has(extension)) return null;
     const normalizedName = name.toLowerCase();
     if (names.has(normalizedName)) return null;
     names.add(normalizedName);

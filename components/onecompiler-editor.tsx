@@ -3,39 +3,46 @@
 import Editor, { type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { useRouter } from "next/navigation";
+import JSZip from "jszip";
+import ReactMarkdown from "react-markdown";
 import {
-  ArrowLeftRight,
-  BookOpen,
+  Bot,
   Bug,
+  Check,
   CheckCircle2,
-  ChevronDown,
+  ChevronRight,
   Code2,
+  CircleUserRound,
+  Download,
   EllipsisVertical,
+  ExternalLink,
   Files,
+  Folder,
+  FolderOpen,
+  FolderPlus,
   History,
-  Moon,
+  Monitor,
   Plus,
   Play,
-  Rocket,
   Save,
   Search,
   Settings,
-  Share2,
   Sparkles,
-  SquareTerminal,
-  Sun,
-  Wifi,
+  Terminal,
   X,
+  Send,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { apiRequest } from "@/lib/browser-api";
 
-type ConsoleTab = "Console" | "I/O" | "AI Agent" | "Preview";
+type ConsoleTab = "Terminal" | "AI Agent" | "Preview";
 type ToolPanel = "files" | "history" | "settings";
 type RunState = "ready" | "running" | "success" | "error";
-type WorkspaceSaveState = "saving" | "saved" | "error";
+type WorkspaceSaveState = "loading" | "saving" | "saved" | "local" | "error";
 type WorkspaceFile = { name: string; content: string };
-type FileKind = "java" | "html" | "css" | "javascript" | "typescript" | "json" | "markdown" | "python" | "text";
-type FileType = { kind: FileKind; label: string; extension: string; baseName: string; language: string };
+type ExplorerNode = { kind: "folder"; name: string; path: string; children: ExplorerNode[] } | { kind: "file"; name: string; path: string };
+type AiMessage = { id: number; role: "user" | "assistant"; markdown: string; changes?: { name: string; content: string }[]; applied?: boolean };
+type EditorUser = { id: number; username: string; full_name: string; profile_photo: string };
 
 const starterCode = `import java.util.*;
 
@@ -45,18 +52,6 @@ public class Main {
     }
 }`;
 
-const fileTypes: FileType[] = [
-  { kind: "java", label: "Java", extension: "java", baseName: "Main", language: "java" },
-  { kind: "html", label: "HTML", extension: "html", baseName: "index", language: "html" },
-  { kind: "css", label: "CSS", extension: "css", baseName: "style", language: "css" },
-  { kind: "javascript", label: "JavaScript", extension: "js", baseName: "script", language: "javascript" },
-  { kind: "typescript", label: "TypeScript", extension: "ts", baseName: "script", language: "typescript" },
-  { kind: "json", label: "JSON", extension: "json", baseName: "data", language: "json" },
-  { kind: "markdown", label: "Markdown", extension: "md", baseName: "README", language: "markdown" },
-  { kind: "python", label: "Python", extension: "py", baseName: "main", language: "python" },
-  { kind: "text", label: "Text file", extension: "txt", baseName: "notes", language: "plaintext" },
-];
-
 const starterFiles: WorkspaceFile[] = [
   { name: "Main.java", content: starterCode },
   { name: "index.html", content: "<!doctype html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Code Editor Preview</title>\n</head>\n<body>\n  <main>\n    <h1>Hello from Code Editor</h1>\n    <button id=\"hello\">Click me</button>\n  </main>\n</body>\n</html>" },
@@ -64,27 +59,66 @@ const starterFiles: WorkspaceFile[] = [
   { name: "script.js", content: "const button = document.getElementById('hello');\nif (button) {\n  button.addEventListener('click', function () {\n    console.log('Button clicked!');\n    document.querySelector('h1').textContent = 'JavaScript is running';\n  });\n}" },
 ];
 
-function fileTypeForName(fileName: string) {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-  return fileTypes.find((fileType) => fileType.extension === extension) ?? fileTypes[fileTypes.length - 1];
+function languageForName(fileName: string) {
+  const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
+  const languages: Record<string, string> = {
+    c: "c", cc: "cpp", cpp: "cpp", cs: "csharp", css: "css", go: "go", h: "cpp", hpp: "cpp",
+    html: "html", htm: "html", java: "java", js: "javascript", jsx: "javascript", json: "json",
+    kt: "kotlin", md: "markdown", mjs: "javascript", php: "php", py: "python", rb: "ruby", rs: "rust",
+    scss: "scss", sh: "shell", sql: "sql", swift: "swift", ts: "typescript", tsx: "typescript", xml: "xml", yaml: "yaml", yml: "yaml",
+  };
+  return languages[extension] ?? "plaintext";
 }
 
-function starterContent(kind: FileKind) {
-  if (kind === "java") return starterCode;
-  if (kind === "html") return starterFiles[1].content;
-  if (kind === "css") return starterFiles[2].content;
-  if (kind === "javascript") return starterFiles[3].content;
-  if (kind === "typescript") return "const greeting: string = 'Hello from TypeScript';\nconsole.log(greeting);";
-  if (kind === "json") return "{\n  \"name\": \"code-editor-project\"\n}";
-  if (kind === "markdown") return "# Code Editor Project\n\nStart writing here.";
-  if (kind === "python") return "print('Hello, world!')";
-  return "";
+function parentFolderPaths(path: string) {
+  const segments = path.split("/");
+  return segments.slice(1).map((_, index) => segments.slice(0, index + 1).join("/"));
+}
+
+function buildExplorerTree(files: WorkspaceFile[], folders: string[]): ExplorerNode[] {
+  const root: ExplorerNode[] = [];
+  const ensureFolder = (siblings: ExplorerNode[], name: string, path: string) => {
+    const existing = siblings.find((node) => node.kind === "folder" && node.path === path);
+    if (existing?.kind === "folder") return existing.children;
+    const folder: Extract<ExplorerNode, { kind: "folder" }> = { kind: "folder", name, path, children: [] };
+    siblings.push(folder);
+    return folder.children;
+  };
+  for (const path of folders) {
+    let siblings = root;
+    let currentPath = "";
+    for (const segment of path.split("/")) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      siblings = ensureFolder(siblings, segment, currentPath);
+    }
+  }
+  for (const file of files) {
+    const segments = file.name.split("/");
+    const name = segments.pop() ?? file.name;
+    let siblings = root;
+    let currentPath = "";
+    for (const segment of segments) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      siblings = ensureFolder(siblings, segment, currentPath);
+    }
+    siblings.push({ kind: "file", name, path: file.name });
+  }
+  const sortNodes = (nodes: ExplorerNode[]) => {
+    nodes.sort((left, right) => left.kind === right.kind ? left.name.localeCompare(right.name) : left.kind === "folder" ? -1 : 1);
+    nodes.forEach((node) => { if (node.kind === "folder") sortNodes(node.children); });
+  };
+  sortNodes(root);
+  return root;
+}
+
+function validWorkspacePath(path: string) {
+  return path.length <= 160 && path.split("/").every((segment) => /^[a-zA-Z0-9_-][a-zA-Z0-9._-]{0,79}$/.test(segment) && !segment.includes(".."));
 }
 
 function createPreviewDocument(files: WorkspaceFile[]) {
-  const htmlFile = files.find((file) => ["html"].includes(fileTypeForName(file.name).extension));
-  const styles = files.filter((file) => fileTypeForName(file.name).kind === "css").map((file) => file.content).join("\n");
-  const scripts = files.filter((file) => fileTypeForName(file.name).kind === "javascript").map((file) => file.content).join("\n");
+  const htmlFile = files.find((file) => ["html", "htm"].includes(file.name.split(".").pop()?.toLowerCase() ?? ""));
+  const styles = files.filter((file) => file.name.toLowerCase().endsWith(".css")).map((file) => file.content).join("\n");
+  const scripts = files.filter((file) => ["js", "mjs", "cjs"].includes(file.name.split(".").pop()?.toLowerCase() ?? "")).map((file) => file.content).join("\n");
   let document = htmlFile?.content ?? "<!doctype html><html><head></head><body><main><h1>Web preview</h1></main></body></html>";
   if (!/<html(?:\s|>)/i.test(document)) document = `<!doctype html><html><head></head><body>${document}</body></html>`;
   const bridge = `(() => { const send = (level, args) => parent.postMessage({ type: 'code-editor-output', level, text: args.map((value) => { try { return typeof value === 'string' ? value : JSON.stringify(value); } catch { return String(value); } }).join(' ') }, '*'); ['log', 'info', 'warn', 'error'].forEach((level) => { const original = console[level]; console[level] = (...args) => { send(level, args); original.apply(console, args); }; }); window.onerror = (message) => send('error', [message]); })();`;
@@ -99,28 +133,58 @@ function createPreviewDocument(files: WorkspaceFile[]) {
   return document;
 }
 
-function mockJavaOutput(source: string) {
-  const lines: string[] = [];
-  const outputPattern = /System\.out\.print(?:ln)?\s*\(([^)]*?)\)\s*;/g;
-  let match: RegExpExecArray | null;
-  while ((match = outputPattern.exec(source)) !== null) {
-    const expression = match[1].trim();
-    const stringLiteral = expression.match(/^"((?:\\.|[^"\\])*)"$/);
-    if (stringLiteral) lines.push(stringLiteral[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').replace(/\\\\/g, "\\"));
-    else if (/^-?\d+(?:\.\d+)?$/.test(expression)) lines.push(expression);
-    else lines.push(expression);
-  }
-  return lines.length ? lines.join("\n") : "Program finished with exit code 0";
+function createNativePreviewDocument(compiledCode: string, device: "iphone" | "pixel") {
+  const safeBundle = JSON.stringify(compiledCode.replace(/<\/script/gi, "<\\/script"));
+  const deviceName = device === "iphone" ? "iPhone" : "Google Pixel";
+  const bridge = `const send = (level, args) => parent.postMessage({ type: 'code-editor-output', level, text: args.map((value) => { try { return typeof value === 'string' ? value : JSON.stringify(value); } catch { return String(value); } }).join(' ') }, '*'); ['log', 'info', 'warn', 'error'].forEach((level) => { const original = console[level]; console[level] = (...args) => { send(level, args); original.apply(console, args); }; }); window.onerror = (message, source, line, column) => send('error', [message + ' (' + line + ':' + column + ')']);`;
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' https://esm.sh; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src https://esm.sh; form-action 'none'; base-uri 'none'"><script type="importmap">{"imports":{"react":"https://esm.sh/react@19.2.8","react-dom":"https://esm.sh/react-dom@19.2.8?external=react","react-dom/client":"https://esm.sh/react-dom@19.2.8/client?external=react","react-native":"https://esm.sh/react-native-web@0.21.3?external=react,react-dom"}}</script><style>html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif}</style></head><body><div id="root"></div><script>${bridge}<\/script><script type="module">import React from 'react'; import { createRoot } from 'react-dom/client'; import * as Native from 'react-native'; const compiled = ${safeBundle}; try { const module = { exports: {} }; const requireModule = (name) => name === 'react' ? React : name === 'react-native' ? Native : (() => { throw new Error('Import belum didukung: ' + name); })(); new Function('module', 'exports', 'require', compiled)(module, module.exports, requireModule); const App = module.exports.default || module.exports.App; if (!App) throw new Error('Buat komponen App sebagai export default.'); createRoot(document.getElementById('root')).render(React.createElement(App)); parent.postMessage({type:'code-editor-output',level:'info',text:'Preview React Native Web aktif pada frame ${deviceName}.'},'*'); } catch (error) { console.error(error instanceof Error ? error.message : String(error)); }</script></body></html>`;
 }
+
+function createPythonRunnerDocument() {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; connect-src https://cdn.jsdelivr.net; worker-src blob:; base-uri 'none'"></head><body><script type="module">const send=(level,text,extra={})=>parent.postMessage({type:'code-editor-output',level,text,...extra},'*');try{const{loadPyodide}=await import('https://cdn.jsdelivr.net/pyodide/v0.29.3/full/pyodide.mjs');const pyodide=await loadPyodide({indexURL:'https://cdn.jsdelivr.net/pyodide/v0.29.3/full/'});window.parent.postMessage({type:'code-editor-python-ready'},'*');window.addEventListener('message',async(event)=>{if(event.source!==parent||event.data?.type!=='run-python')return;pyodide.setStdout({batched:(text)=>send('log',text)});pyodide.setStderr({batched:(text)=>send('error',text)});try{await pyodide.runPythonAsync(event.data.source);send('info','Python selesai.',{complete:true,status:'success'});}catch(error){send('error',error instanceof Error?error.message:String(error),{complete:true,status:'error'});}});}catch(error){send('error',error instanceof Error?error.message:String(error),{complete:true,status:'error'});}</script></body></html>`;
+}
+
+const reactNativeTypeDefinitions = `declare namespace JSX {
+  interface Element {}
+  interface ElementChildrenAttribute { children: {}; }
+}
+declare module "react" {
+  export type ReactNode = JSX.Element | string | number | null | undefined;
+  export interface FunctionComponent<Props = Record<string, unknown>> { (props: Props & { children?: ReactNode }): JSX.Element | null; }
+  const React: { createElement(type: unknown, props?: unknown, ...children: unknown[]): JSX.Element };
+  export default React;
+}
+declare module "react-native" {
+  import type { FunctionComponent } from "react";
+  export type View = FunctionComponent<Record<string, unknown>>;
+  export const View: FunctionComponent<Record<string, unknown>>;
+  export type Text = FunctionComponent<Record<string, unknown>>;
+  export const Text: FunctionComponent<Record<string, unknown>>;
+  export type TextInput = FunctionComponent<Record<string, unknown>>;
+  export const TextInput: FunctionComponent<Record<string, unknown>>;
+  export type ScrollView = FunctionComponent<Record<string, unknown>>;
+  export const ScrollView: FunctionComponent<Record<string, unknown>>;
+  export type Image = FunctionComponent<Record<string, unknown>>;
+  export const Image: FunctionComponent<Record<string, unknown>>;
+  export type Pressable = FunctionComponent<Record<string, unknown>>;
+  export const Pressable: FunctionComponent<Record<string, unknown>>;
+  export type SafeAreaView = FunctionComponent<Record<string, unknown>>;
+  export const SafeAreaView: FunctionComponent<Record<string, unknown>>;
+  export type Button = FunctionComponent<Record<string, unknown>>;
+  export const Button: FunctionComponent<Record<string, unknown>>;
+}`;
 
 export default function OneCompilerEditor() {
   const router = useRouter();
   const [source, setSource] = useState(starterCode);
   const [files, setFiles] = useState<WorkspaceFile[]>(starterFiles);
+  const [openFileNames, setOpenFileNames] = useState(starterFiles.map((file) => file.name));
+  const [folders, setFolders] = useState<string[]>([]);
   const [activeName, setActiveName] = useState("Main.java");
   const [fileOpen, setFileOpen] = useState(true);
   const [dark, setDark] = useState(false);
-  const [tab, setTab] = useState<ConsoleTab>("Console");
+  const [tab, setTab] = useState<ConsoleTab>("Terminal");
+  const [mobilePane, setMobilePane] = useState<"editor" | "output">("editor");
   const [output, setOutput] = useState("");
   const [previewDocument, setPreviewDocument] = useState("");
   const [previewRunVersion, setPreviewRunVersion] = useState(0);
@@ -128,55 +192,114 @@ export default function OneCompilerEditor() {
   const [runState, setRunState] = useState<RunState>("ready");
   const [consoleOpen, setConsoleOpen] = useState(true);
   const [workspaceReady, setWorkspaceReady] = useState(false);
-  const [workspaceSaveState, setWorkspaceSaveState] = useState<WorkspaceSaveState>("saved");
-  const [saved, setSaved] = useState(false);
+  const [workspaceSaveState, setWorkspaceSaveState] = useState<WorkspaceSaveState>("loading");
   const [history, setHistory] = useState<string[]>([]);
   const [toolPanel, setToolPanel] = useState<ToolPanel | null>(null);
   const [openMenu, setOpenMenu] = useState<"language" | "more" | "new-file" | null>(null);
+  const [newFileName, setNewFileName] = useState("");
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newFileError, setNewFileError] = useState("");
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set());
+  const [activeFolder, setActiveFolder] = useState("");
+  const [paneRatio, setPaneRatio] = useState(58);
+  const [previewSize, setPreviewSize] = useState<"desktop" | "iphone" | "pixel">("desktop");
+  const [account, setAccount] = useState<EditorUser | null>(null);
+  const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
+  const [aiModels, setAiModels] = useState<{ id: string; label: string; provider: string }[]>([]);
+  const [aiModelId, setAiModelId] = useState("");
+  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
+  const [aiInput, setAiInput] = useState("");
+  const [aiSending, setAiSending] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [terminalCommand, setTerminalCommand] = useState("");
+  const [pythonRunnerOpen, setPythonRunnerOpen] = useState(false);
+  const [pythonRuntimeReady, setPythonRuntimeReady] = useState(false);
+  const [pythonRunRequest, setPythonRunRequest] = useState<{ id: number; source: string } | null>(null);
   const [fontSize, setFontSize] = useState(18);
   const [wordWrap, setWordWrap] = useState(false);
   const [toast, setToast] = useState("");
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
+  const pythonRunnerRef = useRef<HTMLIFrameElement | null>(null);
+  const mainPanesRef = useRef<HTMLDivElement | null>(null);
+  const aiMessagesEndRef = useRef<HTMLDivElement | null>(null);
+  const phpRuntimeRef = useRef<unknown>(null);
+  const nextAiMessageId = useRef(1);
+  const lastRunKey = useRef("");
+  const nextPythonRunId = useRef(1);
+  const monacoTypesReady = useRef(false);
+  const explorerTree = useMemo(() => buildExplorerTree(files, folders), [files, folders]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
 
   useEffect(() => {
+    if (!workspaceReady) return;
+    try { localStorage.setItem("onecompiler-theme", dark ? "dark" : "light"); } catch {}
+  }, [dark, workspaceReady]);
+
+  useEffect(() => {
     let active = true;
-    Promise.resolve().then(() => {
+    async function loadWorkspace() {
+      let localFiles: WorkspaceFile[] = [];
+      let localFolders: string[] = [];
+      let localActiveName = "";
       try {
-        const persisted = localStorage.getItem("onecompiler-workspace-v1");
+        const savedTheme = localStorage.getItem("onecompiler-theme");
+        if (savedTheme === "dark") setDark(true);
+        const persisted = localStorage.getItem("onecompiler-workspace-v1") ?? localStorage.getItem("courseup-code-workspace");
         if (persisted) {
-          const parsed: unknown = JSON.parse(persisted);
-          if (
-            parsed &&
-            typeof parsed === "object" &&
-            "files" in parsed &&
-            Array.isArray(parsed.files) &&
-            parsed.files.every((file) => file && typeof file.name === "string" && typeof file.content === "string")
-          ) {
-            const restoredFiles = parsed.files as WorkspaceFile[];
-            if (restoredFiles.length) {
-              const restoredName = "activeName" in parsed && typeof parsed.activeName === "string" &&
-                restoredFiles.some((file) => file.name === parsed.activeName)
-                ? parsed.activeName
-                : restoredFiles[0].name;
-              if (active) {
-                setFiles(restoredFiles);
-                setActiveName(restoredName);
-                setSource(restoredFiles.find((file) => file.name === restoredName)?.content ?? "");
-              }
-            }
+          const parsed = JSON.parse(persisted) as unknown;
+          const value = Array.isArray(parsed) ? { files: parsed } : parsed;
+          if (value && typeof value === "object" && "files" in value && Array.isArray(value.files)) {
+            localFiles = value.files.filter((file): file is WorkspaceFile => Boolean(file) && typeof file === "object" && typeof file.name === "string" && typeof file.content === "string" && validWorkspacePath(file.name));
+            if ("folders" in value && Array.isArray(value.folders)) localFolders = value.folders.filter((folder): folder is string => typeof folder === "string" && validWorkspacePath(folder));
+            if ("activeName" in value && typeof value.activeName === "string") localActiveName = value.activeName;
           }
         }
       } catch {
-        if (active) announce("Workspace tersimpan tidak dapat dibuka");
+        if (active) announce("Workspace lokal tidak dapat dibuka");
+      }
+
+      if (localFiles.length && active) {
+        setFiles(localFiles);
+        setFolders(localFolders);
+        const restoredName = localFiles.some((file) => file.name === localActiveName) ? localActiveName : localFiles[0].name;
+          setOpenFileNames([restoredName]);
+        setActiveName(restoredName);
+        setSource(localFiles.find((file) => file.name === restoredName)?.content ?? "");
+        setExpandedFolders(new Set(localFolders));
+      }
+
+      try {
+        const { user } = await apiRequest<{ user: EditorUser }>("/api/v1/auth/me");
+        if (!active) return;
+        setAccount(user);
+        const remote = await apiRequest<{ files: WorkspaceFile[]; folders?: string[] }>("/api/v1/code-workspace");
+        if (!active) return;
+        setCloudSyncEnabled(true);
+        if (remote.files.length) {
+          setFiles(remote.files);
+          setFolders(remote.folders ?? []);
+          setActiveName(remote.files[0].name);
+          setOpenFileNames([remote.files[0].name]);
+          setSource(remote.files[0].content);
+          setWorkspaceSaveState("saved");
+        } else if (!localFiles.length) {
+          setWorkspaceSaveState("saved");
+        } else {
+          setWorkspaceSaveState("saving");
+        }
+      } catch (error) {
+        if (!active) return;
+        setWorkspaceSaveState((error as { status?: number }).status === 401 ? "local" : "error");
       } finally {
         if (active) setWorkspaceReady(true);
       }
-    });
+    }
+    void loadWorkspace();
     return () => { active = false; };
   }, []);
 
@@ -184,24 +307,77 @@ export default function OneCompilerEditor() {
     if (!workspaceReady) return;
     const timeout = window.setTimeout(() => {
       try {
-        localStorage.setItem("onecompiler-workspace-v1", JSON.stringify({ files, activeName }));
-        setWorkspaceSaveState("saved");
+        localStorage.setItem("onecompiler-workspace-v1", JSON.stringify({ files, folders, activeName }));
+        if (!cloudSyncEnabled) setWorkspaceSaveState("local");
       } catch {
         setWorkspaceSaveState("error");
       }
-    }, 450);
+    }, 250);
     return () => window.clearTimeout(timeout);
-  }, [activeName, files, workspaceReady]);
+  }, [activeName, cloudSyncEnabled, files, folders, workspaceReady]);
+
+  useEffect(() => {
+    if (!workspaceReady || !cloudSyncEnabled) return;
+    const timeout = window.setTimeout(() => {
+      setWorkspaceSaveState("saving");
+      void apiRequest("/api/v1/code-workspace", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files, folders }),
+      }).then(() => setWorkspaceSaveState("saved")).catch((error: { status?: number }) => {
+        setWorkspaceSaveState(error.status === 401 ? "local" : "error");
+        setCloudSyncEnabled(false);
+      });
+    }, 2200);
+    return () => window.clearTimeout(timeout);
+  }, [files, folders, workspaceReady, cloudSyncEnabled]);
+
+  useEffect(() => {
+    let active = true;
+    apiRequest<{ models: { id: string; label: string; provider: string }[] }>("/api/v1/code-workspace/assistant")
+      .then(({ models }) => {
+        if (!active) return;
+        setAiModels(models);
+        setAiModelId((current) => current || models[0]?.id || "");
+      })
+      .catch((error: Error) => { if (active) setAiError(error.message); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    aiMessagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [aiMessages, aiSending]);
+
+  const runPreview = useEffectEvent(() => { void runCode(); });
+
+  useEffect(() => {
+    if (!hasRun || tab !== "Preview") return;
+    if (lastRunKey.current === `${activeName}\0${source}`) return;
+    const timeout = window.setTimeout(runPreview, 800);
+    return () => window.clearTimeout(timeout);
+  }, [activeName, hasRun, source, tab]);
 
   useEffect(() => {
     function receivePreviewMessage(event: MessageEvent) {
-      if (event.source !== previewRef.current?.contentWindow || event.data?.type !== "code-editor-output") return;
+      const fromPreview = event.source === previewRef.current?.contentWindow;
+      const fromPythonRunner = event.source === pythonRunnerRef.current?.contentWindow;
+      if (fromPythonRunner && event.data?.type === "code-editor-python-ready") {
+        setPythonRuntimeReady(true);
+        return;
+      }
+      if ((!fromPreview && !fromPythonRunner) || event.data?.type !== "code-editor-output") return;
       setOutput((current) => current ? `${current}\n${event.data.text}` : event.data.text);
-      if (event.data.level === "error") setRunState("error");
+      if (event.data.complete) setRunState(event.data.status === "error" ? "error" : "success");
+      else if (event.data.level === "error") setRunState("error");
     }
     window.addEventListener("message", receivePreviewMessage);
     return () => window.removeEventListener("message", receivePreviewMessage);
   }, []);
+
+  useEffect(() => {
+    if (!pythonRuntimeReady || !pythonRunRequest) return;
+    pythonRunnerRef.current?.contentWindow?.postMessage({ type: "run-python", source: pythonRunRequest.source }, "*");
+  }, [pythonRunRequest, pythonRuntimeReady]);
 
   function announce(message: string) {
     setToast(message);
@@ -211,7 +387,6 @@ export default function OneCompilerEditor() {
   function updateSource(value: string | undefined) {
     const nextSource = value ?? "";
     setSource(nextSource);
-    setSaved(false);
     setWorkspaceSaveState("saving");
     setFiles((current) => current.map((file) => file.name === activeName ? { ...file, content: nextSource } : file));
   }
@@ -221,42 +396,133 @@ export default function OneCompilerEditor() {
     if (!file) return;
     setActiveName(name);
     setSource(file.content);
+    setOpenFileNames((current) => current.includes(name) ? current : [...current, name]);
     setFileOpen(true);
     setWorkspaceSaveState("saving");
     setToolPanel(null);
   }
 
-  function addFile(kind: FileKind = "java") {
-    const fileType = fileTypes.find((item) => item.kind === kind) ?? fileTypes[0];
-    let name = `${fileType.baseName}.${fileType.extension}`;
-    let number = 2;
-    while (files.some((file) => file.name === name)) {
-      name = `${fileType.baseName}${number}.${fileType.extension}`;
-      number += 1;
+  function addFile(name = newFileName.trim()) {
+    const enteredName = name.replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const normalizedName = activeFolder && !enteredName.includes("/") ? `${activeFolder}/${enteredName}` : enteredName;
+    if (!validWorkspacePath(normalizedName)) {
+      setNewFileError("Masukkan nama file atau path yang valid.");
+      return;
     }
-    const content = starterContent(kind);
-    setFiles((current) => [...current, { name, content }]);
-    setActiveName(name);
+    if (files.some((file) => file.name.toLowerCase() === normalizedName.toLowerCase())) {
+      setNewFileError("File dengan nama tersebut sudah ada.");
+      return;
+    }
+    const extension = normalizedName.split(".").pop()?.toLowerCase();
+    const content = normalizedName === "Main.java" ? starterCode
+      : extension === "html" ? starterFiles[1].content
+        : extension === "php" ? "<?php\n\necho '<main><h1>Halo dari PHP</h1></main>';"
+          : ["tsx", "jsx"].includes(extension ?? "") ? "import React from 'react';\nimport { View, Text } from 'react-native';\n\nexport default function App() {\n  return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Halo dari React Native</Text></View>;\n}"
+            : "";
+    const newFolders = parentFolderPaths(normalizedName);
+    setFolders((current) => Array.from(new Set([...current, ...newFolders])));
+    setExpandedFolders((current) => new Set([...current, ...newFolders]));
+    setFiles((current) => [...current, { name: normalizedName, content }]);
+    setOpenFileNames((current) => [...current, normalizedName]);
+    setActiveName(normalizedName);
     setSource(content);
     setWorkspaceSaveState("saving");
     setFileOpen(true);
     setToolPanel(null);
     setOpenMenu(null);
+    setNewFileName("");
+    setNewFileError("");
   }
 
-  function selectFileType(kind: FileKind) {
-    const existing = files.find((file) => fileTypeForName(file.name).kind === kind);
-    if (existing) openFile(existing.name);
-    else addFile(kind);
-    setOpenMenu(null);
+  function createFolder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const enteredName = newFolderName.trim().replaceAll("\\", "/").replace(/^\/+|\/+$/g, "");
+    const folderPath = activeFolder && !enteredName.includes("/") ? `${activeFolder}/${enteredName}` : enteredName;
+    if (!validWorkspacePath(folderPath) || folderPath.split("/").some((part) => part.includes("."))) {
+      setNewFileError("Masukkan nama folder yang valid.");
+      return;
+    }
+    if (folders.some((folder) => folder.toLowerCase() === folderPath.toLowerCase())) {
+      setNewFileError("Folder dengan nama tersebut sudah ada.");
+      return;
+    }
+    const newFolders = [...parentFolderPaths(folderPath), folderPath];
+    setFolders((current) => Array.from(new Set([...current, ...newFolders])));
+    setExpandedFolders((current) => new Set([...current, ...newFolders]));
+    setActiveFolder(folderPath);
+    setNewFolderName("");
+    setNewFileError("");
+    setNewFolderOpen(false);
+  }
+
+  function removeFile(name: string) {
+    if (files.length < 2) {
+      announce("Workspace harus memiliki setidaknya satu file");
+      return;
+    }
+    const remaining = files.filter((file) => file.name !== name);
+    setFiles(remaining);
+    setOpenFileNames((current) => current.filter((fileName) => fileName !== name));
+    if (name === activeName) {
+      setActiveName(remaining[0].name);
+      setSource(remaining[0].content);
+    }
+  }
+
+  function removeFolder(path: string) {
+    if (files.some((file) => file.name.startsWith(`${path}/`))) {
+      announce("Hapus file di dalam folder terlebih dahulu");
+      return;
+    }
+    setFolders((current) => current.filter((folder) => folder !== path && !folder.startsWith(`${path}/`)));
+    setExpandedFolders((current) => new Set(Array.from(current).filter((folder) => folder !== path && !folder.startsWith(`${path}/`))));
+    if (activeFolder === path || activeFolder.startsWith(`${path}/`)) setActiveFolder(parentFolderPaths(path).at(-1) ?? "");
+  }
+
+  function renderExplorerNodes(nodes: ExplorerNode[], depth = 0) {
+    return nodes.map((node) => node.kind === "folder" ? <div key={node.path}>
+      <div className="oc-tree-folder-wrap">
+        <button className={`oc-tree-row oc-folder-row${activeFolder === node.path ? " is-selected" : ""}`} type="button" style={{ paddingLeft: 9 + depth * 14 }} onClick={() => {
+          setActiveFolder(node.path);
+          setExpandedFolders((current) => {
+            const next = new Set(current);
+            if (next.has(node.path)) next.delete(node.path);
+            else next.add(node.path);
+            return next;
+          });
+        }}>
+          {expandedFolders.has(node.path) ? <FolderOpen size={15} /> : <Folder size={15} />}<span>{node.name}</span><ChevronRight className={expandedFolders.has(node.path) ? "is-expanded" : ""} size={13} />
+        </button>
+        <button className="oc-tree-folder-delete" type="button" aria-label={`Delete empty folder ${node.path}`} title="Delete empty folder" onClick={() => removeFolder(node.path)}><X size={13} /></button>
+      </div>
+      {expandedFolders.has(node.path) && renderExplorerNodes(node.children, depth + 1)}
+    </div> : <div className={`oc-tree-row oc-tree-file${activeName === node.path ? " is-selected" : ""}`} key={node.path} style={{ paddingLeft: 25 + depth * 14 }}>
+      <button type="button" onClick={() => openFile(node.path)}><span className="oc-java-mark">{node.name.split(".").at(-1)?.slice(0, 1).toUpperCase() ?? "F"}</span><span>{node.name}</span></button>
+      <button type="button" aria-label={`Delete ${node.path}`} title="Delete file" onClick={() => removeFile(node.path)}><X size={13} /></button>
+    </div>);
+  }
+
+  function handleDividerDown(event: PointerEvent<HTMLDivElement>) {
+    const container = mainPanesRef.current;
+    if (!container) return;
+    const bounds = container.getBoundingClientRect();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const update = (moveEvent: globalThis.PointerEvent) => setPaneRatio(Math.max(30, Math.min(75, ((moveEvent.clientX - bounds.left) / bounds.width) * 100)));
+    const stop = () => {
+      container.removeEventListener("pointermove", update);
+      container.removeEventListener("pointerup", stop);
+      container.removeEventListener("pointercancel", stop);
+    };
+    container.addEventListener("pointermove", update);
+    container.addEventListener("pointerup", stop, { once: true });
+    container.addEventListener("pointercancel", stop, { once: true });
   }
 
   function closeFile(name: string) {
-    const remaining = files.filter((file) => file.name !== name);
-    setFiles(remaining);
-    setWorkspaceSaveState("saving");
+    const remainingOpen = openFileNames.filter((fileName) => fileName !== name);
+    setOpenFileNames(remainingOpen);
     if (name !== activeName) return;
-    const nextFile = remaining[0];
+    const nextFile = files.find((file) => remainingOpen.includes(file.name));
     if (nextFile) {
       setActiveName(nextFile.name);
       setSource(nextFile.content);
@@ -264,6 +530,118 @@ export default function OneCompilerEditor() {
       setFileOpen(false);
       setSource("");
     }
+  }
+
+  async function sendAiMessage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const prompt = aiInput.trim();
+    if (!prompt || !aiModelId) {
+      setAiError(account ? "Model AI belum tersedia." : "Masuk untuk menggunakan AI Agent.");
+      return;
+    }
+    const priorHistory = aiMessages.map((message) => ({ role: message.role, content: message.markdown }));
+    const userMessage: AiMessage = { id: nextAiMessageId.current++, role: "user", markdown: prompt };
+    setAiMessages((current) => [...current, userMessage]);
+    setAiInput("");
+    setAiSending(true);
+    setAiError("");
+    try {
+      let remainingContext = 48 * 1024;
+      const contextFiles = files.flatMap((file) => {
+        if (remainingContext <= 0) return [];
+        const content = file.content.slice(0, remainingContext);
+        remainingContext -= new TextEncoder().encode(content).byteLength;
+        return [{ name: file.name, content }];
+      });
+      const result = await apiRequest<{ markdown: string; changes: { name: string; content: string }[] }>("/api/v1/code-workspace/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeFileName: activeName, prompt, modelId: aiModelId, files: contextFiles, history: priorHistory }),
+      });
+      setAiMessages((current) => [...current, { id: nextAiMessageId.current++, role: "assistant", markdown: result.markdown, changes: result.changes }]);
+    } catch (error) {
+      setAiError(error instanceof Error ? error.message : "AI Agent belum dapat merespons.");
+    } finally {
+      setAiSending(false);
+    }
+  }
+
+  function applyAiChanges(message: AiMessage) {
+    const existingNames = new Set(files.map((file) => file.name));
+    const validChanges = (message.changes ?? []).filter((change) => existingNames.has(change.name) && new TextEncoder().encode(change.content).byteLength <= 1024 * 1024);
+    if (!validChanges.length) {
+      setAiError("Tidak ada perubahan file yang valid untuk diterapkan.");
+      return;
+    }
+    const replacements = new Map(validChanges.map((change) => [change.name, change.content]));
+    setFiles((current) => current.map((file) => replacements.has(file.name) ? { ...file, content: replacements.get(file.name) ?? file.content } : file));
+    if (replacements.has(activeName)) setSource(replacements.get(activeName) ?? source);
+    setAiMessages((current) => current.map((item) => item.id === message.id ? { ...item, applied: true } : item));
+  }
+
+  function downloadActiveFile() {
+    const blob = new Blob([source], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = activeName.split("/").at(-1) ?? activeName;
+    link.click();
+    URL.revokeObjectURL(url);
+    setOpenMenu(null);
+  }
+
+  async function downloadWorkspace() {
+    const archive = new JSZip();
+    for (const folder of folders) archive.folder(folder);
+    for (const file of files) archive.file(file.name, file.content);
+    const blob = await archive.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "code-workspace.zip";
+    link.click();
+    URL.revokeObjectURL(url);
+    setOpenMenu(null);
+  }
+
+  function openLiveBrowser() {
+    if (!account) {
+      router.push("/login");
+      return;
+    }
+    const liveTab = window.open(`/code/live/local/${account.id}`, "_blank");
+    if (liveTab) liveTab.opener = null;
+    else announce("Izinkan pop-up untuk membuka preview di browser");
+    setOpenMenu(null);
+  }
+
+  function selectOutputTab(nextTab: ConsoleTab) {
+    setTab(nextTab);
+    setMobilePane("output");
+    setConsoleOpen(true);
+  }
+
+  function submitTerminalCommand(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const command = terminalCommand.trim();
+    setTerminalCommand("");
+    if (command === "clear") {
+      setOutput("");
+      return;
+    }
+    if (command === "help") {
+      setOutput("Perintah tersedia: help, clear, run, npm run dev, log <pesan>\nPerintah shell umum lainnya belum didukung.");
+      return;
+    }
+    if (command === "run" || command === "npm run dev" || command === "start") {
+      void runCode();
+      return;
+    }
+    if (command.startsWith("log ")) {
+      setOutput((current) => [current, command.slice(4)].filter(Boolean).join("\n"));
+      return;
+    }
+    setOutput((current) => [current, `Perintah belum tersedia: ${command || "(kosong)"}. Ketik help untuk daftar perintah.`].filter(Boolean).join("\n"));
   }
 
   function resetCode() {
@@ -276,6 +654,16 @@ export default function OneCompilerEditor() {
 
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    if (!monacoTypesReady.current) {
+      const tsDefaults = monaco.languages.typescript.typescriptDefaults;
+      const jsDefaults = monaco.languages.typescript.javascriptDefaults;
+      const tsTypePath = "file:///node_modules/@types/react-native/index.d.ts";
+      tsDefaults.addExtraLib(reactNativeTypeDefinitions, tsTypePath);
+      jsDefaults.addExtraLib(reactNativeTypeDefinitions, tsTypePath);
+      tsDefaults.setCompilerOptions({ ...tsDefaults.getCompilerOptions(), allowSyntheticDefaultImports: true, esModuleInterop: true, jsx: monaco.languages.typescript.JsxEmit.React });
+      jsDefaults.setCompilerOptions({ ...jsDefaults.getCompilerOptions(), allowSyntheticDefaultImports: true, esModuleInterop: true, jsx: monaco.languages.typescript.JsxEmit.React });
+      monacoTypesReady.current = true;
+    }
     monaco.editor.defineTheme("onecompiler-light", {
       base: "vs",
       inherit: true,
@@ -303,62 +691,90 @@ export default function OneCompilerEditor() {
     if (editor.getValue().startsWith("import java.util.*;")) editor.setSelection(new monaco.Range(1, 1, 1, 7));
   };
 
-  function runCode() {
+  async function runCode() {
     if (!fileOpen) return;
-    const activeKind = fileTypeForName(activeName).kind;
+    const extension = activeName.split(".").pop()?.toLowerCase() ?? "";
+    lastRunKey.current = `${activeName}\0${source}`;
     setRunState("running");
     setConsoleOpen(true);
-    if (["html", "css", "javascript"].includes(activeKind)) {
-      const currentFiles = files.map((file) => file.name === activeName ? { ...file, content: source } : file);
-      setFiles(currentFiles);
+    setTab("Preview");
+    setMobilePane("output");
+    setOpenMenu(null);
+    const currentFiles = files.map((file) => file.name === activeName ? { ...file, content: source } : file);
+    setFiles(currentFiles);
+    if (["html", "htm", "css", "js", "mjs", "cjs"].includes(extension)) {
       setPreviewDocument(createPreviewDocument(currentFiles));
       setPreviewRunVersion((version) => version + 1);
       setOutput("");
-      setTab("Preview");
-    } else if (activeKind === "java") {
-      setOutput(mockJavaOutput(source));
-      setTab("Console");
       setRunState("success");
+    } else if (["jsx", "tsx"].includes(extension)) {
+      try {
+        const Babel = await import("@babel/standalone");
+        const compiled = Babel.transform(source, {
+          filename: activeName,
+          presets: [["typescript", { allExtensions: true, isTSX: true }], ["react", { runtime: "classic" }]],
+          plugins: ["transform-modules-commonjs"],
+        }).code;
+        if (!compiled) throw new Error("Compiler tidak menghasilkan output.");
+        const device = previewSize === "pixel" ? "pixel" : "iphone";
+        setPreviewSize(device);
+        setPreviewDocument(createNativePreviewDocument(compiled, device));
+        setPreviewRunVersion((version) => version + 1);
+        setOutput("Transform TSX berhasil. Memuat React Native Web...");
+        setRunState("success");
+      } catch (error) {
+        setOutput(error instanceof Error ? error.message : "Compile TSX gagal.");
+        setRunState("error");
+      }
+    } else if (extension === "php") {
+      setOutput("Memuat PHP WebAssembly...");
+      try {
+        const [{ PHP, loadPHPRuntime }, { getPHPLoaderModule }] = await Promise.all([import("@php-wasm/universal"), import("@php-wasm/web-8-4")]);
+        let php = phpRuntimeRef.current as InstanceType<typeof PHP> | null;
+        if (!php) {
+          const runtimeId = await loadPHPRuntime(await getPHPLoaderModule());
+          php = new PHP(runtimeId);
+          phpRuntimeRef.current = php;
+        }
+        const root = "/workspace";
+        try { php.mkdir(root); } catch {}
+        for (const file of currentFiles) {
+          const segments = file.name.split("/");
+          segments.pop();
+          let directory = root;
+          for (const segment of segments) {
+            directory += `/${segment}`;
+            try { php.mkdir(directory); } catch {}
+          }
+          php.writeFile(`${root}/${file.name}`, file.content);
+        }
+        const entryFile = currentFiles.some((file) => file.name === "index.php") ? "index.php" : activeName;
+        const response = await php.runStream({ scriptPath: `${root}/${entryFile}` });
+        const html = await response.stdoutText;
+        const errors = await response.stderrText;
+        setOutput([html, errors].filter(Boolean).join("\n") || "PHP selesai tanpa output.");
+        setPreviewDocument(createPreviewDocument([{ name: "index.html", content: html }]));
+        setPreviewRunVersion((version) => version + 1);
+        setRunState(errors ? "error" : "success");
+      } catch (error) {
+        setOutput(error instanceof Error ? error.message : "PHP WebAssembly gagal dijalankan.");
+        setRunState("error");
+      }
+    } else if (extension === "py") {
+      setTab("Terminal");
+      setMobilePane("output");
+      setOutput("Memuat runtime Python WebAssembly...");
+      setPythonRunnerOpen(true);
+      setPythonRunRequest({ id: nextPythonRunId.current++, source });
     } else {
-      setOutput(`${fileTypeForName(activeName).label} file is ready. Run Java or HTML/CSS/JavaScript to execute a preview.`);
-      setTab("Console");
-      setRunState("success");
+      setTab("Terminal");
+      setMobilePane("output");
+      setOutput(extension === "java"
+        ? "Java belum dapat dijalankan: server ini tidak memiliki JDK/javac runner yang terkonfigurasi. Source tidak disimulasikan."
+        : `${languageForName(activeName)} dapat diedit dengan syntax highlighting, tetapi runtime belum tersedia.`);
+      setRunState("error");
     }
     setHasRun(true);
-    setOpenMenu(null);
-  }
-
-  function saveCode() {
-    try {
-      localStorage.setItem(`code-editor-${activeName}`, source);
-    } catch {
-      announce("Code tidak dapat disimpan di perangkat ini");
-      return;
-    }
-    setHistory((items) => [source, ...items.filter((item) => item !== source)].slice(0, 5));
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1600);
-    announce(`${activeName} saved`);
-  }
-
-  async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(source);
-      announce("Code copied");
-    } catch {
-      announce("Clipboard access unavailable");
-    }
-    setOpenMenu(null);
-  }
-
-  async function shareCode() {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      announce("Link copied");
-    } catch {
-      announce("Clipboard access unavailable");
-    }
-    setOpenMenu(null);
   }
 
   function toggleToolPanel(panel: ToolPanel) {
@@ -376,41 +792,39 @@ export default function OneCompilerEditor() {
   }
 
   return (
-    <main className={`onecompiler-app${dark ? " is-dark" : ""}`}>
+    <main className={`onecompiler-app${dark ? " is-dark" : ""}${mobilePane === "output" ? " is-mobile-output" : ""}`}>
       <header className="oc-navbar">
         <div className="oc-brand-group">
           <a className="oc-brand" href="/code" aria-label="Code Editor home">
             <span className="oc-brand-mark"><Code2 size={23} strokeWidth={2.2} /></span>
             <span>Code Editor</span>
           </a>
-          <button className="oc-upgrade" type="button" onClick={() => router.push("/register")}><Rocket size={17} />Upgrade</button>
         </div>
 
         <div className="oc-run-group">
-          <button className="oc-action oc-ai-button" type="button" onClick={() => { setTab("AI Agent"); setOpenMenu(null); }}><Sparkles size={19} />AI</button>
-          <button className="oc-action oc-language-button" type="button" aria-expanded={openMenu === "language"} onClick={() => setOpenMenu((current) => current === "language" ? null : "language")}><span>{fileTypeForName(activeName).label}</span><ChevronDown size={18} /></button>
-          <button className="oc-action oc-run-button" type="button" onClick={runCode}><Play size={17} fill="currentColor" />Run</button>
           <button className="oc-icon-button oc-more-button" type="button" aria-label="More options" aria-expanded={openMenu === "more"} onClick={() => setOpenMenu((current) => current === "more" ? null : "more")}><EllipsisVertical size={21} /></button>
-          {openMenu === "language" && <div className="oc-top-popover oc-language-menu" role="menu">{fileTypes.map((fileType) => <button className={fileType.kind === fileTypeForName(activeName).kind ? "is-selected" : ""} key={fileType.kind} type="button" role="menuitem" onClick={() => selectFileType(fileType.kind)}><span>{fileType.label}</span>{fileType.kind === fileTypeForName(activeName).kind && <span>Selected</span>}</button>)}</div>}
           {openMenu === "more" && <div className="oc-top-popover oc-more-menu" role="menu">
-            <button type="button" role="menuitem" onClick={saveCode}><Save size={16} />Save code</button>
-            <button type="button" role="menuitem" onClick={() => void copyCode()}><Code2 size={16} />Copy code</button>
-            <button type="button" role="menuitem" onClick={resetCode}><X size={16} />Reset editor</button>
-            <button type="button" role="menuitem" onClick={() => void shareCode()}><Share2 size={16} />Share link</button>
-            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/contact"); }}><Bug size={16} />Report a bug</button>
-            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/register"); }}><Rocket size={16} />Upgrade</button>
-            <button type="button" role="menuitem" onClick={() => { setOpenMenu(null); router.push("/login"); }}>Login</button>
+            <button type="button" role="menuitem" onClick={downloadActiveFile}><Download size={16} />Download file</button>
+            <button type="button" role="menuitem" onClick={() => void downloadWorkspace()}><Files size={16} />Download workspace ZIP</button>
+            <button type="button" role="menuitem" onClick={openLiveBrowser}><ExternalLink size={16} />Open in browser</button>
+            <button type="button" role="menuitem" onClick={resetCode}><X size={16} />Reset file</button>
           </div>}
-        </div>
-
-        <div className="oc-account-group">
-          <button className="oc-icon-button oc-utility-button" type="button" aria-label="Report a bug" title="Contact support" onClick={() => router.push("/contact")}><Bug size={19} /></button>
-          <button className="oc-icon-button oc-utility-button" type="button" aria-label={dark ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setDark((value) => !value)}>{dark ? <Moon size={19} /> : <Sun size={19} />}</button>
-          <button className="oc-outline-button oc-save-button" type="button" onClick={saveCode}><Save size={17} />{saved ? "Tersimpan" : "Simpan"}</button>
-          <button className="oc-icon-button oc-utility-button" type="button" aria-label="Copy share link" onClick={() => void shareCode()}><Share2 size={19} /></button>
-          <button className="oc-outline-button oc-login-button" type="button" onClick={() => router.push("/login")}>Login</button>
+          <button className="oc-account-button" type="button" aria-label={account ? `Account ${account.full_name}` : "Login"} title={account?.full_name ?? "Login"} onClick={() => router.push(account ? "/dashboard" : "/login")}>
+            <CircleUserRound size={20} />
+            <span>{account ? account.full_name.split(" ")[0] : "Login"}</span>
+          </button>
+          <span className={`oc-autosave is-${workspaceSaveState}`} role="status"><span />{workspaceSaveState === "loading" ? "Memuat" : workspaceSaveState === "saving" ? "Menyimpan" : workspaceSaveState === "error" ? "Belum tersinkron" : workspaceSaveState === "local" ? "Tersimpan lokal" : "Tersimpan"}</span>
+          <button className="oc-action oc-run-button" type="button" onClick={runCode}><Play size={17} fill="currentColor" />Run</button>
+          <button className="oc-action oc-ai-button" type="button" onClick={() => selectOutputTab("AI Agent")}><Sparkles size={18} />AI</button>
         </div>
       </header>
+
+      <nav className="oc-mobile-switch" aria-label="Workspace panels">
+        <button type="button" className={mobilePane === "editor" ? "is-active" : ""} onClick={() => setMobilePane("editor")}><Code2 size={15} />Editor</button>
+        <button type="button" className={mobilePane === "output" && tab === "Terminal" ? "is-active" : ""} onClick={() => selectOutputTab("Terminal")}><Terminal size={15} />Terminal</button>
+        <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} onClick={() => selectOutputTab("Preview")}><Monitor size={15} />Preview</button>
+        <button type="button" className={mobilePane === "output" && tab === "AI Agent" ? "is-active" : ""} onClick={() => selectOutputTab("AI Agent")}><Sparkles size={15} />AI</button>
+      </nav>
 
       <aside className="oc-sidebar" aria-label="Editor tools">
         <div className="oc-sidebar-top">
@@ -425,22 +839,28 @@ export default function OneCompilerEditor() {
 
       {toolPanel && <section className="oc-tool-panel" aria-label={`${toolPanel} panel`}>
         <div className="oc-tool-panel-heading"><strong>{toolPanel === "files" ? "Files" : toolPanel === "history" ? "History" : "Settings"}</strong><button type="button" aria-label="Close panel" onClick={() => setToolPanel(null)}><X size={17} /></button></div>
-        {toolPanel === "files" && <div className="oc-tool-panel-body"><div className="oc-file-list">{files.map((file) => <button className={file.name === activeName ? "is-selected" : ""} key={file.name} type="button" onClick={() => openFile(file.name)}><span className="oc-java-mark">{fileTypeForName(file.name).label.slice(0, 1)}</span>{file.name}<span>{file.name === activeName ? "Open" : ""}</span></button>)}</div><button className="oc-panel-command" type="button" onClick={() => { setToolPanel(null); setOpenMenu("new-file"); }}><Plus size={16} />New file</button></div>}
+        {toolPanel === "files" && <div className="oc-tool-panel-body">
+          <div className="oc-explorer-actions"><button type="button" aria-label="New file" title="New file" onClick={() => { setOpenMenu("new-file"); setNewFolderOpen(false); setNewFileError(""); }}><Plus size={16} /></button><button type="button" aria-label="New folder" title="New folder" onClick={() => { setNewFolderOpen((open) => !open); setOpenMenu(null); setNewFileError(""); }}><FolderPlus size={16} /></button></div>
+          {openMenu === "new-file" && <form className="oc-create-form" onSubmit={(event) => { event.preventDefault(); addFile(); }}><label htmlFor="oc-new-file-name">New file {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-file-name" autoFocus value={newFileName} onChange={(event) => { setNewFileName(event.target.value); setNewFileError(""); }} placeholder="src/index.php" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
+          {newFolderOpen && <form className="oc-create-form" onSubmit={createFolder}><label htmlFor="oc-new-folder-name">New folder {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-folder-name" autoFocus value={newFolderName} onChange={(event) => { setNewFolderName(event.target.value); setNewFileError(""); }} placeholder="src" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
+          <div className="oc-file-list">{renderExplorerNodes(explorerTree)}</div>
+        </div>}
         {toolPanel === "history" && <div className="oc-tool-panel-body"><p className="oc-panel-caption">Saved versions of {activeName}</p>{history.length ? history.map((version, index) => <button className="oc-history-item" key={`${index}-${version.slice(0, 12)}`} type="button" onClick={() => { updateSource(version); setToolPanel(null); announce("Version restored"); }}><span>Version {history.length - index}</span><code>{version.split("\n")[0] || "Empty file"}</code></button>) : <p className="oc-panel-empty">No saved versions yet</p>}</div>}
         {toolPanel === "settings" && <div className="oc-tool-panel-body"><div className="oc-setting-row"><span>Font size</span><div><button type="button" aria-label="Decrease font size" onClick={() => setFontSize((size) => Math.max(12, size - 1))}>-</button><span>{fontSize}px</span><button type="button" aria-label="Increase font size" onClick={() => setFontSize((size) => Math.min(28, size + 1))}>+</button></div></div><button className="oc-setting-toggle" type="button" aria-pressed={wordWrap} onClick={() => setWordWrap((value) => !value)}><span>Word wrap</span><span>{wordWrap ? "On" : "Off"}</span></button><button className="oc-setting-toggle" type="button" onClick={() => setDark((value) => !value)}><span>Dark theme</span><span>{dark ? "On" : "Off"}</span></button></div>}
       </section>}
 
+      <div className="oc-workbench" ref={mainPanesRef} style={{ gridTemplateColumns: `${paneRatio}fr 8px ${100 - paneRatio}fr` }}>
       <section className="oc-editor-pane" aria-label="Code editor">
         <div className="oc-editor-tabs" role="tablist" aria-label="Open files">
-          {files.map((file) => <div className={`oc-file-tab${file.name === activeName ? " is-active" : ""}`} key={file.name} role="tab" aria-selected={file.name === activeName} tabIndex={0} onClick={() => openFile(file.name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openFile(file.name); }}><span className="oc-java-mark">J</span><span>{file.name}</span><button type="button" aria-label={`Close ${file.name}`} onClick={(event) => { event.stopPropagation(); closeFile(file.name); }}><X size={17} /></button></div>)}
-          <button className="oc-add-file" type="button" aria-label="Add file" aria-expanded={openMenu === "new-file"} onClick={() => setOpenMenu((current) => current === "new-file" ? null : "new-file")}><Plus size={21} /></button>
+          {openFileNames.map((name) => <div className={`oc-file-tab${name === activeName ? " is-active" : ""}`} key={name} role="tab" aria-selected={name === activeName} tabIndex={0} onClick={() => openFile(name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openFile(name); }}><span className="oc-java-mark">{name.split(".").pop()?.slice(0, 1).toUpperCase() ?? "F"}</span><span>{name}</span><button type="button" aria-label={`Close ${name}`} onClick={(event) => { event.stopPropagation(); closeFile(name); }}><X size={17} /></button></div>)}
+          <button className="oc-add-file" type="button" aria-label="Add file" aria-expanded={openMenu === "new-file"} onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); setNewFileError(""); }}><Plus size={21} /></button>
         </div>
-        {openMenu === "new-file" && <div className="oc-file-type-menu" role="menu" aria-label="Choose file type">{fileTypes.map((fileType) => <button key={fileType.kind} type="button" role="menuitem" onClick={() => addFile(fileType.kind)}><span className={`oc-file-type-mark oc-file-type-${fileType.kind}`}>{fileType.label.slice(0, 1)}</span>{fileType.label}<span>.{fileType.extension}</span></button>)}</div>}
         <div className="oc-monaco-wrap">
           {fileOpen ? <Editor
             key={activeName}
+            path={activeName}
             height="100%"
-            language={fileTypeForName(activeName).language}
+            language={languageForName(activeName)}
             theme={dark ? "onecompiler-dark" : "onecompiler-light"}
             value={source}
             onChange={updateSource}
@@ -465,25 +885,38 @@ export default function OneCompilerEditor() {
               tabSize: 4,
               wordWrap: wordWrap ? "on" : "off",
             }}
-          /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>No file open</strong><button type="button" onClick={() => addFile()}>Create Java file</button></div>}
+          /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>No file open</strong><button type="button" onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); }}>Create file</button></div>}
         </div>
       </section>
 
+      <div className="oc-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize editor and panel" onPointerDown={handleDividerDown}><span /></div>
+
       <section className={`oc-console-pane${consoleOpen ? "" : " is-hidden"}`} aria-label="Program output">
         <div className="oc-console-tabs" role="tablist" aria-label="Output panels">
-          <button className={tab === "Console" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Console"} onClick={() => setTab("Console")}><SquareTerminal size={16} />Console</button>
-          <button className={tab === "I/O" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "I/O"} onClick={() => setTab("I/O")}><SquareTerminal size={16} />I/O</button>
-          <button className={tab === "AI Agent" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "AI Agent"} onClick={() => setTab("AI Agent")}><Sparkles size={16} />AI Agent</button>
-          <button className={tab === "Preview" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Preview"} onClick={() => setTab("Preview")}><Code2 size={16} />Preview</button>
+          <button className={tab === "Terminal" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Terminal"} onClick={() => selectOutputTab("Terminal")}><Terminal size={16} />Terminal</button>
+          <button className={tab === "AI Agent" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "AI Agent"} onClick={() => selectOutputTab("AI Agent")}><Sparkles size={16} />AI Agent</button>
+          <button className={tab === "Preview" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Preview"} onClick={() => selectOutputTab("Preview")}><Code2 size={16} />Preview</button>
+          {tab === "Preview" && ["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") && <div className="oc-device-picker"><button className={previewSize === "iphone" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("iphone")}>iPhone</button><button className={previewSize === "pixel" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("pixel")}>Pixel</button></div>}
         </div>
         <div className="oc-console-content" role="tabpanel">
-          {tab === "Preview" && previewDocument ? <iframe key={previewRunVersion} ref={previewRef} onLoad={() => setRunState((state) => state === "running" ? "success" : state)} className="oc-preview-frame" title="HTML CSS JavaScript preview" sandbox="allow-scripts" srcDoc={previewDocument} /> : tab === "Console" && hasRun ? <pre className="oc-output">{output || "No console output"}</pre> : (
-            <div className="oc-empty-state">
-              {tab === "Console" ? <><SquareTerminal className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Live Console</strong><span>Click Run to start</span></> : tab === "I/O" ? <><SquareTerminal className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Program I/O</strong></> : tab === "AI Agent" ? <><Sparkles className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>AI Agent</strong></> : <><Code2 className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Web Preview</strong><span>Run an HTML, CSS, or JavaScript file</span></>}
+          {tab === "Preview" && (previewDocument ? <div className={`oc-preview-stage${["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") ? " is-native" : ""}`}>
+            {["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") ? <div className={`oc-device-frame is-${previewSize}`}><div className="oc-device-screen"><div className="oc-device-status"><span>9:41</span><span>● ▮ ▰</span></div><div className="oc-device-camera" /><iframe key={previewRunVersion} ref={previewRef} title={`${previewSize} React Native Web preview`} sandbox="allow-scripts" srcDoc={previewDocument} /><div className="oc-device-home" /></div></div> : <iframe key={previewRunVersion} ref={previewRef} onLoad={() => setRunState((state) => state === "running" ? "success" : state)} className="oc-preview-frame" title="Live code preview" sandbox="allow-scripts" srcDoc={previewDocument} />}
+          </div> : <div className="oc-empty-state"><Code2 className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Preview</strong><span>Run project untuk melihat hasil</span></div>)}
+          {tab === "Terminal" && <div className="oc-terminal-view"><pre className="oc-output">{output || "Terminal siap. Ketik help untuk melihat perintah yang tersedia."}</pre><form className="oc-terminal-command" onSubmit={submitTerminalCommand}><span>›</span><input value={terminalCommand} onChange={(event) => setTerminalCommand(event.target.value)} aria-label="Terminal command" placeholder="help" autoComplete="off" spellCheck={false} /><button type="submit" aria-label="Run terminal command"><Play size={15} /></button></form></div>}
+          {tab === "AI Agent" && <section className="oc-ai-view" aria-label="AI Agent">
+            <header className="oc-ai-heading"><span><Bot size={18} /></span><div><strong>AI Agent</strong><small>{account ? "Konteks file project aktif" : "Masuk untuk menggunakan AI"}</small></div><select aria-label="AI model" value={aiModelId} onChange={(event) => setAiModelId(event.target.value)} disabled={!aiModels.length || aiSending}><option value="">{aiModels.length ? "Pilih model" : "Belum tersedia"}</option>{aiModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}</select></header>
+            <div className="oc-ai-messages" aria-live="polite">
+              {!aiMessages.length && <div className="oc-ai-welcome"><Sparkles size={24} /><strong>Halo, aku siap bantu.</strong><span>Tanya tentang kode atau minta bantuan mencari bug.</span></div>}
+              {aiMessages.map((message) => <article className={`oc-ai-message is-${message.role}`} key={message.id}><span>{message.role === "user" ? "Kamu" : "AI Agent"}</span><div><ReactMarkdown>{message.markdown}</ReactMarkdown></div>{!!message.changes?.length && <div className="oc-ai-changes"><p>{message.changes.length} proposed file change{message.changes.length === 1 ? "" : "s"}</p>{message.changes.map((change) => <code key={`${message.id}-${change.name}`}>{change.name}</code>)}<button type="button" disabled={message.applied} onClick={() => applyAiChanges(message)}>{message.applied ? <Check size={14} /> : <CheckCircle2 size={14} />}{message.applied ? "Applied" : "Apply changes"}</button></div>}</article>)}
+              {aiSending && <div className="oc-ai-thinking">Menganalisis file project...</div>}
+              <div ref={aiMessagesEndRef} />
             </div>
-          )}
+            {aiError && <p className="oc-ai-error" role="alert">{aiError}</p>}
+            <form className="oc-ai-composer" onSubmit={sendAiMessage}><textarea value={aiInput} onChange={(event) => setAiInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder={`Tanya tentang ${activeName}...`} rows={3} maxLength={2000} /><button type="submit" aria-label="Send message" disabled={aiSending || !aiInput.trim()}><Send size={16} />{aiSending ? "Mengirim" : "Kirim"}</button></form>
+          </section>}
         </div>
       </section>
+      </div>
 
       <footer className="oc-statusbar">
         <div className="oc-status-left">
@@ -492,14 +925,12 @@ export default function OneCompilerEditor() {
             {runState === "running" ? "Running..." : runState === "success" ? "Run selesai" : runState === "error" ? "Perlu diperbaiki" : "Siap"}
           </span>
           <span className={`oc-workspace-status is-${workspaceSaveState}`} aria-live="polite">
-            <Save size={13} />{workspaceSaveState === "saving" ? "Menyimpan..." : workspaceSaveState === "error" ? "Belum tersimpan" : "Tersimpan lokal"}
+            <Save size={13} />{workspaceSaveState === "loading" ? "Memuat..." : workspaceSaveState === "saving" ? "Menyimpan..." : workspaceSaveState === "error" ? "Belum tersinkron" : workspaceSaveState === "local" ? "Tersimpan lokal" : "Tersimpan cloud"}
           </span>
-          <button className="oc-status-action oc-terminal-status" type="button" aria-expanded={consoleOpen} onClick={() => setConsoleOpen((open) => !open)}>
-            <SquareTerminal size={15} />{consoleOpen ? "Sembunyikan output" : "Tampilkan output"}
-          </button>
         </div>
-        <div className="oc-status-right"><button className="oc-status-action" type="button" onClick={() => setDark((value) => !value)}>{dark ? "Dark" : "Light"} <ArrowLeftRight size={15} /></button><a className="oc-status-action" href="https://docs.oracle.com/en/java/" target="_blank" rel="noreferrer">Wiki <BookOpen size={16} /></a><button className="oc-status-action" type="button" onClick={() => announce("Internet connection active")}>Internet <Wifi size={16} /></button></div>
+        <div className="oc-status-right"><span>{languageForName(activeName).toUpperCase()}</span></div>
       </footer>
+      {pythonRunnerOpen && <iframe ref={pythonRunnerRef} className="oc-python-runner" title="Python WebAssembly runtime" aria-hidden="true" sandbox="allow-scripts" srcDoc={createPythonRunnerDocument()} />}
       {toast && <div className="oc-toast" role="status">{toast}</div>}
     </main>
   );

@@ -4,7 +4,6 @@ import { json, readJson } from "@/lib/http";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const supportedExtensions = new Set(["html", "htm", "css", "js", "mjs", "cjs", "jsx", "ts", "tsx", "php", "json"]);
 const maxFileBytes = 1024 * 1024;
 const maxContextBytes = 48 * 1024;
 const maxResponseBytes = 2 * 1024 * 1024;
@@ -47,8 +46,6 @@ function validateFiles(value: unknown, activeFileName: string) {
   let contextSize = 0;
   for (const candidate of entries) {
     if (typeof candidate.name !== "string" || typeof candidate.content !== "string" || !validPath(candidate.name)) return null;
-    const extension = candidate.name.split("/").at(-1)?.split(".").at(-1)?.toLowerCase();
-    if (!extension || !supportedExtensions.has(extension)) return null;
     const normalized = candidate.name.toLowerCase();
     if (names.has(normalized)) return null;
     names.add(normalized);
