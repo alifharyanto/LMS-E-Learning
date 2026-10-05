@@ -1,0 +1,4 @@
+category,question,option_a,option_b,option_c,option_d,answer_index,explanation
+HTML,"Tag untuk heading terbesar adalah?","<h1>","<h2>","<h3>","<h4>",A,"Tag <h1> adalah heading paling besar."
+CSS,"Properti yang digunakan untuk mengubah warna teks adalah?","color","background","font-size","margin",A,"Properti color mengatur warna teks."
+PHP,"Operator untuk mengecek kesamaan nilai dan tipe data adalah?","==","===","!=","<>",B,"=== membandingkan nilai dan tipe data secara ketat."

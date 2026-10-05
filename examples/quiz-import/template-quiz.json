@@ -1,0 +1,32 @@
+[
+  {
+    "category": "HTML",
+    "question": "Tag untuk heading terbesar adalah?",
+    "option_a": "<h1>",
+    "option_b": "<h2>",
+    "option_c": "<h3>",
+    "option_d": "<h4>",
+    "answer_index": "A",
+    "explanation": "Tag <h1> adalah heading paling besar."
+  },
+  {
+    "category": "CSS",
+    "question": "Properti yang digunakan untuk mengubah warna teks adalah?",
+    "option_a": "color",
+    "option_b": "background",
+    "option_c": "font-size",
+    "option_d": "margin",
+    "answer_index": 0,
+    "explanation": "Properti color mengatur warna teks."
+  },
+  {
+    "category": "PHP",
+    "question": "Operator untuk mengecek kesamaan nilai dan tipe data adalah?",
+    "option_a": "==",
+    "option_b": "===",
+    "option_c": "!=",
+    "option_d": "<>",
+    "answer_index": "B",
+    "explanation": "=== membandingkan nilai dan tipe data secara ketat."
+  }
+]

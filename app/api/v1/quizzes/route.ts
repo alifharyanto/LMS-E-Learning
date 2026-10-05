@@ -1,4 +1,5 @@
 import { getRequestUser, type User } from "@/lib/auth";
+import type { RowDataPacket } from "mysql2/promise";
 import { execute, queryRows } from "@/lib/db";
 import { json, parseId, readJson } from "@/lib/http";
 
@@ -20,14 +21,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const categoryId = parseId(url.searchParams.get("category_id") ?? "");
     if (!categoryId) {
-      const categories = await queryRows<any[]>("SELECT c.id, c.name, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id WHERE c.parent_id IS NULL GROUP BY c.id, c.name ORDER BY c.name");
+      const categories = await queryRows<RowDataPacket[]>("SELECT c.id, c.name, c.time_limit_minutes, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id WHERE c.parent_id IS NULL GROUP BY c.id, c.name, c.time_limit_minutes ORDER BY c.name");
       return json({ categories });
     }
 
-    const categories = await queryRows<any[]>("SELECT id, name FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    const categories = await queryRows<RowDataPacket[]>("SELECT id, name, time_limit_minutes FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
     if (!categories[0]) return json({ error: "Kategori quiz tidak ditemukan." }, 404);
 
-    const questions = await queryRows<any[]>("SELECT id, question, option_a, option_b, option_c, option_d FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
+    const questions = await queryRows<RowDataPacket[]>("SELECT id, question, option_a, option_b, option_c, option_d FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
     return json({ category: categories[0], questions });
   } catch (error) {
     console.error("Quiz list API error:", error);
@@ -47,7 +48,12 @@ export async function POST(request: Request) {
       return json({ error: "Jawaban quiz tidak valid." }, 422);
     }
 
-    const questions = await queryRows<any[]>("SELECT id, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
+    const categories = await queryRows<RowDataPacket[]>("SELECT time_limit_minutes FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    if (Number(categories[0]?.time_limit_minutes) > 0) {
+      return json({ error: "Quiz bertimer harus dikirim melalui attempt quiz." }, 409);
+    }
+
+    const questions = await queryRows<RowDataPacket[]>("SELECT id, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
     if (!questions.length) return json({ error: "Kategori ini belum memiliki soal." }, 422);
     if (questions.some((question) => !Object.hasOwn(answers, String(question.id)))) {
       return json({ error: "Jawab semua pertanyaan sebelum mengirim quiz." }, 422);

@@ -735,9 +735,12 @@ body, :root[data-theme="dark"] body {
 .learning-next .button-secondary { color: white; border-color: rgba(255,255,255,.72); background: rgba(18,50,59,.35); }
 .learning-next-index { margin-top: 23px; color: rgba(255,255,255,.66); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .quiz-progress-panel { display: grid; padding: 18px; gap: 13px; border: 2px solid var(--ink); background: var(--glass-surface); box-shadow: 4px 4px 0 var(--gold); }
+.quiz-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .quiz-progress-heading > div { display: grid; gap: 5px; }
 .quiz-progress-heading strong { font-size: 13px; }
+.quiz-progress-status { display: flex; align-items: center; gap: 10px; }
 .quiz-progress-percent { font: 800 25px var(--font-display); }
+.quiz-timer { display: inline-flex; min-width: 94px; height: 40px; padding: 0 10px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #15803d; color: #166534; background: #dcfce7; font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 800; }
 .quiz-progress-track { height: 8px; overflow: hidden; border: 1px solid var(--ink); background: var(--paper); }
 .quiz-progress-track span { display: block; height: 100%; border-right: 2px solid var(--ink); background: var(--teal); transition: width .25s ease; }
 .quiz-question-jump { display: flex; padding: 3px 2px 7px; gap: 7px; overflow-x: auto; }
@@ -784,6 +787,7 @@ body, :root[data-theme="dark"] body {
 :root[data-theme="dark"] .forum-sort button.is-active { border-color: var(--gold); }
 :root[data-theme="dark"] .forum-search { border-color: var(--glass-stroke); }
 :root[data-theme="dark"] .material-search, :root[data-theme="dark"] .quiz-progress-panel { background: var(--glass-surface); }
+:root[data-theme="dark"] .quiz-timer { border-color: #4ade80; color: #bbf7d0; background: #14532d; }
 :root[data-theme="dark"] .material-search input { color: var(--ink); }
 :root[data-theme="dark"] .score-chart, :root[data-theme="dark"] .score-chart-track { border-color: var(--glass-stroke); }
 :root[data-theme="dark"] .score-chart-track span { border-color: var(--gold); background: var(--teal); }

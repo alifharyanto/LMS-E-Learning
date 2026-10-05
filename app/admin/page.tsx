@@ -7,7 +7,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 import { apiRequest } from "@/lib/browser-api";
 
-type Category = { id: number; name: string; questions_count: number };
+type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
 type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null };
 type Question = { id: number; question: string };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [data, setData] = useState<AdminData | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [materialFormat, setMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
   const [editingMaterialFormat, setEditingMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
   const [busy, setBusy] = useState(false);
@@ -95,6 +96,7 @@ export default function AdminPage() {
       await apiRequest(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       setNotice("Perubahan berhasil disimpan.");
       form.reset();
+      if (endpoint.startsWith("/api/v1/admin/categories/")) setEditingCategoryId(null);
       if (endpoint === "/api/v1/admin/materials") setMaterialFormat("application/pdf");
       if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); }
       await refresh();
@@ -223,8 +225,15 @@ export default function AdminPage() {
         <div className={`grid-two admin-grid ${section === "quiz" || section === "soal" ? "admin-grid-single" : ""}`} id="quiz" hidden={section !== "quiz" && section !== "soal"}>
           <section className="surface surface-pad admin-section" hidden={section !== "quiz"}>
             <div className="admin-section-heading"><div><span className="list-meta">PENGELOMPOKAN</span><h2 className="surface-title">Kategori quiz</h2></div><span className="admin-count">{data.categories.length} kategori</span></div>
-            <form className="list-row admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}><input className="input" name="category_name" placeholder="Nama kategori" required /><MotionButton className="button button-primary button-small">Tambah</MotionButton></form>
-            {data.categories.length ? data.categories.map((category) => <div className="list-row" key={category.id}><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal</div></div><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada kategori quiz.</p>}
+            <form className="list-row admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}>
+              <input className="input" name="category_name" placeholder="Nama kategori" required />
+              <label className="field"><span>Menit</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue="30" required /></label>
+              <MotionButton className="button button-primary button-small">Tambah</MotionButton>
+            </form>
+            {data.categories.length ? data.categories.map((category) => <div key={category.id}>
+              <div className="list-row"><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal · {category.time_limit_minutes ? `${category.time_limit_minutes} menit` : "Timer belum diatur"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingCategoryId === category.id} onClick={() => setEditingCategoryId(editingCategoryId === category.id ? null : category.id)}><Pencil size={14} />Waktu</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+              {editingCategoryId === category.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/categories/${category.id}`, "PUT")}><label className="field"><span>Durasi dalam menit · kosongkan untuk tanpa timer</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={category.time_limit_minutes ?? ""} /></label><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan</MotionButton></form>}
+            </div>) : <p className="empty-state">Belum ada kategori quiz.</p>}
           </section>
           <section className="surface surface-pad admin-section" hidden={section !== "soal"}>
             <div className="admin-section-heading"><div><span className="list-meta">KONTEN BARU</span><h2 className="surface-title">Buat soal</h2></div></div>
