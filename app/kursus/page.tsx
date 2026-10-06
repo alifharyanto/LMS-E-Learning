@@ -172,8 +172,8 @@ export default function KursusPage() {
                   {categoryMaterials.map((material, index) => {
                     const isComplete = completedIds.includes(material.id);
                     return (
-                      <Reveal className="course-card-reveal" key={material.id}>
-                        <MotionLink className="surface course-card" href={`/kursus/${getCourseMaterialSlug(material)}`}>
+                      <Reveal className="course-card-reveal" key={material.id} offset={0}>
+                        <MotionLink className="surface course-card" href={`/kursus/${getCourseMaterialSlug(material)}`} whileHover={{ scale: 1 }} whileTap={{ scale: 1 }}>
                           <div className="course-card-topline">
                             <span className="course-card-icon"><FileText size={18} /></span>
                             <span className={`course-card-format${isComplete ? " is-complete" : ""}`}>

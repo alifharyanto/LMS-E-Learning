@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import JSZip from "jszip";
 import ReactMarkdown from "react-markdown";
 import {
+  ArrowLeft,
   Bot,
   Bug,
   Check,
@@ -795,6 +796,10 @@ export default function OneCompilerEditor() {
     <main className={`onecompiler-app${dark ? " is-dark" : ""}${mobilePane === "output" ? " is-mobile-output" : ""}`}>
       <header className="oc-navbar">
         <div className="oc-brand-group">
+          <button className="oc-back-button" type="button" aria-label="Kembali ke beranda" title="Kembali ke beranda" onClick={() => router.push("/")}>
+            <ArrowLeft size={16} />
+            <span>Kembali</span>
+          </button>
           <a className="oc-brand" href="/code" aria-label="Code Editor home">
             <span className="oc-brand-mark"><Code2 size={23} strokeWidth={2.2} /></span>
             <span>Code Editor</span>

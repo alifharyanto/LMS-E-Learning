@@ -368,11 +368,11 @@ export default function CodeStudio() {
 
   useEffect(() => {
     let active = true;
-    apiRequest<{ models: AiModelOption[] }>("/api/v1/code-workspace/assistant")
+    apiRequest<{ models: AiModelOption[] }>("/api/v1/code-workspace/assistant", { cache: "no-store" })
       .then(({ models }) => {
         if (!active) return;
         setAiModels(models);
-        setAiModelId((current) => current || models[0]?.id || "");
+        setAiModelId((current) => models.some((model) => model.id === current) ? current : models[0]?.id || "");
       })
       .catch((error: Error) => { if (active) setAiError(error.message); });
     return () => { active = false; };
@@ -519,8 +519,7 @@ export default function CodeStudio() {
       setExitDialogOpen(true);
       return;
     }
-    if (window.history.length > 1) router.back();
-    else router.push("/");
+    router.push("/");
   }
 
   async function sendAiMessage(event: FormEvent<HTMLFormElement>) {
@@ -544,10 +543,15 @@ export default function CodeStudio() {
         remainingContext -= new TextEncoder().encode(content).byteLength;
         return [{ name: file.name, content }];
       });
+      const { models } = await apiRequest<{ models: AiModelOption[] }>("/api/v1/code-workspace/assistant", { cache: "no-store" });
+      const requestModelId = models.some((model) => model.id === aiModelId) ? aiModelId : models[0]?.id;
+      setAiModels(models);
+      setAiModelId(requestModelId ?? "");
+      if (!requestModelId) throw new Error("Belum ada model AI yang tersedia.");
       const result = await apiRequest<{ markdown: string; changes: AiChange[] }>("/api/v1/code-workspace/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeFileName: activeFile?.name ?? "", prompt, modelId: aiModelId, files: contextFiles, history }),
+        body: JSON.stringify({ activeFileName: activeFile?.name ?? "", prompt, modelId: requestModelId, files: contextFiles, history }),
       });
       setAiMessages((current) => [...current, { id: nextAiMessageId.current++, role: "assistant", markdown: result.markdown, changes: result.changes }]);
     } catch (error) {
@@ -710,7 +714,7 @@ export default function CodeStudio() {
 
   return <section className="code-studio" aria-label="Code editor workspace">
     <header className="code-topbar">
-      <button type="button" className="code-exit-button" aria-label="Keluar dari editor" title="Keluar dari editor" onClick={() => leaveEditor()}><ArrowLeft size={16} /><span>Keluar</span></button>
+      <button type="button" className="code-exit-button" aria-label="Kembali ke beranda" title="Kembali ke beranda" onClick={() => leaveEditor()}><ArrowLeft size={16} /><span>Kembali</span></button>
       <div className="code-brand"><span className="code-brand-mark"><Code2 size={16} /></span><strong>Editor <span>Kode</span></strong><span className="code-project-name">Project Saya</span></div>
       <div className="code-top-actions">
         <span className={`code-sync-state is-${isDirty ? "saving" : syncState}`} title={isDirty ? "Perubahan belum tersimpan" : syncMessage}><span className="code-sync-dot" />{isDirty ? "Belum disimpan" : syncState === "loading" ? "Memuat" : syncState === "saving" ? "Menyimpan" : syncState === "saved" ? "Tersimpan" : syncState === "local" ? "Lokal" : "Offline"}</span>

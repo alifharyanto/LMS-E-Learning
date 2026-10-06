@@ -90,9 +90,10 @@ export async function POST(request: Request) {
   const files = validateFiles(body?.files, activeFileName);
   const model = getModels().find((option) => option.id === modelId);
   const history = Array.isArray(body?.history) ? body.history : [];
-  if (!prompt || prompt.length > 2000 || !files || !model || history.length > 12) {
-    return json({ error: "Prompt, model, atau konteks project tidak valid." }, 422);
-  }
+  if (!prompt || prompt.length > 2000) return json({ error: "Prompt tidak valid. Maksimal 2.000 karakter." }, 422);
+  if (!model) return json({ error: "Model AI tidak tersedia. Muat ulang halaman dan pilih model kembali." }, 422);
+  if (!files) return json({ error: "Konteks project tidak valid. Maksimal 50 file, path harus valid dan unik, serta ukuran tiap file maksimal 1 MB." }, 422);
+  if (history.length > 12) return json({ error: "Riwayat chat terlalu panjang. Mulai percakapan baru." }, 422);
   if (history.some((entry) => !entry || typeof entry !== "object" || !["user", "assistant"].includes(String((entry as Record<string, unknown>).role)) || typeof (entry as Record<string, unknown>).content !== "string")) {
     return json({ error: "Riwayat chat tidak valid." }, 422);
   }
