@@ -226,8 +226,8 @@ export default function LatihanPage() {
     <header className="page-heading"><span className="eyebrow">Latihan Soal</span><h1 className="page-title">{categoryName || "Latihan"}</h1><p className="page-intro">Jawab semua soal dengan hati-hati.</p></header>
     {error && <p className="status status-error" role="alert">{error}</p>}
     {loading && <div className="empty-state" role="status">Sedang memuat soal...</div>}
-    <div className="quiz-layout"><section className="surface surface-pad">
-      {result && !loading && <div className="status quiz-result" role="status"><span className="list-meta"><Trophy size={14} /> HASIL QUIZ ANDA</span><div className="metric-value">{result.percent}%</div><strong>Skor: {result.score}/{result.total}</strong></div>}
+    <div className="quiz-layout"><section className={`surface surface-pad ${result ? "quiz-completed" : ""}`}>
+      {result && !loading && <div className="status quiz-result quiz-result-student" role="status"><span className="list-meta"><Trophy size={14} /> SELAMAT, ANDA TELAH MELAKUKAN QUIZ</span><p className="page-intro">Hasil akhir anda telah disimpan.</p><div className="metric-value">{result.percent}%</div><strong>Skor: {result.score}/{result.total}</strong><MotionButton type="button" className="button button-secondary" onClick={() => void retryQuiz()} disabled={busy}><RotateCcw size={14} />Coba Lagi</MotionButton></div>}
       {!loading && (questions.length ? <form className="stack" onSubmit={submitQuiz}>
         <div className="quiz-progress-panel">
           <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>

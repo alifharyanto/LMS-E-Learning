@@ -1,7 +1,7 @@
 "use client";
 
 import { upload as uploadBlob } from "@vercel/blob/client";
-import { Activity, ChartNoAxesColumn, Check, FileSpreadsheet, Pencil, Save, Trash2, UsersRound, X } from "lucide-react";
+import { Activity, CalendarDays, ChartNoAxesColumn, Check, CheckCircle2, Clock3, Eye, FileSpreadsheet, Pencil, Save, Trash2, UsersRound, X, XCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
@@ -11,7 +11,25 @@ type Category = { id: number; name: string; questions_count: number; time_limit_
 type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null };
 type Question = { id: number; question: string };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
-type Result = { id: number; username: string | null; score: number; total: number; percent: number };
+type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; is_correct: boolean };
+type Result = {
+  id: number;
+  user_id: number;
+  username: string | null;
+  full_name: string | null;
+  score: number;
+  total: number;
+  correct_answers: number;
+  incorrect_answers: number;
+  percent: number;
+  status: string;
+  started_at: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  duration_seconds: number;
+  questions: ResultQuestion[];
+};
+type ResultDetail = { result: { id: number; user_id: number; username: string | null; full_name: string | null; score: number; total: number; correct_answers: number; incorrect_answers: number; percent: number; started_at: string | null; submitted_at: string | null; duration_seconds: number }; questions: ResultQuestion[] };
 type RegistrationDay = { date: string; total: number };
 type ActiveStudent = { id: number; username: string; full_name: string; last_active: string };
 type AdminOverview = { total_students: number; joined_today: number; active_today: number; registrations: RegistrationDay[]; active_students: ActiveStudent[]; quiz_30d: { attempts: number; average_percent: number; passed: number } };
@@ -20,6 +38,28 @@ type User = { id: number };
 type ImportError = { rowNumber: number; message: string };
 type ImportRow = { rowNumber: number; category: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; explanation: string };
 type ImportPreview = { totalRows: number; validRows: number; errors: ImportError[]; rows: ImportRow[] };
+
+function formatDuration(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainingSeconds = safeSeconds % 60;
+  return [hours, minutes, remainingSeconds].map((value) => String(value).padStart(2, "0")).join(":");
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+}
+
+function formatTime(value: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
 
 export default function AdminPage() {
   const pathname = usePathname() || "/admin/dashboard";
@@ -46,9 +86,25 @@ export default function AdminPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importBusy, setImportBusy] = useState(false);
+  const [selectedResult, setSelectedResult] = useState<Result | null>(null);
+  const [resultDetail, setResultDetail] = useState<ResultDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   async function refresh() {
     setData(await apiRequest<AdminData>("/api/v1/admin"));
+  }
+
+  async function openResultDetail(result: Result) {
+    setSelectedResult(result);
+    setResultDetail(null);
+    setDetailLoading(true);
+    try {
+      setResultDetail(await apiRequest<ResultDetail>(`/api/v1/admin/results/${result.id}/detail`));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Detail hasil quiz gagal dimuat.");
+    } finally {
+      setDetailLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -225,8 +281,8 @@ export default function AdminPage() {
         <div className={`grid-two admin-grid ${section === "quiz" || section === "soal" ? "admin-grid-single" : ""}`} id="quiz" hidden={section !== "quiz" && section !== "soal"}>
           <section className="surface surface-pad admin-section" hidden={section !== "quiz"}>
             <div className="admin-section-heading"><div><span className="list-meta">PENGELOMPOKAN</span><h2 className="surface-title">Kategori quiz</h2></div><span className="admin-count">{data.categories.length} kategori</span></div>
-            <form className="list-row admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}>
-              <input className="input" name="category_name" placeholder="Nama kategori" required />
+            <form className="admin-category-form admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}>
+              <label className="field"><span>Nama kategori</span><input className="input" name="category_name" placeholder="Nama kategori" required /></label>
               <label className="field"><span>Menit</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue="30" required /></label>
               <MotionButton className="button button-primary button-small">Tambah</MotionButton>
             </form>
@@ -270,8 +326,58 @@ export default function AdminPage() {
 
         <section className="surface surface-pad admin-section" id="results" hidden={section !== "hasilbelajar"}>
           <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar</h2></div><span className="admin-count">{data.results.length} hasil</span></div>
-          {data.results.length ? data.results.map((result) => <div className="list-row" key={result.id}><span>{result.username ?? "Pengguna"}: {result.score}/{result.total} ({result.percent}%)</span><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/results/${result.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada hasil quiz.</p>}
+          {data.results.length ? data.results.map((result) => <article className="result-card" key={result.id}>
+            <div className="result-card-main">
+              <div className="result-card-user"><strong>{result.full_name || result.username || "Pengguna"}</strong><span>@{result.username || "pengguna"}</span></div>
+              <div className="result-card-metric"><span>Skor</span><strong>{result.score}/{result.total}</strong></div>
+              <div className="result-card-metric"><span>Benar</span><strong className="result-correct">{result.correct_answers}</strong></div>
+              <div className="result-card-metric"><span>Salah</span><strong className="result-incorrect">{result.incorrect_answers}</strong></div>
+              <div className="result-card-metric"><span>Persentase</span><strong>{result.percent}%</strong></div>
+              <div className="result-card-time"><span><Clock3 size={13} /> {formatDuration(result.duration_seconds)}</span><span><CalendarDays size={13} /> {formatDate(result.submitted_at || result.created_at)}</span></div>
+            </div>
+            <div className="result-card-actions">
+              <span className="result-time-label"><Clock3 size={13} /> Mulai: {formatTime(result.started_at)}</span>
+              <span className="result-time-label"><CheckCircle2 size={13} /> Selesai: {formatTime(result.submitted_at)}</span>
+              <MotionButton type="button" className="button button-secondary button-small" onClick={() => void openResultDetail(result)}><Eye size={14} />Detail jawaban</MotionButton>
+              <MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/results/${result.id}`)}><Trash2 size={14} />Hapus</MotionButton>
+            </div>
+          </article>) : <p className="empty-state">Belum ada hasil quiz.</p>}
         </section>
+
+        {selectedResult && <div className="result-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedResult(null); }}>
+          <section className="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-detail-title">
+            <header className="result-modal-header">
+              <div><span className="list-meta">DETAIL HASIL BELAJAR</span><h2 id="result-detail-title">{selectedResult.full_name || selectedResult.username || "Pengguna"}</h2></div>
+              <MotionButton type="button" className="button button-secondary button-small" onClick={() => setSelectedResult(null)}><X size={14} />Tutup</MotionButton>
+            </header>
+            {detailLoading ? <div className="result-detail-loading">Memuat detail jawaban...</div> : resultDetail ? <>
+              <div className="result-detail-summary">
+                <div><span>Skor</span><strong>{resultDetail.result.score}/{resultDetail.result.total}</strong></div>
+                <div><span>Benar</span><strong className="result-correct">{resultDetail.result.correct_answers}</strong></div>
+                <div><span>Salah</span><strong className="result-incorrect">{resultDetail.result.incorrect_answers}</strong></div>
+                <div><span>Durasi</span><strong>{formatDuration(resultDetail.result.duration_seconds)}</strong></div>
+              </div>
+              <div className="result-detail-list">
+                {resultDetail.questions.map((question, index) => {
+                  const selectedLabel = question.selected_index === null ? "Belum dijawab" : `Jawaban ${String.fromCharCode(65 + question.selected_index)}`;
+                  const correctLabel = `Jawaban benar ${String.fromCharCode(65 + question.answer_index)}`;
+                  return <article className={`result-question ${question.is_correct ? "is-correct" : "is-incorrect"}`} key={question.id}>
+                    <div className="result-question-head"><span>Soal {index + 1}</span><strong>{question.is_correct ? "Benar" : "Salah"}</strong></div>
+                    <h3>{question.question}</h3>
+                    <div className="result-options">
+                      {([question.option_a, question.option_b, question.option_c, question.option_d] as const).map((option, optionIndex) => {
+                        const optionIsSelected = optionIndex === question.selected_index;
+                        const optionIsCorrect = optionIndex === question.answer_index;
+                        return <div className={`result-option ${optionIsCorrect ? "is-correct" : ""} ${optionIsSelected && !optionIsCorrect ? "is-incorrect" : ""}`} key={optionIndex}><span>{String.fromCharCode(65 + optionIndex)}</span><p>{option}</p>{optionIsCorrect && <CheckCircle2 size={15} />}{optionIsSelected && !optionIsCorrect && <XCircle size={15} />}</div>;
+                      })}
+                    </div>
+                    <div className="result-answer-row"><span><CheckCircle2 size={14} /> {selectedLabel}</span><span><XCircle size={14} /> {correctLabel}</span></div>
+                  </article>;
+                })}
+              </div>
+            </> : <p className="empty-state">Tidak ada detail jawaban tersedia.</p>}
+          </section>
+        </div>}
 
         <section className="surface surface-pad admin-section" id="contacts" hidden={section !== "kontak"}>
           <div className="admin-section-heading"><div><span className="list-meta">KOMUNIKASI</span><h2 className="surface-title">Pesan masuk</h2></div><span className="admin-count">{unreadContacts} belum dibaca</span></div>
