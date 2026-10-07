@@ -29,7 +29,6 @@ import {
   Search,
   Settings,
   Sparkles,
-  Terminal,
   X,
   Send,
 } from "lucide-react";
@@ -184,7 +183,7 @@ export default function OneCompilerEditor() {
   const [activeName, setActiveName] = useState("Main.java");
   const [fileOpen, setFileOpen] = useState(true);
   const [dark, setDark] = useState(false);
-  const [tab, setTab] = useState<ConsoleTab>("Terminal");
+  const [tab, setTab] = useState<ConsoleTab>("Preview");
   const [mobilePane, setMobilePane] = useState<"editor" | "output">("editor");
   const [output, setOutput] = useState("");
   const [previewDocument, setPreviewDocument] = useState("");
@@ -820,15 +819,12 @@ export default function OneCompilerEditor() {
           </button>
           <span className={`oc-autosave is-${workspaceSaveState}`} role="status"><span />{workspaceSaveState === "loading" ? "Memuat" : workspaceSaveState === "saving" ? "Menyimpan" : workspaceSaveState === "error" ? "Belum tersinkron" : workspaceSaveState === "local" ? "Tersimpan lokal" : "Tersimpan"}</span>
           <button className="oc-action oc-run-button" type="button" onClick={runCode}><Play size={17} fill="currentColor" />Run</button>
-          <button className="oc-action oc-ai-button" type="button" onClick={() => selectOutputTab("AI Agent")}><Sparkles size={18} />AI</button>
         </div>
       </header>
 
       <nav className="oc-mobile-switch" aria-label="Workspace panels">
         <button type="button" className={mobilePane === "editor" ? "is-active" : ""} onClick={() => setMobilePane("editor")}><Code2 size={15} />Editor</button>
-        <button type="button" className={mobilePane === "output" && tab === "Terminal" ? "is-active" : ""} onClick={() => selectOutputTab("Terminal")}><Terminal size={15} />Terminal</button>
         <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} onClick={() => selectOutputTab("Preview")}><Monitor size={15} />Preview</button>
-        <button type="button" className={mobilePane === "output" && tab === "AI Agent" ? "is-active" : ""} onClick={() => selectOutputTab("AI Agent")}><Sparkles size={15} />AI</button>
       </nav>
 
       <aside className="oc-sidebar" aria-label="Editor tools">
@@ -897,12 +893,7 @@ export default function OneCompilerEditor() {
       <div className="oc-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize editor and panel" onPointerDown={handleDividerDown}><span /></div>
 
       <section className={`oc-console-pane${consoleOpen ? "" : " is-hidden"}`} aria-label="Program output">
-        <div className="oc-console-tabs" role="tablist" aria-label="Output panels">
-          <button className={tab === "Terminal" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Terminal"} onClick={() => selectOutputTab("Terminal")}><Terminal size={16} />Terminal</button>
-          <button className={tab === "AI Agent" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "AI Agent"} onClick={() => selectOutputTab("AI Agent")}><Sparkles size={16} />AI Agent</button>
-          <button className={tab === "Preview" ? "is-active" : ""} type="button" role="tab" aria-selected={tab === "Preview"} onClick={() => selectOutputTab("Preview")}><Code2 size={16} />Preview</button>
-          {tab === "Preview" && ["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") && <div className="oc-device-picker"><button className={previewSize === "iphone" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("iphone")}>iPhone</button><button className={previewSize === "pixel" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("pixel")}>Pixel</button></div>}
-        </div>
+        {tab === "Preview" && ["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") && <div className="oc-console-tabs"><div className="oc-device-picker" aria-label="Preview device"><button className={previewSize === "iphone" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("iphone")}>iPhone</button><button className={previewSize === "pixel" ? "is-active" : ""} type="button" onClick={() => setPreviewSize("pixel")}>Pixel</button></div></div>}
         <div className="oc-console-content" role="tabpanel">
           {tab === "Preview" && (previewDocument ? <div className={`oc-preview-stage${["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") ? " is-native" : ""}`}>
             {["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") ? <div className={`oc-device-frame is-${previewSize}`}><div className="oc-device-screen"><div className="oc-device-status"><span>9:41</span><span>● ▮ ▰</span></div><div className="oc-device-camera" /><iframe key={previewRunVersion} ref={previewRef} title={`${previewSize} React Native Web preview`} sandbox="allow-scripts" srcDoc={previewDocument} /><div className="oc-device-home" /></div></div> : <iframe key={previewRunVersion} ref={previewRef} onLoad={() => setRunState((state) => state === "running" ? "success" : state)} className="oc-preview-frame" title="Live code preview" sandbox="allow-scripts" srcDoc={previewDocument} />}
