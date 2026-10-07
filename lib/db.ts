@@ -13,11 +13,14 @@ declare global {
 
 function getPool() {
   if (!globalThis.courseUpPool) {
-    const { DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD } = process.env;
+    const { DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_SSL } = process.env;
 
     if (!DB_HOST || !DB_DATABASE || !DB_USERNAME || !DB_PASSWORD) {
       throw new Error("Database is not configured. Set the DB_* environment variables.");
     }
+
+    // Penanganan SSL yang aman untuk TypeScript & mysql2
+    const sslConfig = DB_SSL === "true" ? { rejectUnauthorized: false } : undefined;
 
     globalThis.courseUpPool = mysql.createPool({
       host: DB_HOST,
@@ -26,13 +29,14 @@ function getPool() {
       user: DB_USERNAME,
       password: DB_PASSWORD,
       charset: "utf8mb4",
-      ssl: process.env.DB_SSL === "true" ? {} : undefined,
+      ssl: sslConfig,
       waitForConnections: true,
       connectionLimit: 5,
       maxIdle: 2,
-      idleTimeout: 60_000,
+      idleTimeout: 30_000,
       queueLimit: 0,
       enableKeepAlive: true,
+      connectTimeout: 10_000,
     });
   }
 

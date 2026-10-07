@@ -12,8 +12,10 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  ClipboardPaste,
   Code2,
   CircleUserRound,
+  Copy,
   Download,
   EllipsisVertical,
   ExternalLink,
@@ -22,6 +24,7 @@ import {
   FolderOpen,
   FolderPlus,
   History,
+  Menu,
   Monitor,
   Plus,
   Play,
@@ -58,6 +61,12 @@ const starterFiles: WorkspaceFile[] = [
   { name: "style.css", content: "body { margin: 0; padding: 48px; color: #1f2937; font: 16px system-ui, sans-serif; }\nbutton { padding: 10px 16px; border: 0; border-radius: 6px; color: white; background: #4f46e5; cursor: pointer; }" },
   { name: "script.js", content: "const button = document.getElementById('hello');\nif (button) {\n  button.addEventListener('click', function () {\n    console.log('Button clicked!');\n    document.querySelector('h1').textContent = 'JavaScript is running';\n  });\n}" },
 ];
+
+function isPristineStarterWorkspace(files: WorkspaceFile[]) {
+  return files.length === starterFiles.length && starterFiles.every((starter) =>
+    files.some((file) => file.name === starter.name && file.content === starter.content),
+  );
+}
 
 function languageForName(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -176,15 +185,17 @@ declare module "react-native" {
 
 export default function OneCompilerEditor() {
   const router = useRouter();
-  const [source, setSource] = useState(starterCode);
-  const [files, setFiles] = useState<WorkspaceFile[]>(starterFiles);
-  const [openFileNames, setOpenFileNames] = useState(starterFiles.map((file) => file.name));
+  const [source, setSource] = useState("");
+  const [files, setFiles] = useState<WorkspaceFile[]>([]);
+  const [openFileNames, setOpenFileNames] = useState<string[]>([]);
   const [folders, setFolders] = useState<string[]>([]);
-  const [activeName, setActiveName] = useState("Main.java");
-  const [fileOpen, setFileOpen] = useState(true);
+  const [activeName, setActiveName] = useState("");
+  const [fileOpen, setFileOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [tab, setTab] = useState<ConsoleTab>("Preview");
   const [mobilePane, setMobilePane] = useState<"editor" | "output">("editor");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [output, setOutput] = useState("");
   const [previewDocument, setPreviewDocument] = useState("");
   const [previewRunVersion, setPreviewRunVersion] = useState(0);
@@ -259,6 +270,11 @@ export default function OneCompilerEditor() {
             if ("activeName" in value && typeof value.activeName === "string") localActiveName = value.activeName;
           }
         }
+        if (isPristineStarterWorkspace(localFiles)) {
+          localFiles = [];
+          localFolders = [];
+          localActiveName = "";
+        }
       } catch {
         if (active) announce("Workspace lokal tidak dapat dibuka");
       }
@@ -266,8 +282,9 @@ export default function OneCompilerEditor() {
       if (localFiles.length && active) {
         setFiles(localFiles);
         setFolders(localFolders);
+        setFileOpen(true);
         const restoredName = localFiles.some((file) => file.name === localActiveName) ? localActiveName : localFiles[0].name;
-          setOpenFileNames([restoredName]);
+        setOpenFileNames([restoredName]);
         setActiveName(restoredName);
         setSource(localFiles.find((file) => file.name === restoredName)?.content ?? "");
         setExpandedFolders(new Set(localFolders));
@@ -283,6 +300,7 @@ export default function OneCompilerEditor() {
         if (remote.files.length) {
           setFiles(remote.files);
           setFolders(remote.folders ?? []);
+          setFileOpen(true);
           setActiveName(remote.files[0].name);
           setOpenFileNames([remote.files[0].name]);
           setSource(remote.files[0].content);
@@ -301,6 +319,14 @@ export default function OneCompilerEditor() {
     }
     void loadWorkspace();
     return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    const viewport = window.matchMedia("(max-width: 760px)");
+    const updateViewport = () => setIsMobileViewport(viewport.matches);
+    updateViewport();
+    viewport.addEventListener("change", updateViewport);
+    return () => viewport.removeEventListener("change", updateViewport);
   }, []);
 
   useEffect(() => {
@@ -389,6 +415,68 @@ export default function OneCompilerEditor() {
     setSource(nextSource);
     setWorkspaceSaveState("saving");
     setFiles((current) => current.map((file) => file.name === activeName ? { ...file, content: nextSource } : file));
+  }
+
+  function selectAllCode() {
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    if (!editor || !model) return;
+    editor.setSelection(model.getFullModelRange());
+    editor.focus();
+  }
+
+  async function copySelectedCode() {
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    const selection = editor?.getSelection();
+    if (!editor || !model || !selection || selection.isEmpty()) {
+      announce("Pilih kode yang ingin disalin terlebih dahulu");
+      return;
+    }
+
+    const selectedText = model.getValueInRange(selection);
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API tidak tersedia");
+      await navigator.clipboard.writeText(selectedText);
+    } catch {
+      const temporaryInput = document.createElement("textarea");
+      temporaryInput.value = selectedText;
+      temporaryInput.setAttribute("readonly", "");
+      temporaryInput.style.position = "fixed";
+      temporaryInput.style.opacity = "0";
+      document.body.appendChild(temporaryInput);
+      temporaryInput.select();
+      const copied = document.execCommand("copy");
+      temporaryInput.remove();
+      if (!copied) {
+        editor.focus();
+        announce("Clipboard tidak bisa diakses. Periksa izin clipboard browser");
+        return;
+      }
+    }
+
+    editor.focus();
+    announce("Kode berhasil disalin");
+  }
+
+  async function pasteCode() {
+    const editor = editorRef.current;
+    const model = editor?.getModel();
+    if (!editor || !model) return;
+
+    let pastedText: string;
+    try {
+      if (!navigator.clipboard?.readText) throw new Error("Clipboard API tidak tersedia");
+      pastedText = await navigator.clipboard.readText();
+    } catch {
+      editor.focus();
+      announce("Clipboard tidak bisa dibaca. Izinkan akses clipboard browser lalu coba lagi");
+      return;
+    }
+
+    const range = editor.getSelection() ?? model.getFullModelRange();
+    editor.executeEdits("clipboard-paste", [{ range, text: pastedText, forceMoveMarkers: true }]);
+    editor.focus();
   }
 
   function openFile(name: string) {
@@ -654,6 +742,34 @@ export default function OneCompilerEditor() {
 
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    editor.onDidChangeModelContent((event) => {
+      if (event.isUndoing || event.isRedoing || event.changes.length !== 1 || event.changes[0].text !== ">") return;
+      const extension = activeName.split(".").pop()?.toLowerCase();
+      if (!["html", "htm", "jsx", "tsx"].includes(extension ?? "")) return;
+
+      queueMicrotask(() => {
+        const model = editor.getModel();
+        const change = event.changes[0];
+        const lineNumber = change.range.startLineNumber;
+        const insertionColumn = change.range.startColumn + change.text.length;
+        if (!model || change.range.startLineNumber !== change.range.endLineNumber) return;
+
+        const lineBeforeCursor = model.getLineContent(lineNumber).slice(0, insertionColumn - 1);
+        const openingTag = lineBeforeCursor.match(/<([A-Za-z][\w:.-]*)(?:\s[^<>]*)?>$/);
+        if (!openingTag || /\/\s*>$/.test(lineBeforeCursor)) return;
+        const tagName = openingTag[1];
+        if (["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"].includes(tagName.toLowerCase())) return;
+
+        const remainder = model.getValueInRange(new monaco.Range(lineNumber, insertionColumn, lineNumber, model.getLineMaxColumn(lineNumber)));
+        if (new RegExp(`^\\s*</${tagName}(?=[\\s>])`, "i").test(remainder)) return;
+
+        editor.executeEdits("auto-close-tag", [{
+          range: new monaco.Range(lineNumber, insertionColumn, lineNumber, insertionColumn),
+          text: `</${tagName}>`,
+          forceMoveMarkers: true,
+        }]);
+      });
+    });
     if (!monacoTypesReady.current) {
       const tsDefaults = monaco.languages.typescript.typescriptDefaults;
       const jsDefaults = monaco.languages.typescript.javascriptDefaults;
@@ -778,6 +894,7 @@ export default function OneCompilerEditor() {
   }
 
   function toggleToolPanel(panel: ToolPanel) {
+    setMobileSidebarOpen(false);
     setOpenMenu(null);
     if (panel === "history") {
       const key = `code-editor-${activeName}`;
@@ -827,16 +944,18 @@ export default function OneCompilerEditor() {
         <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} onClick={() => selectOutputTab("Preview")}><Monitor size={15} />Preview</button>
       </nav>
 
-      <aside className="oc-sidebar" aria-label="Editor tools">
+      <aside className={`oc-sidebar${mobileSidebarOpen ? " is-mobile-expanded" : ""}`} aria-label="Editor tools">
+        {mobileSidebarOpen && <button className="oc-mobile-sidebar-close" type="button" onClick={() => setMobileSidebarOpen(false)}><X size={20} /><span>Close menu</span></button>}
         <div className="oc-sidebar-top">
-          <button className={toolPanel === "files" ? "is-active" : ""} type="button" aria-label="Files" aria-expanded={toolPanel === "files"} onClick={() => toggleToolPanel("files")}><Files /></button>
-          <button type="button" aria-label="Search" title="Find in code" onClick={() => { setToolPanel(null); editorRef.current?.getAction("actions.find")?.run(); }}><Search /></button>
+          <button className={toolPanel === "files" ? "is-active" : ""} type="button" aria-label="Files" aria-expanded={toolPanel === "files"} onClick={() => toggleToolPanel("files")}><Files /><span>Files</span></button>
+          <button type="button" aria-label="Search" title="Find in code" onClick={() => { setMobileSidebarOpen(false); setToolPanel(null); editorRef.current?.getAction("actions.find")?.run(); }}><Search /><span>Search</span></button>
         </div>
         <div className="oc-sidebar-bottom">
-          <button className={toolPanel === "history" ? "is-active" : ""} type="button" aria-label="History" aria-expanded={toolPanel === "history"} onClick={() => toggleToolPanel("history")}><History /></button>
-          <button className={toolPanel === "settings" ? "is-active" : ""} type="button" aria-label="Settings" aria-expanded={toolPanel === "settings"} onClick={() => toggleToolPanel("settings")}><Settings /></button>
+          <button className={toolPanel === "history" ? "is-active" : ""} type="button" aria-label="History" aria-expanded={toolPanel === "history"} onClick={() => toggleToolPanel("history")}><History /><span>History</span></button>
+          <button className={toolPanel === "settings" ? "is-active" : ""} type="button" aria-label="Settings" aria-expanded={toolPanel === "settings"} onClick={() => toggleToolPanel("settings")}><Settings /><span>Settings</span></button>
         </div>
       </aside>
+      {mobileSidebarOpen && <button className="oc-sidebar-backdrop" type="button" aria-label="Tutup overlay sidebar" onClick={() => setMobileSidebarOpen(false)} />}
 
       {toolPanel && <section className="oc-tool-panel" aria-label={`${toolPanel} panel`}>
         <div className="oc-tool-panel-heading"><strong>{toolPanel === "files" ? "Files" : toolPanel === "history" ? "History" : "Settings"}</strong><button type="button" aria-label="Close panel" onClick={() => setToolPanel(null)}><X size={17} /></button></div>
@@ -844,7 +963,7 @@ export default function OneCompilerEditor() {
           <div className="oc-explorer-actions"><button type="button" aria-label="New file" title="New file" onClick={() => { setOpenMenu("new-file"); setNewFolderOpen(false); setNewFileError(""); }}><Plus size={16} /></button><button type="button" aria-label="New folder" title="New folder" onClick={() => { setNewFolderOpen((open) => !open); setOpenMenu(null); setNewFileError(""); }}><FolderPlus size={16} /></button></div>
           {openMenu === "new-file" && <form className="oc-create-form" onSubmit={(event) => { event.preventDefault(); addFile(); }}><label htmlFor="oc-new-file-name">New file {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-file-name" autoFocus value={newFileName} onChange={(event) => { setNewFileName(event.target.value); setNewFileError(""); }} placeholder="src/index.php" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
           {newFolderOpen && <form className="oc-create-form" onSubmit={createFolder}><label htmlFor="oc-new-folder-name">New folder {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-folder-name" autoFocus value={newFolderName} onChange={(event) => { setNewFolderName(event.target.value); setNewFileError(""); }} placeholder="src" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
-          <div className="oc-file-list">{renderExplorerNodes(explorerTree)}</div>
+          <div className="oc-file-list">{files.length ? renderExplorerNodes(explorerTree) : <p className="oc-panel-empty">Workspace masih kosong. Buat file pertama untuk mulai menulis kode.</p>}</div>
         </div>}
         {toolPanel === "history" && <div className="oc-tool-panel-body"><p className="oc-panel-caption">Saved versions of {activeName}</p>{history.length ? history.map((version, index) => <button className="oc-history-item" key={`${index}-${version.slice(0, 12)}`} type="button" onClick={() => { updateSource(version); setToolPanel(null); announce("Version restored"); }}><span>Version {history.length - index}</span><code>{version.split("\n")[0] || "Empty file"}</code></button>) : <p className="oc-panel-empty">No saved versions yet</p>}</div>}
         {toolPanel === "settings" && <div className="oc-tool-panel-body"><div className="oc-setting-row"><span>Font size</span><div><button type="button" aria-label="Decrease font size" onClick={() => setFontSize((size) => Math.max(12, size - 1))}>-</button><span>{fontSize}px</span><button type="button" aria-label="Increase font size" onClick={() => setFontSize((size) => Math.min(28, size + 1))}>+</button></div></div><button className="oc-setting-toggle" type="button" aria-pressed={wordWrap} onClick={() => setWordWrap((value) => !value)}><span>Word wrap</span><span>{wordWrap ? "On" : "Off"}</span></button><button className="oc-setting-toggle" type="button" onClick={() => setDark((value) => !value)}><span>Dark theme</span><span>{dark ? "On" : "Off"}</span></button></div>}
@@ -852,9 +971,15 @@ export default function OneCompilerEditor() {
 
       <div className="oc-workbench" ref={mainPanesRef} style={{ gridTemplateColumns: `${paneRatio}fr 8px ${100 - paneRatio}fr` }}>
       <section className="oc-editor-pane" aria-label="Code editor">
-        <div className="oc-editor-tabs" role="tablist" aria-label="Open files">
+        <div className="oc-editor-tabs" role="group" aria-label="Open files">
+          <button className="oc-editor-menu-toggle" type="button" aria-label={mobileSidebarOpen ? "Tutup menu sidebar" : "Buka menu sidebar"} aria-expanded={mobileSidebarOpen} onClick={() => setMobileSidebarOpen((open) => !open)}>{mobileSidebarOpen ? <X size={17} /> : <Menu size={17} />}</button>
           {openFileNames.map((name) => <div className={`oc-file-tab${name === activeName ? " is-active" : ""}`} key={name} role="tab" aria-selected={name === activeName} tabIndex={0} onClick={() => openFile(name)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") openFile(name); }}><span className="oc-java-mark">{name.split(".").pop()?.slice(0, 1).toUpperCase() ?? "F"}</span><span>{name}</span><button type="button" aria-label={`Close ${name}`} onClick={(event) => { event.stopPropagation(); closeFile(name); }}><X size={17} /></button></div>)}
           <button className="oc-add-file" type="button" aria-label="Add file" aria-expanded={openMenu === "new-file"} onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); setNewFileError(""); }}><Plus size={21} /></button>
+        </div>
+        <div className="oc-clipboard-tools" role="group" aria-label="Code selection and clipboard">
+          <button type="button" onClick={selectAllCode} title="Pilih semua kode"><span>Select all</span></button>
+          <button type="button" onClick={() => void copySelectedCode()} title="Salin kode terpilih"><Copy size={15} /><span>Copy</span></button>
+          <button type="button" onClick={() => void pasteCode()} title="Tempel dari clipboard"><ClipboardPaste size={15} /><span>Paste</span></button>
         </div>
         <div className="oc-monaco-wrap">
           {fileOpen ? <Editor
@@ -874,6 +999,9 @@ export default function OneCompilerEditor() {
               fontLigatures: false,
               lineNumbers: "on",
               minimap: { enabled: false },
+              autoClosingBrackets: "languageDefined",
+              autoClosingQuotes: "languageDefined",
+              autoIndent: "full",
               scrollBeyondLastLine: false,
               renderLineHighlight: "all",
               guides: { indentation: true, bracketPairs: true },
@@ -881,12 +1009,12 @@ export default function OneCompilerEditor() {
               folding: false,
               glyphMargin: false,
               overviewRulerLanes: 0,
-              scrollbar: { verticalScrollbarSize: 9, horizontalScrollbarSize: 9, useShadows: false },
+              scrollbar: { vertical: "visible", verticalScrollbarSize: 12, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false },
               padding: { top: 14, bottom: 12 },
               tabSize: 4,
-              wordWrap: wordWrap ? "on" : "off",
+              wordWrap: isMobileViewport || wordWrap ? "on" : "off",
             }}
-          /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>No file open</strong><button type="button" onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); }}>Create file</button></div>}
+          /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>Mulai dari file baru</strong><span>Buat file untuk mulai menulis kode.</span><button type="button" onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); setNewFileError(""); }}>Buat file</button></div>}
         </div>
       </section>
 
@@ -924,7 +1052,7 @@ export default function OneCompilerEditor() {
             <Save size={13} />{workspaceSaveState === "loading" ? "Memuat..." : workspaceSaveState === "saving" ? "Menyimpan..." : workspaceSaveState === "error" ? "Belum tersinkron" : workspaceSaveState === "local" ? "Tersimpan lokal" : "Tersimpan cloud"}
           </span>
         </div>
-        <div className="oc-status-right"><span>{languageForName(activeName).toUpperCase()}</span></div>
+        <div className="oc-status-right">{activeName && <span>{languageForName(activeName).toUpperCase()}</span>}</div>
       </footer>
       {pythonRunnerOpen && <iframe ref={pythonRunnerRef} className="oc-python-runner" title="Python WebAssembly runtime" aria-hidden="true" sandbox="allow-scripts" srcDoc={createPythonRunnerDocument()} />}
       {toast && <div className="oc-toast" role="status">{toast}</div>}

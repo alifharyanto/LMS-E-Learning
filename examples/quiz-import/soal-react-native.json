@@ -1,0 +1,203 @@
+[
+{
+"category": "React Native",
+"question": "Komponen dasar di React Native yang berfungsi mirip dengan <div> pada HTML untuk membungkus elemen lain adalah?",
+"option_a": "<Text>",
+"option_b": "<View>",
+"option_c": "<Container>",
+"option_d": "<Group>",
+"answer_index": "B",
+"explanation": "Komponen <View> adalah blok pembangun antarmuka UI dasar di React Native yang setara dengan elemen <div> di web."
+},
+{
+"category": "React Native",
+"question": "Komponen yang WAJIB digunakan untuk menampilkan teks atau tulisan pada React Native adalah?",
+"option_a": "<Label>",
+"option_b": "<P>",
+"option_c": "<Text>",
+"option_d": "<Span>",
+"answer_index": "C",
+"explanation": "Di React Native, semua string/teks harus diletakkan di dalam komponen <Text>. Teks tidak bisa langsung ditaruh di dalam <View>."
+},
+{
+"category": "React Native",
+"question": "Apa perbedaan utama antara Expo dan React Native CLI?",
+"option_a": "Expo menggunakan bahasa TypeScript, sedangkan React Native CLI menggunakan JavaScript",
+"option_b": "Expo adalah alat yang mempermudah pengembangan tanpa perlu setup Xcode/Android Studio awal, sedangkan CLI memberikan akses penuh ke kode native iOS/Android",
+"option_c": "Expo hanya bisa berjalan di iOS, sedangkan React Native CLI hanya berjalan di Android",
+"option_d": "Expo tidak mendukung pengujian aplikasi secara real-time",
+"answer_index": "B",
+"explanation": "Expo menyediakan ekosistem terintegrasi untuk mempercepat setup awal tanpa konfigurasi native, sedangkan CLI memberikan fleksibilitas penuh untuk mengubah folder native (ios & android)."
+},
+{
+"category": "React Native",
+"question": "Untuk menerapkan styling pada komponen React Native, metode performa tinggi yang disarankan adalah menggunakan?",
+"option_a": "StyleSheet.create()",
+"option_b": "File .css eksternal",
+"option_a": "StyleSheet.create()",
+"option_c": "HTMLStyle()",
+"option_d": "Atribut class seperti pada HTML",
+"answer_index": "A",
+"explanation": "StyleSheet.create() memvalidasi dan mengirimkan ID style secara efisien melalui bridge React Native."
+},
+{
+"category": "React Native",
+"question": "Secara bawaan (default), properti flexDirection pada tata letak (layout) React Native bernilai?",
+"option_a": "row",
+"option_b": "column",
+"option_c": "row-reverse",
+"option_d": "grid",
+"answer_index": "B",
+"explanation": "Tidak seperti CSS web yang default-nya row, Flexbox di React Native secara bawaan menyusun elemen secara vertikal (column)."
+},
+{
+"category": "React Native",
+"question": "Komponen yang paling tepat dan efisien digunakan untuk menampilkan daftar data bernilai panjang (list) dengan teknik lazy loading adalah?",
+"option_a": "ScrollView",
+"option_b": "ListView",
+"option_c": "FlatList",
+"option_d": "MapView",
+"answer_index": "C",
+"explanation": "FlatList hanya merender elemen yang sedang terlihat di layar, sehingga hemat memori dibanding ScrollView yang merender seluruh data sekaligus."
+},
+{
+"category": "React Native",
+"question": "Prop utama pada <FlatList> yang bertindak untuk menentukan sumber data yang akan ditampilkan adalah?",
+"option_a": "source",
+"option_b": "items",
+"option_c": "data",
+"option_d": "content",
+"answer_index": "C",
+"explanation": "Prop data menerima array objek yang nantinya akan dirender oleh prop renderItem pada <FlatList>."
+},
+{
+"category": "React Native",
+"question": "Hook yang digunakan untuk menyimpan dan memperbarui data lokal yang dinamis di dalam komponen fungsional adalah?",
+"option_a": "useEffect",
+"option_b": "useState",
+"option_c": "useContext",
+"option_d": "useRef",
+"answer_index": "B",
+"explanation": "useState mengembalikan pasangan nilai state saat ini dan fungsi setter untuk memperbarui nilai state tersebut."
+},
+{
+"category": "React Native",
+"question": "Hook useEffect dengan array dependen kosong [] sebagai argumen kedua akan dijalankan pada momen?",
+"option_a": "Setiap kali ada state yang berubah",
+"option_b": "Satu kali saat komponen pertama kali di-mount",
+"option_c": "Satu kali sebelum komponen di-unmount saja",
+"option_d": "Secara terus-menerus tanpa henti",
+"answer_index": "B",
+"explanation": "Array dependen kosong [] menandakan efek tersebut tidak tergantung pada nilai apa pun, sehingga hanya dipanggil sekali setelah komponen dipasang (mount)."
+},
+{
+"category": "React Native",
+"question": "Bagaimana cara menerima data dari komponen induk (parent) ke komponen anak (child) di React Native?",
+"option_a": "Menggunakan State",
+"option_b": "Menggunakan Props",
+"option_c": "Menggunakan Ref",
+"option_d": "Menggunakan Redux saja",
+"answer_index": "B",
+"explanation": "Props (short for properties) digunakan untuk melewatkan data dari parent component ke child component."
+},
+{
+"category": "React Native",
+"question": "Komponen tombol yang memberikan efek perubahan transparansi opasitas visual saat ditekan oleh pengguna adalah?",
+"option_a": "TouchableHighlight",
+"option_b": "TouchableOpacity",
+"option_c": "TouchableWithoutFeedback",
+"option_d": "PressableOpacity",
+"answer_index": "B",
+"explanation": "TouchableOpacity merespons sentuhan dengan mengurangi opasitas pembungkusnya sehingga memberikan umpan balik visual."
+},
+{
+"category": "React Native",
+"question": "Library standar dan paling populer untuk mengelola navigasi perpindahan layar pada React Native adalah?",
+"option_a": "React Router DOM",
+"option_b": "React Navigation",
+"option_c": "Native Router",
+"option_d": "Android Navigation Component",
+"answer_index": "B",
+"explanation": "React Navigation adalah library yang direkomendasikan secara resmi oleh komunitas React Native untuk navigasi stack, tab, maupun drawer."
+},
+{
+"category": "React Native",
+"question": "Bagaimana cara menampilkan gambar yang bersumber dari URL internet menggunakan komponen <Image>?",
+"option_a": "<Image src=\"https://example.com/logo.png\" />",
+"option_b": "<Image source={{ uri: 'https://example.com/logo.png' }} />",
+"option_c": "<Image url=\"https://example.com/logo.png\" />",
+"option_d": "<Image path={require('https://example.com/logo.png')} />",
+"answer_index": "B",
+"explanation": "Untuk gambar jarak jauh (network image), prop source menerima objek yang berisi properti uri."
+},
+{
+"category": "React Native",
+"question": "Komponen yang digunakan untuk menerima masukan berupa teks ketikan dari pengguna adalah?",
+"option_a": "<Input>",
+"option_b": "<TextField>",
+"option_c": "<TextInput>",
+"option_d": "<FormInput>",
+"answer_index": "C",
+"explanation": "<TextInput> adalah komponen dasar React Native untuk memasukkan teks melalui keyboard."
+},
+{
+"category": "React Native",
+"question": "Untuk mengambil data dari API eksternal secara asynchronous di React Native, kita dapat menggunakan API bawaan JavaScript yaitu?",
+"option_a": "fetch()",
+"option_b": "getAPI()",
+"option_c": "http.request()",
+"option_d": "requestURL()",
+"answer_index": "A",
+"explanation": "React Native menyediakan Web API bawaan seperti fetch() dan XMLHttpRequest secara global untuk keperluan networking."
+},
+{
+"category": "React Native",
+"question": "Prop pada <TextInput> yang digunakan untuk menyembunyikan karakter yang diketik (misal untuk input password) adalah?",
+"option_a": "password={true}",
+"option_b": "secureTextEntry={true}",
+"option_c": "hiddenText={true}",
+"option_d": "isPassword={true}",
+"answer_index": "B",
+"explanation": "Prop secureTextEntry jika bernilai true akan menyembunyikan teks yang dimasukkan (ditampilkan dalam bentuk titik-titik/bintang)."
+},
+{
+"category": "React Native",
+"question": "Komponen yang memberikan indikator animasi memutar saat aplikasi sedang memuat data (loading) adalah?",
+"option_a": "<LoadingSpinner>",
+"option_b": "<ProgressCircle>",
+"option_c": "<ActivityIndicator>",
+"option_d": "<Spinner>",
+"answer_index": "C",
+"explanation": "<ActivityIndicator> menampilkan indikator pemuatan melingkar standar bawaan sistem operasi (iOS/Android)."
+},
+{
+"category": "React Native",
+"question": "Di dalam komponen <FlatList>, prop yang digunakan untuk mengekstrak kunci unik (unique key) dari setiap item adalah?",
+"option_a": "keyExtractor",
+"option_b": "getItemKey",
+"option_c": "primaryKey",
+"option_d": "rowId",
+"answer_index": "A",
+"explanation": "keyExtractor mengambil item dari array data dan mengembalikan string kunci unik untuk melacak perubahan elemen pada daftar."
+},
+{
+"category": "React Native",
+"question": "Manakah perintah CLI untuk menjalankan aplikasi React Native di emulator Android pada project React Native CLI standar?",
+"option_a": "npx react-native run-android",
+"option_b": "npm start android",
+"option_c": "react-native launch --android",
+"option_d": "npx android-emulator",
+"answer_index": "A",
+"explanation": "Perintah npx react-native run-android mengompilasi dan mengunduh aplikasi ke emulator Android yang sedang aktif."
+},
+{
+"category": "React Native",
+"question": "Komponen modern serbaguna di React Native yang direkomendasikan untuk mendeteksi berbagai gestur dan sentuhan (menggantikan TouchableOpacity secara bertahap) adalah?",
+"option_a": "<Clickable>",
+"option_b": "<Pressable>",
+"option_c": "<ButtonArea>",
+"option_d": "<GestureBox>",
+"answer_index": "B",
+"explanation": "<Pressable> adalah pembungkus inti yang fleksibel untuk mendeteksi berbagai tahapan interaksi pers/sentuhan pengguna."
+}
+]
