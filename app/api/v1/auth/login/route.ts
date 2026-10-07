@@ -22,8 +22,8 @@ const loginSchema = z.object({
 }).strict();
 
 async function loginUser(request: Request) {
-  const ipLimit = await enforceAuthRateLimit(request, "login");
-  if (ipLimit) return ipLimit;
+  // const ipLimit = await enforceAuthRateLimit(request, "login");
+  // if (ipLimit) return ipLimit;
 
   let body: Record<string, unknown> | null;
   try {
