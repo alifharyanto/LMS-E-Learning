@@ -22,8 +22,13 @@ const loginSchema = z.object({
 }).strict();
 
 async function loginUser(request: Request) {
-  // const ipLimit = await enforceAuthRateLimit(request, "login");
-  // if (ipLimit) return ipLimit;
+  // Safe-guard rate limit IP
+  try {
+    const ipLimit = await enforceAuthRateLimit(request, "login");
+    if (ipLimit) return ipLimit;
+  } catch (err) {
+    console.warn("Rate limit IP check skipped/failed:", err);
+  }
 
   let body: Record<string, unknown> | null;
   try {
@@ -35,8 +40,14 @@ async function loginUser(request: Request) {
   if (!parsed.success) return json({ error: "Masukkan username/email dan password yang valid." }, 422);
 
   const { identity, password } = parsed.data;
-  const identityLimit = await enforceAuthRateLimit(request, "login", identity);
-  if (identityLimit) return identityLimit;
+
+  // Safe-guard rate limit identity
+  try {
+    const identityLimit = await enforceAuthRateLimit(request, "login", identity);
+    if (identityLimit) return identityLimit;
+  } catch (err) {
+    console.warn("Rate limit identity check skipped/failed:", err);
+  }
 
   const users = await queryRows<(User & { password: string } & RowDataPacket)[]>(
     "SELECT id, username, email, password, full_name, profile_photo, role FROM users WHERE username = ? OR email = ? LIMIT 1",
