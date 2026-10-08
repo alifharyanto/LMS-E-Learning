@@ -377,11 +377,11 @@ export default function OneCompilerEditor() {
   const runPreview = useEffectEvent(() => { void runCode(); });
 
   useEffect(() => {
-    if (!hasRun || tab !== "Preview") return;
+    if (isMobileViewport || !hasRun || tab !== "Preview") return;
     if (lastRunKey.current === `${activeName}\0${source}`) return;
     const timeout = window.setTimeout(runPreview, 800);
     return () => window.clearTimeout(timeout);
-  }, [activeName, hasRun, source, tab]);
+  }, [activeName, hasRun, isMobileViewport, source, tab]);
 
   useEffect(() => {
     function receivePreviewMessage(event: MessageEvent) {
@@ -914,7 +914,6 @@ export default function OneCompilerEditor() {
         <div className="oc-brand-group">
           <button className="oc-back-button" type="button" aria-label="Kembali ke beranda" title="Kembali ke beranda" onClick={() => router.push("/")}>
             <ArrowLeft size={16} />
-            <span>Kembali</span>
           </button>
           <a className="oc-brand" href="/code" aria-label="Code Editor home">
             <span className="oc-brand-mark"><Code2 size={23} strokeWidth={2.2} /></span>
@@ -957,7 +956,7 @@ export default function OneCompilerEditor() {
       </aside>
       {mobileSidebarOpen && <button className="oc-sidebar-backdrop" type="button" aria-label="Tutup overlay sidebar" onClick={() => setMobileSidebarOpen(false)} />}
 
-      {toolPanel && <section className="oc-tool-panel" aria-label={`${toolPanel} panel`}>
+      {toolPanel && <section className={`oc-tool-panel${toolPanel === "files" ? " is-files-panel" : toolPanel === "history" ? " is-history-panel" : " is-settings-panel"}`} aria-label={`${toolPanel} panel`}>
         <div className="oc-tool-panel-heading"><strong>{toolPanel === "files" ? "Files" : toolPanel === "history" ? "History" : "Settings"}</strong><button type="button" aria-label="Close panel" onClick={() => setToolPanel(null)}><X size={17} /></button></div>
         {toolPanel === "files" && <div className="oc-tool-panel-body">
           <div className="oc-explorer-actions"><button type="button" aria-label="New file" title="New file" onClick={() => { setOpenMenu("new-file"); setNewFolderOpen(false); setNewFileError(""); }}><Plus size={16} /></button><button type="button" aria-label="New folder" title="New folder" onClick={() => { setNewFolderOpen((open) => !open); setOpenMenu(null); setNewFileError(""); }}><FolderPlus size={16} /></button></div>
@@ -993,6 +992,7 @@ export default function OneCompilerEditor() {
             onMount={handleEditorMount}
             options={{
               automaticLayout: true,
+              editContext: !isMobileViewport,
               fontFamily: "Consolas, 'Fira Code', monospace",
               fontSize,
               lineHeight: 26,

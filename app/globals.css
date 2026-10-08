@@ -256,7 +256,7 @@ body, :root[data-theme="dark"] body {
 .oc-back-button { display: inline-flex; height: 36px; padding: 0 12px; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--oc-border); border-radius: 10px; color: var(--oc-text); background: var(--surface); font-size: 13px; font-weight: 600; cursor: pointer; }
 .oc-back-button:hover { border-color: var(--teal); color: var(--teal); background: rgba(16, 185, 129, 0.06); }
 .oc-brand { gap: 7px; color: var(--teal); font-size: 20px; font-weight: 700; letter-spacing: 0; white-space: nowrap; }
-.oc-brand-mark { display: grid; width: 30px; height: 27px; place-items: center; border-radius: 6px; color: white; background: var(--teal); }
+.oc-brand-mark { display: grid; width: 42px; height: 36px; place-items: center; border-radius: 10px; color: white; background: var(--teal); }
 .oc-upgrade { display: inline-flex; height: 30px; padding: 0 12px; align-items: center; gap: 6px; border: 1px solid #a7f3d0; border-radius: 11px; color: #047857; background: #f0fdf4; font-size: 13px; font-weight: 600; }
 .oc-run-group { position: absolute; left: 50%; gap: 10px; transform: translateX(-50%); }
 .oc-action { display: inline-flex; height: 38px; padding: 0 13px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 700; }
@@ -360,9 +360,53 @@ body, :root[data-theme="dark"] body {
 .is-dark .oc-toast { background: #252526; }
 .onecompiler-app.is-output-hidden { grid-template-columns: 52px minmax(0, 1fr) 0; }
 .onecompiler-app .oc-navbar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding-right: 16px; padding-left: 18px; }
-.onecompiler-app .oc-brand-group { min-width: 0; gap: 14px; }
+.onecompiler-app .oc-brand-group { min-width: 0; gap: 8px; }
 .onecompiler-app .oc-run-group { position: relative; left: auto; gap: 8px; transform: none; }
 .onecompiler-app .oc-account-group { min-width: 0; justify-content: flex-end; gap: 5px; }
+@media (min-width: 761px) {
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.narrow-find-widget,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget { right: 12px !important; left: auto !important; width: min(420px, calc(100% - 24px)) !important; max-width: none !important; height: 42px !important; min-height: 42px; margin-top: 12px; padding: 5px 34px 5px 6px; overflow: visible; border: 1px solid var(--line) !important; border-radius: 10px; color: var(--ink) !important; background: var(--surface) !important; box-shadow: 0 4px 12px rgb(36 55 47 / 12%); box-sizing: border-box; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part { display: flex; min-width: 0; height: 30px; margin: 0 0 0 28px; align-items: center; gap: 7px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part > .monaco-findInput { min-width: 0; flex: 1 1 auto; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox { min-width: 0; min-height: 28px; border: 1px solid var(--line) !important; border-radius: 6px; background: var(--paper) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox .input { color: var(--ink) !important; background: transparent !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox .input::placeholder { color: var(--muted) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part > .find-actions { display: flex; height: 28px; flex: 0 0 auto; align-items: center; gap: 2px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .matchesCount { margin: 0 2px 0 0; padding: 0; color: var(--muted) !important; font-size: 10px; line-height: 24px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button { width: 22px; min-width: 22px; height: 24px; min-height: 24px !important; flex: 0 0 22px; align-self: center; margin: 0; padding: 4px; border: 0 !important; border-radius: 5px; color: var(--teal) !important; background: transparent !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button { box-shadow: none !important; transform: none !important; transition: background-color .15s ease, color .15s ease; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button:hover { background: var(--surface-secondary) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget .button.previous,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget .button.next { display: flex !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close { top: 7px; width: 24px; min-width: 24px; height: 26px !important; min-height: 26px; padding: 4px; border: 0 !important; border-radius: 6px; color: var(--teal) !important; background: transparent !important; box-sizing: border-box; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle { left: 3px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close { right: 3px; display: grid; place-items: center; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle:hover,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close:hover { background: var(--surface-secondary) !important; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel { border-radius: 12px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-tool-panel-body { padding: 12px; gap: 9px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row,
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle { min-height: 50px; padding: 7px 10px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row { font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row > div { gap: 6px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row button { width: 34px; height: 34px; border-radius: 8px; color: var(--oc-accent); background: var(--surface); font-size: 17px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row button:hover { border-color: var(--oc-accent); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row > div > span { min-width: 42px; color: var(--oc-text); font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle { width: 100%; font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle > span:last-child { min-width: 42px; margin-left: auto; padding: 5px 9px; border-radius: 999px; color: var(--oc-accent); background: var(--surface); font-size: 11px; font-weight: 600; text-align: center; }
+  .onecompiler-app .oc-tool-panel.is-history-panel { border-radius: 12px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-tool-panel-body { padding: 10px; gap: 8px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-caption { margin: 0; padding: 2px 2px 4px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item { width: 100%; min-height: 54px; padding: 9px 10px; gap: 5px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > span { color: var(--oc-text); font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > code { color: var(--oc-muted); font-size: 11px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-empty { margin: 0; padding: 14px 12px; border: 1px dashed var(--oc-border); border-radius: 9px; line-height: 1.5; text-align: center; }
+}
 .onecompiler-app .oc-navbar .oc-upgrade,
 .onecompiler-app .oc-account-group .oc-login-button,
 .onecompiler-app .oc-account-group button[aria-label="Report a bug"],
@@ -1861,9 +1905,9 @@ body { color: var(--ink); background-color: var(--paper); }
 
 .onecompiler-app { grid-template-columns: 52px minmax(0, 1fr); grid-template-rows: 54px minmax(0, 1fr) 30px; font-size: 12px; }
 .onecompiler-app .oc-navbar { display: flex; padding: 0 14px; }
-.onecompiler-app .oc-brand-group { gap: 0; }
+.onecompiler-app .oc-brand-group { gap: 8px; }
 .onecompiler-app .oc-brand { font-size: 16px; }
-.onecompiler-app .oc-brand-mark { width: 27px; height: 25px; }
+.onecompiler-app .oc-brand-mark { width: 42px; height: 36px; }
 .onecompiler-app .oc-run-group { position: relative; left: auto; margin-left: auto; gap: 7px; transform: none; }
 .onecompiler-app .oc-run-button { min-width: 76px; }
 .onecompiler-app .oc-ai-button { color: var(--oc-text); }
@@ -1982,7 +2026,7 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 50px 38px minmax(0, 1fr) 28px; }
   .onecompiler-app .oc-navbar { grid-row: 1; grid-column: 1 / -1; padding: 0 7px; gap: 4px; }
   .onecompiler-app .oc-brand { font-size: 14px; }
-  .onecompiler-app .oc-brand-mark { width: 24px; height: 23px; }
+  .onecompiler-app .oc-brand-mark { width: 36px; height: 32px; }
   .onecompiler-app .oc-run-group { gap: 4px; }
   .onecompiler-app .oc-run-button { min-width: 56px; height: 33px; padding: 0 8px; }
   .onecompiler-app .oc-ai-button { width: 35px; height: 33px; padding: 0; font-size: 0; }
@@ -1990,32 +2034,94 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app .oc-account-button { width: 31px; height: 31px; padding: 0; justify-content: center; }
   .onecompiler-app .oc-account-button span { display: none; }
   .onecompiler-app .oc-autosave { font-size: 0; }
+  .onecompiler-app .oc-more-menu { right: 0; left: auto; width: min(220px, calc(100vw - 16px)); }
   .onecompiler-app .oc-mobile-switch { display: grid; grid-row: 2; grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid var(--oc-border); background: var(--surface-secondary); }
   .onecompiler-app .oc-mobile-switch button { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 5px; border: 0; border-bottom: 2px solid transparent; color: var(--oc-muted); background: transparent; font-size: 10px; }
   .onecompiler-app .oc-mobile-switch button.is-active { border-bottom-color: var(--oc-accent); color: var(--oc-text); }
   .onecompiler-app .oc-sidebar { display: none; }
-  .onecompiler-app .oc-sidebar-backdrop { position: absolute; z-index: 15; top: 88px; right: 0; bottom: 28px; left: 0; border: 0; background: rgb(19 30 30 / 32%); }
-  .onecompiler-app .oc-sidebar.is-mobile-expanded { position: absolute; z-index: 16; top: 88px; right: 0; bottom: 28px; left: 0; display: flex; width: 100%; flex-direction: column; box-shadow: none; }
+  .onecompiler-app .oc-sidebar-backdrop { position: absolute; z-index: 15; top: 88px; right: 0; bottom: 28px; left: 0; border: 0; background: rgb(19 30 30 / 42%); }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded { position: absolute; z-index: 16; top: auto; right: auto; bottom: 28px; left: 0; display: flex; width: min(280px, calc(100vw - 52px)); max-height: calc(100% - 116px); flex-direction: column; justify-content: flex-start; overflow: hidden auto; border-right: 1px solid var(--oc-border); border-radius: 0 18px 18px 0; background: var(--surface); box-shadow: 12px 0 28px rgb(19 30 30 / 18%); }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded > .oc-mobile-sidebar-heading { display: flex; min-height: 76px; padding: 12px 14px; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--oc-border); }
+  .onecompiler-app .oc-mobile-sidebar-heading > div { display: grid; min-width: 0; gap: 3px; }
+  .onecompiler-app .oc-mobile-sidebar-heading strong { color: var(--oc-text); font-size: 15px; font-weight: 700; }
+  .onecompiler-app .oc-mobile-sidebar-heading > div > span { color: var(--oc-muted); font-size: 11px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-mobile-sidebar-close { display: flex; width: 100%; min-height: 54px; padding: 0 16px; flex: 0 0 54px; align-items: center; justify-content: flex-start; gap: 12px; border: 0; border-bottom: 1px solid var(--oc-border); border-radius: 0; color: var(--oc-text); background: transparent; font-size: 14px; font-weight: 600; text-align: left; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-mobile-sidebar-close > span { display: inline; font-size: 14px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-mobile-sidebar-close > svg { width: 20px; height: 20px; flex: 0 0 20px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-mobile-sidebar-close:hover { color: var(--oc-accent); background: var(--surface-secondary); }
   .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top,
-  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom { justify-items: stretch; gap: 4px; padding: 9px 8px; }
-  .onecompiler-app .oc-sidebar.is-mobile-expanded button { display: flex; width: 100%; min-height: 42px; padding: 0 10px; align-items: center; justify-content: flex-start; gap: 12px; border-radius: 6px; text-align: left; }
-  .onecompiler-app .oc-sidebar.is-mobile-expanded button > span { display: inline; font-size: 12px; }
-  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar svg { width: 20px; height: 20px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom { justify-items: stretch; gap: 4px; padding: 12px 10px 8px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--oc-border); }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-section-label { padding: 0 12px 5px; color: var(--oc-muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top button,
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom button { display: flex; width: 100%; min-height: 46px; padding: 0 12px; align-items: center; justify-content: flex-start; gap: 12px; border-radius: 9px; color: var(--oc-muted); background: transparent; text-align: left; transition: color .16s ease, background-color .16s ease; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top button:hover,
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom button:hover { color: var(--oc-text); background: var(--surface-secondary); }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top button.is-active,
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom button.is-active { color: var(--oc-accent); background: var(--surface-secondary); font-weight: 600; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top button > span,
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom button > span { display: inline; font-size: 13px; }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-top button > svg,
+  .onecompiler-app .oc-sidebar.is-mobile-expanded .oc-sidebar-bottom button > svg { width: 19px; height: 19px; flex: 0 0 19px; }
   .onecompiler-app .oc-workbench { position: relative; display: block; grid-row: 3; grid-column: 1; min-width: 0; }
   .onecompiler-app .oc-editor-pane, .onecompiler-app .oc-console-pane { position: absolute; inset: 0; display: none; }
   .onecompiler-app .oc-editor-pane { border: 0; }
   .onecompiler-app:not(.is-mobile-output) .oc-editor-pane { display: flex; }
   .onecompiler-app.is-mobile-output .oc-console-pane { display: flex; height: auto; border: 0; }
+  .onecompiler-app .oc-monaco-wrap { overflow: visible; }
   .onecompiler-app .oc-resize-handle { display: none; }
   .onecompiler-app .oc-editor-tabs, .onecompiler-app .oc-console-tabs { height: 39px; min-height: 39px; }
   .onecompiler-app .oc-editor-tabs { justify-content: flex-start; }
   .onecompiler-app .oc-editor-menu-toggle { display: grid; width: 36px; min-width: 36px; height: 100%; flex: 0 0 36px; place-items: center; border: 0; border-right: 1px solid var(--oc-border); color: var(--oc-muted); background: transparent; }
   .onecompiler-app .oc-editor-menu-toggle:hover { color: var(--oc-accent); background: var(--surface); }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.narrow-find-widget,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget { right: 6px !important; left: 6px !important; width: auto !important; max-width: none !important; height: 42px !important; min-height: 42px; margin-top: 12px; padding: 5px 34px 5px 6px; overflow: visible; border: 1px solid var(--line) !important; border-radius: 10px; color: var(--ink) !important; background: var(--surface) !important; box-shadow: 0 4px 12px rgb(36 55 47 / 12%); box-sizing: border-box; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part { display: flex; min-width: 0; height: 30px; margin: 0 0 0 28px; align-items: center; gap: 7px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part > .monaco-findInput { min-width: 0; flex: 1 1 auto; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox { min-width: 0; min-height: 28px; border: 1px solid var(--line) !important; border-radius: 6px; background: var(--paper) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox .input { color: var(--ink) !important; background: transparent !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .monaco-inputbox .input::placeholder { color: var(--muted) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part > .find-actions { display: flex; height: 28px; flex: 0 0 auto; align-items: center; gap: 2px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .matchesCount { margin: 0 2px 0 0; padding: 0; color: var(--muted) !important; font-size: 10px; line-height: 24px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button { width: 22px; min-width: 22px; height: 24px; min-height: 24px !important; flex: 0 0 22px; align-self: center; margin: 0; padding: 4px; border: 0 !important; border-radius: 5px; color: var(--teal) !important; background: transparent !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button { box-shadow: none !important; transform: none !important; transition: background-color .15s ease, color .15s ease; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .find-part .find-actions .button:hover { background: var(--surface-secondary) !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget .button.previous,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget.collapsed-find-widget .button.next { display: flex !important; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close { top: 7px; width: 24px; min-width: 24px; height: 26px !important; min-height: 26px; padding: 4px; border: 0 !important; border-radius: 6px; color: var(--teal) !important; background: transparent !important; box-sizing: border-box; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle { left: 3px; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close { right: 3px; display: grid; place-items: center; }
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.toggle:hover,
+  .onecompiler-app .oc-monaco-wrap .monaco-editor .find-widget > .button.codicon-widget-close:hover { background: var(--surface-secondary) !important; }
   .onecompiler-app .oc-console-tabs button { min-width: 0; flex: 1; padding: 0 4px; gap: 4px; font-size: 10px; }
   .onecompiler-app .oc-console-tabs svg { width: 14px; }
   .onecompiler-app .oc-device-picker { padding: 2px; }
   .onecompiler-app .oc-device-picker button { min-height: 24px; padding: 0 6px; }
   .onecompiler-app .oc-tool-panel { top: calc(50px + 38px + 7px); right: 8px; bottom: 34px; left: 8px; width: auto; max-height: none; }
+  .onecompiler-app .oc-tool-panel.is-files-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-tool-panel-body { padding: 10px; gap: 8px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-caption { margin: 0; padding: 2px 2px 4px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item { width: 100%; min-height: 54px; padding: 9px 10px; gap: 5px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > span { color: var(--oc-text); font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > code { color: var(--oc-muted); font-size: 11px; }
+  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-empty { margin: 0; padding: 14px 12px; border: 1px dashed var(--oc-border); border-radius: 9px; line-height: 1.5; text-align: center; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-tool-panel-body { padding: 12px; gap: 9px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row,
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle { min-height: 50px; padding: 7px 10px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row { font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row > div { gap: 6px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row button { width: 34px; height: 34px; border-radius: 8px; color: var(--oc-accent); background: var(--surface); font-size: 17px; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row button:hover { border-color: var(--oc-accent); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row > div > span { min-width: 42px; color: var(--oc-text); font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle { width: 100%; font-size: 12px; font-weight: 600; }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
+  .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle > span:last-child { min-width: 42px; margin-left: auto; padding: 5px 9px; border-radius: 999px; color: var(--oc-accent); background: var(--surface); font-size: 11px; font-weight: 600; text-align: center; }
   .onecompiler-app .oc-statusbar { grid-row: 4; grid-column: 1 / -1; padding: 0 6px; }
   .onecompiler-app .oc-status-left { gap: 8px; }
   .onecompiler-app .oc-workspace-status { display: none !important; }
