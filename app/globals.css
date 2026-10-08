@@ -250,6 +250,9 @@ body, :root[data-theme="dark"] body {
   font-size: 13px;
 }
 .onecompiler-app.is-dark { --oc-border: #40534f; --oc-text: #e4ece8; --oc-muted: #a7b9b2; --oc-accent: #83cfb4; background: #14282d; }
+.onecompiler-app.is-mobile-viewport { z-index: 100; box-sizing: border-box; }
+.onecompiler-app.is-mobile-viewport .oc-workbench { min-height: 0; }
+.onecompiler-app.is-mobile-viewport .oc-monaco-wrap { overflow: hidden; }
 .oc-navbar { position: relative; z-index: 2; display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 12px; padding: 0 22px 0 26px; border-bottom: 1px solid var(--oc-border); background: inherit; }
 .oc-brand-group, .oc-brand, .oc-run-group, .oc-account-group { display: flex; align-items: center; }
 .oc-brand-group { gap: 28px; }
@@ -445,6 +448,9 @@ body, :root[data-theme="dark"] body {
 @media (max-width: 760px) {
   .onecompiler-app { grid-template-columns: 48px minmax(0, 1fr); grid-template-rows: 58px minmax(0, 1fr) 34px; }
   .onecompiler-app.is-output-hidden { grid-template-columns: 48px minmax(0, 1fr); }
+  .onecompiler-app.is-mobile-viewport { z-index: 100; }
+  .onecompiler-app.is-mobile-viewport .oc-workbench { height: 100%; }
+  .onecompiler-app.is-mobile-viewport .oc-monaco-wrap { overflow: hidden; }
   .onecompiler-app .oc-navbar { display: flex; }
   .oc-navbar { padding: 0 8px; }
   .oc-brand-group { gap: 0; }
@@ -2068,7 +2074,7 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app .oc-editor-pane { border: 0; }
   .onecompiler-app:not(.is-mobile-output) .oc-editor-pane { display: flex; }
   .onecompiler-app.is-mobile-output .oc-console-pane { display: flex; height: auto; border: 0; }
-  .onecompiler-app .oc-monaco-wrap { overflow: visible; }
+  .onecompiler-app .oc-monaco-wrap { overflow: hidden; }
   .onecompiler-app .oc-resize-handle { display: none; }
   .onecompiler-app .oc-editor-tabs, .onecompiler-app .oc-console-tabs { height: 39px; min-height: 39px; }
   .onecompiler-app .oc-editor-tabs { justify-content: flex-start; }

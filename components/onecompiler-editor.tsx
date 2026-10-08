@@ -35,7 +35,7 @@ import {
   X,
   Send,
 } from "lucide-react";
-import { useEffect, useEffectEvent, useMemo, useRef, useState, type FormEvent, type PointerEvent } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from "react";
 import { apiRequest } from "@/lib/browser-api";
 
 type ConsoleTab = "Terminal" | "AI Agent" | "Preview";
@@ -196,6 +196,7 @@ export default function OneCompilerEditor() {
   const [mobilePane, setMobilePane] = useState<"editor" | "output">("editor");
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [visualViewport, setVisualViewport] = useState<{ height: number; width: number; offsetTop: number } | null>(null);
   const [output, setOutput] = useState("");
   const [previewDocument, setPreviewDocument] = useState("");
   const [previewRunVersion, setPreviewRunVersion] = useState(0);
@@ -328,6 +329,38 @@ export default function OneCompilerEditor() {
     viewport.addEventListener("change", updateViewport);
     return () => viewport.removeEventListener("change", updateViewport);
   }, []);
+
+  useEffect(() => {
+    const browserViewport = window.visualViewport;
+    if (!browserViewport) return;
+
+    const updateVisualViewport = () => {
+      setVisualViewport({
+        height: browserViewport.height,
+        width: browserViewport.width,
+        offsetTop: browserViewport.offsetTop,
+      });
+    };
+
+    updateVisualViewport();
+    browserViewport.addEventListener("resize", updateVisualViewport);
+    browserViewport.addEventListener("scroll", updateVisualViewport);
+
+    return () => {
+      browserViewport.removeEventListener("resize", updateVisualViewport);
+      browserViewport.removeEventListener("scroll", updateVisualViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isMobileViewport || !visualViewport) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      editorRef.current?.layout();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isMobileViewport, visualViewport]);
 
   useEffect(() => {
     if (!workspaceReady) return;
@@ -908,8 +941,21 @@ export default function OneCompilerEditor() {
     setToolPanel((current) => current === panel ? null : panel);
   }
 
+  const mobileViewportStyle: CSSProperties = isMobileViewport && visualViewport
+    ? {
+        position: "fixed",
+        top: visualViewport.offsetTop,
+        left: 0,
+        width: visualViewport.width,
+        height: visualViewport.height,
+      }
+    : {};
+
   return (
-    <main className={`onecompiler-app${dark ? " is-dark" : ""}${mobilePane === "output" ? " is-mobile-output" : ""}`}>
+    <main
+      className={`onecompiler-app${dark ? " is-dark" : ""}${mobilePane === "output" ? " is-mobile-output" : ""}${isMobileViewport && visualViewport ? " is-mobile-viewport" : ""}`}
+      style={mobileViewportStyle}
+    >
       <header className="oc-navbar">
         <div className="oc-brand-group">
           <button className="oc-back-button" type="button" aria-label="Kembali ke beranda" title="Kembali ke beranda" onClick={() => router.push("/")}>
@@ -1009,10 +1055,12 @@ export default function OneCompilerEditor() {
               folding: false,
               glyphMargin: false,
               overviewRulerLanes: 0,
-              scrollbar: { vertical: "visible", verticalScrollbarSize: 12, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false },
+              scrollbar: isMobileViewport
+                ? { vertical: "visible", horizontal: "visible", verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false }
+                : { vertical: "visible", verticalScrollbarSize: 12, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false },
               padding: { top: 14, bottom: 12 },
               tabSize: 4,
-              wordWrap: isMobileViewport || wordWrap ? "on" : "off",
+              wordWrap,
             }}
           /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>Mulai dari file baru</strong><span>Buat file untuk mulai menulis kode.</span><button type="button" onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); setNewFileError(""); }}>Buat file</button></div>}
         </div>
