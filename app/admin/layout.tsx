@@ -16,6 +16,7 @@ const menu = [
   { href: "/admin/akun", label: "Akun", icon: UsersRound },
   { href: "/admin/aktivitas", label: "Aktivitas", icon: History },
 ];
+const adminNavScrollStorageKey = "courseup-admin-nav-scroll-left";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin/dashboard";
@@ -26,6 +27,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     const nav = adminNavRef.current;
     if (!nav) return;
+
+    try {
+      const storedScrollLeft = window.sessionStorage.getItem(adminNavScrollStorageKey);
+      if (storedScrollLeft !== null) savedNavScrollLeft.current = Number(storedScrollLeft) || 0;
+    } catch {}
 
     restoringNavScroll.current = true;
     nav.scrollLeft = savedNavScrollLeft.current;
@@ -53,7 +59,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         aria-label="Navigasi admin"
         ref={adminNavRef}
         onScroll={(event) => {
-          if (!restoringNavScroll.current) savedNavScrollLeft.current = event.currentTarget.scrollLeft;
+          if (!restoringNavScroll.current) {
+            savedNavScrollLeft.current = event.currentTarget.scrollLeft;
+            try { window.sessionStorage.setItem(adminNavScrollStorageKey, String(savedNavScrollLeft.current)); } catch {}
+          }
         }}
       >
         {menu.map(({ href, label, icon: Icon }) => {
@@ -66,6 +75,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             onClick={() => {
               if (href !== pathname) {
                 savedNavScrollLeft.current = adminNavRef.current?.scrollLeft ?? savedNavScrollLeft.current;
+                try { window.sessionStorage.setItem(adminNavScrollStorageKey, String(savedNavScrollLeft.current)); } catch {}
                 restoringNavScroll.current = true;
               }
             }}

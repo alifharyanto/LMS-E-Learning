@@ -931,10 +931,50 @@ export default function OneCompilerEditor() {
     if (!editor) return;
     setMobileSidebarOpen(false);
     setToolPanel(null);
-    window.requestAnimationFrame(() => {
+
+    const activateFind = () => {
       editor.focus();
       editor.getAction("actions.find")?.run();
-    });
+
+      const restoreFindWidget = () => {
+        const widget = editor.getDomNode()?.querySelector(".find-widget") as HTMLElement | null;
+        const input = widget?.querySelector(".monaco-findInput textarea") as HTMLTextAreaElement | null;
+        const controls = widget?.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLTextAreaElement>(
+          "button, [role='button'], [role='checkbox'], textarea, input, .monaco-findInput"
+        );
+
+        widget?.setAttribute("aria-hidden", "false");
+        widget?.style.setProperty("z-index", "60");
+        widget?.style.setProperty("visibility", "visible");
+        widget?.style.setProperty("opacity", "1");
+        widget?.style.setProperty("pointer-events", "auto");
+
+        controls?.forEach((element) => {
+          element.removeAttribute("disabled");
+          element.setAttribute("aria-disabled", "false");
+        });
+
+        if (input) {
+          input.removeAttribute("disabled");
+          input.setAttribute("aria-disabled", "false");
+          input.focus();
+          try {
+            const value = input.value ?? "";
+            input.setSelectionRange(value.length, value.length);
+          } catch {}
+        }
+
+        if (widget) {
+          widget.scrollIntoView({ block: "nearest", inline: "nearest" });
+        }
+      };
+
+      window.requestAnimationFrame(() => {
+        window.setTimeout(restoreFindWidget, 0);
+      });
+    };
+
+    window.setTimeout(activateFind, 25);
   }
 
   function toggleToolPanel(panel: ToolPanel) {
