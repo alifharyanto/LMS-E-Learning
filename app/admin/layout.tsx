@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, BookOpen, Brain, ChartNoAxesColumn, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, UsersRound } from "lucide-react";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,15 +19,57 @@ const menu = [
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin/dashboard";
+  const adminNavRef = useRef<HTMLElement>(null);
+  const savedNavScrollLeft = useRef(0);
+  const restoringNavScroll = useRef(false);
+
+  useLayoutEffect(() => {
+    const nav = adminNavRef.current;
+    if (!nav) return;
+
+    restoringNavScroll.current = true;
+    nav.scrollLeft = savedNavScrollLeft.current;
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      nav.scrollLeft = savedNavScrollLeft.current;
+      secondFrame = window.requestAnimationFrame(() => {
+        nav.scrollLeft = savedNavScrollLeft.current;
+        restoringNavScroll.current = false;
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
+  }, [pathname]);
 
   return <div className="admin-shell">
     <aside className="admin-sidebar">
       <Link className="admin-sidebar-brand" href="/admin/dashboard"><span className="admin-brand-mark">C</span><span><strong>CourseUp</strong><small>ADMIN WORKSPACE</small></span></Link>
       <span className="admin-sidebar-label">MENU UTAMA</span>
-      <nav className="admin-nav" aria-label="Navigasi admin">
+      <nav
+        className="admin-nav"
+        aria-label="Navigasi admin"
+        ref={adminNavRef}
+        onScroll={(event) => {
+          if (!restoringNavScroll.current) savedNavScrollLeft.current = event.currentTarget.scrollLeft;
+        }}
+      >
         {menu.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href === "/admin/dashboard" && pathname === "/admin");
-          return <Link href={href} key={href} aria-current={active ? "page" : undefined} className={active ? "is-active" : undefined}><span className="admin-nav-link"><Icon size={17} />{label}</span></Link>;
+          return <Link
+            href={href}
+            key={href}
+            aria-current={active ? "page" : undefined}
+            className={active ? "is-active" : undefined}
+            onClick={() => {
+              if (href !== pathname) {
+                savedNavScrollLeft.current = adminNavRef.current?.scrollLeft ?? savedNavScrollLeft.current;
+                restoringNavScroll.current = true;
+              }
+            }}
+          ><span className="admin-nav-link"><Icon size={17} />{label}</span></Link>;
         })}
       </nav>
       <div className="admin-sidebar-foot"><Activity size={15} /><span>Panel administrasi</span></div>

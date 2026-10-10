@@ -926,6 +926,17 @@ export default function OneCompilerEditor() {
     setHasRun(true);
   }
 
+  function openFindWidget() {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setMobileSidebarOpen(false);
+    setToolPanel(null);
+    window.requestAnimationFrame(() => {
+      editor.focus();
+      editor.getAction("actions.find")?.run();
+    });
+  }
+
   function toggleToolPanel(panel: ToolPanel) {
     setMobileSidebarOpen(false);
     setOpenMenu(null);
@@ -993,7 +1004,7 @@ export default function OneCompilerEditor() {
         {mobileSidebarOpen && <button className="oc-mobile-sidebar-close" type="button" onClick={() => setMobileSidebarOpen(false)}><X size={20} /><span>Close menu</span></button>}
         <div className="oc-sidebar-top">
           <button className={toolPanel === "files" ? "is-active" : ""} type="button" aria-label="Files" aria-expanded={toolPanel === "files"} onClick={() => toggleToolPanel("files")}><Files /><span>Files</span></button>
-          <button type="button" aria-label="Search" title="Find in code" onClick={() => { setMobileSidebarOpen(false); setToolPanel(null); editorRef.current?.getAction("actions.find")?.run(); }}><Search /><span>Search</span></button>
+          <button type="button" aria-label="Search" title="Find in code" onClick={openFindWidget}><Search /><span>Search</span></button>
         </div>
         <div className="oc-sidebar-bottom">
           <button className={toolPanel === "history" ? "is-active" : ""} type="button" aria-label="History" aria-expanded={toolPanel === "history"} onClick={() => toggleToolPanel("history")}><History /><span>History</span></button>
@@ -1060,7 +1071,7 @@ export default function OneCompilerEditor() {
                 : { vertical: "visible", verticalScrollbarSize: 12, horizontalScrollbarSize: 10, useShadows: false, alwaysConsumeMouseWheel: false },
               padding: { top: 14, bottom: 12 },
               tabSize: 4,
-              wordWrap,
+              wordWrap: wordWrap ? "on" : "off",
             }}
           /> : <div className="oc-editor-closed"><Code2 size={28} /><strong>Mulai dari file baru</strong><span>Buat file untuk mulai menulis kode.</span><button type="button" onClick={() => { setToolPanel("files"); setOpenMenu("new-file"); setNewFileError(""); }}>Buat file</button></div>}
         </div>
