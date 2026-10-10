@@ -42,6 +42,21 @@ export async function POST(request: Request) {
     if (guard.response) return guard.response;
 
     const body = await readJson(request);
+    if (body?.action === "check") {
+      const categoryId = parseId(String(body.category_id ?? ""));
+      const questionId = parseId(String(body.question_id ?? ""));
+      const answerIndex = body.answer_index;
+      if (!categoryId || !questionId || !Number.isInteger(answerIndex) || Number(answerIndex) < 0 || Number(answerIndex) > 3) {
+        return json({ error: "Jawaban quiz tidak valid." }, 422);
+      }
+      const questions = await queryRows<(RowDataPacket & { answer_index: number })[]>(
+        "SELECT answer_index FROM quiz_questions WHERE id = ? AND category_id = ? LIMIT 1",
+        [questionId, categoryId],
+      );
+      if (!questions[0]) return json({ error: "Soal quiz tidak ditemukan." }, 404);
+      const correctAnswerIndex = Number(questions[0].answer_index);
+      return json({ answer_check: { correct: Number(answerIndex) === correctAnswerIndex, answer_index: correctAnswerIndex } });
+    }
     const categoryId = parseId(String(body?.category_id ?? ""));
     const answers = body?.answers;
     if (!categoryId || !answers || typeof answers !== "object" || Array.isArray(answers)) {
@@ -55,10 +70,6 @@ export async function POST(request: Request) {
 
     const questions = await queryRows<RowDataPacket[]>("SELECT id, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
     if (!questions.length) return json({ error: "Kategori ini belum memiliki soal." }, 422);
-    if (questions.some((question) => !Object.hasOwn(answers, String(question.id)))) {
-      return json({ error: "Jawab semua pertanyaan sebelum mengirim quiz." }, 422);
-    }
-
     const score = questions.reduce((total, question) => {
       return total + (Number((answers as Record<string, unknown>)[String(question.id)]) === Number(question.answer_index) ? 1 : 0);
     }, 0);
@@ -66,7 +77,7 @@ export async function POST(request: Request) {
     const percent = Math.floor((score / total) * 100);
     const result = await execute("INSERT INTO quiz_results (user_id, category_id, score, total, percent, correct_answers) VALUES (?, ?, ?, ?, ?, ?)", [guard.user.id, categoryId, score, total, percent, score]);
 
-    return json({ success: true, result: { id: result.insertId, score, total, percent, explanations: questions.map((question) => ({ id: question.id, text: question.explanation })) } }, 201);
+    return json({ success: true, result: { id: result.insertId, score, total, percent, explanations: questions.map((question) => ({ id: question.id, text: question.explanation, answer_index: Number(question.answer_index) })) } }, 201);
   } catch (error) {
     console.error("Quiz submit API error:", error);
     return json({ error: "Permintaan gagal diproses." }, 500);

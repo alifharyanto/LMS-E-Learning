@@ -34,7 +34,7 @@ type QuizResult = {
   score: number;
   total: number;
   percent: number;
-  explanations: { id: number; text: string | null }[];
+  explanations: { id: number; text: string | null; answer_index: number }[];
 };
 
 function parseJson<T>(value: unknown, fallback: T): T {
@@ -79,7 +79,7 @@ async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promis
     score: Number(row.score),
     total: Number(row.total),
     percent: Number(row.percent),
-    explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation })),
+    explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
   } : null;
 }
 
@@ -125,7 +125,7 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
         score,
         total,
         percent,
-        explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation })),
+        explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
       } satisfies QuizResult,
       status: 200 as const,
     };
@@ -280,6 +280,9 @@ export async function POST(request: Request) {
       const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
       const answers = parseAnswers(body.answers, snapshot);
       if (!answers) return json({ error: "Jawaban quiz tidak valid." }, 422);
+      const questionId = parseId(String(body.question_id ?? ""));
+      const question = snapshot.find((item) => item.id === questionId);
+      if (!question || answers[String(question.id)] === undefined) return json({ error: "Jawaban quiz tidak valid." }, 422);
       const update = await execute(
         "UPDATE quiz_attempts SET answers = ? WHERE id = ? AND user_id = ? AND status = 'in_progress' AND expires_at > UTC_TIMESTAMP()",
         [JSON.stringify(answers), attemptId, guard.user.id],
@@ -288,7 +291,7 @@ export async function POST(request: Request) {
         const completed = await completeAttempt(attemptId, guard.user.id, {});
         return json({ expired: true, result: completed.result }, completed.status);
       }
-      return json({ success: true });
+      return json({ success: true, answer_check: { correct: answers[String(question.id)] === question.answer_index, answer_index: question.answer_index } });
     }
 
     if (body.action === "submit") {
