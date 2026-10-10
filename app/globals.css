@@ -1444,6 +1444,26 @@ body {
 .admin-section { scroll-margin-top: 88px; min-width: 0; }
 .admin-section-heading { display: flex; margin-bottom: 18px; align-items: center; justify-content: space-between; gap: 12px; }
 .admin-section-heading .surface-title { margin-top: 5px; }
+.account-search { display: flex; min-width: 0; margin-bottom: 10px; padding-left: 12px; align-items: center; gap: 9px; border: 1px solid var(--line); border-radius: 5px; color: var(--muted); background: var(--white); }
+.account-search .input { min-width: 0; border: 0; background: transparent; box-shadow: none; }
+.account-search:focus-within { border-color: var(--teal); box-shadow: 0 0 0 3px #0f766e16; }
+.account-list { display: grid; }
+.account-row { display: grid; min-width: 0; padding: 16px 0; align-items: center; grid-template-columns: minmax(0, 1fr) auto auto; gap: 18px; border-bottom: 1px solid var(--line); }
+.account-row:last-child { border-bottom: 0; }
+.account-identity { display: flex; min-width: 0; align-items: center; gap: 13px; }
+.account-avatar { display: grid; width: 44px; height: 44px; flex: 0 0 44px; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--teal); background: var(--surface-secondary); object-fit: cover; }
+.account-copy { display: grid; min-width: 0; gap: 4px; }
+.account-copy strong { overflow-wrap: anywhere; font-size: 13px; }
+.account-copy span, .account-copy small { color: var(--muted); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.account-copy small { display: flex; align-items: flex-start; gap: 5px; }
+.account-copy small svg { flex: 0 0 auto; margin-top: 2px; }
+.account-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.account-role, .account-state { display: inline-flex; min-height: 25px; padding: 3px 8px; align-items: center; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: var(--surface-secondary); font-size: 10px; font-weight: 700; white-space: nowrap; }
+.account-role-admin { border-color: #e5d49c; color: #85691b; background: #fbf6e8; }
+.account-state-active { border-color: #b8dec9; color: #17613d; background: #effaf3; }
+.account-state-suspended { border-color: #efc3be; color: #a13631; background: #fff4f2; }
+.account-row .admin-row-actions { display: flex; flex-shrink: 0; gap: 7px; }
+.account-row .admin-row-actions .button { gap: 6px; }
 .audit-row { display: grid; min-width: 0; padding: 15px 0; align-items: start; grid-template-columns: 9px minmax(0, 1fr) auto; gap: 10px; border-bottom: 1px solid var(--line); }
 .audit-row:last-child { border-bottom: 0; }
 .audit-marker { width: 8px; height: 8px; margin-top: 5px; border-radius: 50%; background: var(--teal); }
@@ -1571,6 +1591,10 @@ body {
   .admin-nav a:hover, .admin-nav a:focus-visible { border: 0; }
   .admin-sections { gap: 12px; }
   .admin-section-heading { align-items: flex-start; }
+  .account-row { padding: 14px 0; grid-template-columns: minmax(0, 1fr); gap: 11px; }
+  .account-identity { align-items: flex-start; }
+  .account-tags { padding-left: 57px; }
+  .account-row .admin-row-actions { padding-left: 57px; }
   .audit-row { grid-template-columns: 8px minmax(0, 1fr); gap: 8px; }
   .audit-row time { grid-column: 2; text-align: left; white-space: normal; }
   .admin-category-form { grid-template-columns: minmax(0, 1fr) minmax(110px, .65fr); }
