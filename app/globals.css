@@ -2781,7 +2781,7 @@ body { color: var(--ink); background-color: var(--paper); }
 .quiz-progress-track span { border: 0; border-radius: inherit; background: var(--accent); transition: width .3s ease; }
 .quiz-question-jump { display: grid; padding: 0; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 8px; overflow: visible; }
 .quiz-page .quiz-jump { position: relative; width: 100%; height: 38px; min-width: 0; border: 1px solid var(--border-strong); border-radius: 3px; color: var(--text); background: var(--surface); font-size: 11px; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
-.quiz-page .quiz-jump:hover { transform: translateY(-1px); background: var(--option-hover); }
+.quiz-page button.quiz-jump:hover { transform: translateY(-1px); background: var(--option-hover); }
 .quiz-page .quiz-jump.is-answered { color: white; border-color: var(--accent); background: var(--accent); box-shadow: none; }
 .quiz-page .quiz-jump.is-current { z-index: 1; border: 2px solid var(--border-strong); box-shadow: 3px 3px 0 var(--shadow-offset); }
 .quiz-page .quiz-jump.is-answered.is-current { color: white; border-color: var(--border-strong); background: var(--accent); }

@@ -12,6 +12,7 @@ type QuizResult = { score: number; total: number; percent: number; explanations:
 type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number>; remaining_seconds: number; result: QuizResult | null };
 type AnswerCheck = { correct: boolean; answer_index: number };
 const QUESTION_SECONDS = 30;
+const ANSWER_REVEAL_MS = 1500;
 
 function shuffle<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -47,6 +48,9 @@ export default function LatihanPage() {
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const submittingAttemptRef = useRef(false);
   const remainingSecondsRef = useRef<number | null>(null);
+  const currentIndexRef = useRef(0);
+  const answerProcessingRef = useRef(new Set<number>());
+  const answerAdvanceTimeoutRef = useRef<number | null>(null);
   const [loadedCategoryId, setLoadedCategoryId] = useState<string | null | undefined>(undefined);
   const loading = loadedCategoryId !== categoryId;
   const answeredCount = questions.filter((question) => answers[String(question.id)] !== undefined).length;
@@ -62,7 +66,11 @@ export default function LatihanPage() {
     const shuffledQuestions = shuffle(items);
     setQuestions(shuffledQuestions);
     setOptionOrders(Object.fromEntries(shuffledQuestions.map((question) => [String(question.id), shuffle([0, 1, 2, 3])])));
+    currentIndexRef.current = 0;
     setCurrentIndex(0);
+    answerProcessingRef.current.clear();
+    if (answerAdvanceTimeoutRef.current !== null) window.clearTimeout(answerAdvanceTimeoutRef.current);
+    answerAdvanceTimeoutRef.current = null;
     setFlaggedIds(new Set());
     setSkippedIds(new Set());
     setQuestionSeconds(QUESTION_SECONDS);
@@ -160,6 +168,10 @@ export default function LatihanPage() {
     remainingSecondsRef.current = remainingSeconds;
   }, [remainingSeconds]);
 
+  useEffect(() => () => {
+    if (answerAdvanceTimeoutRef.current !== null) window.clearTimeout(answerAdvanceTimeoutRef.current);
+  }, []);
+
   useEffect(() => {
     if (attemptId === null || result) return;
     const interval = window.setInterval(() => {
@@ -179,18 +191,33 @@ export default function LatihanPage() {
   }, [attemptId, remainingSeconds, result]);
 
   function selectAnswer(questionId: number, optionIndex: number) {
-    if (answers[String(questionId)] !== undefined || skippedIds.has(questionId)) return;
+    if (answers[String(questionId)] !== undefined || skippedIds.has(questionId) || answerProcessingRef.current.size > 0) return;
     if (!categoryId) return;
+    answerProcessingRef.current.add(questionId);
     const nextAnswers = { ...answers, [String(questionId)]: optionIndex };
     setAnswers(nextAnswers);
+    const answeredIndex = currentIndexRef.current;
+    const revealAndAdvance = (answerCheck: AnswerCheck) => {
+      setAnswerChecks((previous) => ({ ...previous, [String(questionId)]: answerCheck }));
+      answerAdvanceTimeoutRef.current = window.setTimeout(() => {
+        answerProcessingRef.current.delete(questionId);
+        answerAdvanceTimeoutRef.current = null;
+        const nextIndex = answeredIndex + 1;
+        if (currentIndexRef.current !== answeredIndex || nextIndex >= questions.length) return;
+        currentIndexRef.current = nextIndex;
+        setQuestionSeconds(QUESTION_SECONDS);
+        setCurrentIndex(nextIndex);
+      }, ANSWER_REVEAL_MS);
+    };
     if (attemptId === null) {
       void apiRequest<{ answer_check: AnswerCheck }>("/api/v1/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "check", category_id: categoryId, question_id: questionId, answer_index: optionIndex }),
       }).then(({ answer_check }) => {
-        setAnswerChecks((previous) => ({ ...previous, [String(questionId)]: answer_check }));
+        revealAndAdvance(answer_check);
       }).catch((requestError) => {
+        answerProcessingRef.current.delete(questionId);
         setError(requestError instanceof Error ? requestError.message : "Jawaban gagal diperiksa.");
       });
       return;
@@ -203,13 +230,14 @@ export default function LatihanPage() {
         body: JSON.stringify({ action: "save", attempt_id: currentAttemptId, question_id: questionId, answers: nextAnswers }),
       });
       const answerCheck = response.answer_check;
-      if (answerCheck) setAnswerChecks((previous) => ({ ...previous, [String(questionId)]: answerCheck }));
+      if (answerCheck) revealAndAdvance(answerCheck);
       if (response.result) {
         setResult(response.result);
         setAttemptId(null);
         setRemainingSeconds(null);
       }
     }).catch((requestError) => {
+      answerProcessingRef.current.delete(questionId);
       setError(requestError instanceof Error ? requestError.message : "Jawaban gagal disimpan.");
     });
   }
@@ -271,17 +299,15 @@ export default function LatihanPage() {
 
   function jumpToFirstUnanswered() {
     if (firstUnansweredIndex < 0) return;
+    currentIndexRef.current = firstUnansweredIndex;
     setCurrentIndex(firstUnansweredIndex);
   }
 
   function goToQuestion(index: number) {
     if (index < 0 || index >= questions.length || index === currentIndex) return;
+    currentIndexRef.current = index;
     setQuestionSeconds(QUESTION_SECONDS);
     setCurrentIndex(index);
-  }
-
-  function goNext() {
-    if (currentIndex < questions.length - 1) goToQuestion(currentIndex + 1);
   }
 
   function toggleFlag(questionId: number) {
@@ -297,7 +323,9 @@ export default function LatihanPage() {
     if (!currentQuestion || answers[String(currentQuestion.id)] !== undefined || skippedIds.has(currentQuestion.id)) return;
     setSkippedIds((previous) => new Set(previous).add(currentQuestion.id));
     setQuestionSeconds(QUESTION_SECONDS);
-    setCurrentIndex((index) => Math.min(index + 1, questions.length - 1));
+    const nextIndex = Math.min(currentIndexRef.current + 1, questions.length - 1);
+    currentIndexRef.current = nextIndex;
+    setCurrentIndex(nextIndex);
   });
 
   useEffect(() => {
@@ -363,11 +391,11 @@ export default function LatihanPage() {
       <section className="quiz-progress-panel" aria-label="Navigasi quiz">
         <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>
         <div className="quiz-progress-track" role="progressbar" aria-label="Progres jawaban" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={questions.length}><span style={{ width: `${completion}%` }} /></div>
-        <div className="quiz-question-jump" aria-label="Navigasi soal">{questions.map((question, index) => {
+        <div className="quiz-question-jump" role="list" aria-label="Status soal">{questions.map((question, index) => {
           const isAnswered = answers[String(question.id)] !== undefined;
           const isSkipped = skippedIds.has(question.id);
           if (showUnansweredOnly && (isAnswered || isSkipped)) return null;
-          return <MotionButton type="button" key={question.id} className={`quiz-jump${isAnswered ? " is-answered" : ""}${index === currentIndex ? " is-current" : ""}${flaggedIds.has(question.id) ? " is-flagged" : ""}${isSkipped ? " is-skipped" : ""}`} aria-current={index === currentIndex ? "step" : undefined} aria-label={`Lompat ke soal ${index + 1}${isAnswered ? ", sudah dijawab" : isSkipped ? ", terlewat" : ", belum dijawab"}${flaggedIds.has(question.id) ? ", ditandai" : ""}`} onClick={() => goToQuestion(index)}>{index + 1}</MotionButton>;
+          return <span role="listitem" key={question.id} className={`quiz-jump${isAnswered ? " is-answered" : ""}${index === currentIndex ? " is-current" : ""}${flaggedIds.has(question.id) ? " is-flagged" : ""}${isSkipped ? " is-skipped" : ""}`} aria-current={index === currentIndex ? "step" : undefined}>{index + 1}</span>;
         })}</div>
         <div className="quiz-progress-footer"><div className="quiz-legend"><span><i className="is-legend-unanswered" />Belum dijawab</span><span><i className="is-legend-answered" />Sudah dijawab</span><span><i className="is-legend-current" />Sedang dibuka</span><span><i className="is-legend-flagged" />Ditandai</span></div><label className="quiz-filter"><input type="checkbox" checked={showUnansweredOnly} onChange={(event) => setShowUnansweredOnly(event.target.checked)} />Tampilkan belum dijawab saja</label></div>
         {unansweredCount > 0 && <MotionButton type="button" className="quiz-next-unanswered" onClick={jumpToFirstUnanswered}><ArrowDown size={14} />Ke soal belum dijawab</MotionButton>}
@@ -385,7 +413,6 @@ export default function LatihanPage() {
         })}</div>
         {(result && currentExplanation || currentAnswerCheck) && <div className="quiz-answer-feedback" role="status">{currentAnswer === undefined ? <><strong>Soal ini terlewat.</strong> Jawaban benar ditandai hijau.</> : currentCorrectAnswerIndex === currentAnswer ? <strong>Benar! Jawabanmu tepat.</strong> : <><strong>Belum tepat.</strong> Jawaban benar ditandai hijau.</>}{currentExplanation?.text && <p>{currentExplanation.text}</p>}</div>}
         {skippedIds.has(currentQuestion.id) && !result && <p className="quiz-skipped-note">Waktu soal habis. Soal ini ditandai terlewat.</p>}
-        <div className="quiz-question-navigation"><MotionButton type="button" className="button button-secondary" disabled={currentIndex === 0} onClick={() => goToQuestion(currentIndex - 1)}><ArrowLeft size={15} />Sebelumnya</MotionButton>{result ? <MotionButton type="button" className="button button-primary" disabled={currentIndex === questions.length - 1} onClick={() => goToQuestion(currentIndex + 1)}>Berikutnya<ArrowRight size={15} /></MotionButton> : <MotionButton type={currentIndex === questions.length - 1 ? "submit" : "button"} className="button button-primary" disabled={busy} onClick={currentIndex === questions.length - 1 ? undefined : goNext}>{currentIndex === questions.length - 1 ? busy ? "Menyimpan..." : "Selesai" : <>Selanjutnya<ArrowRight size={15} /></>}</MotionButton>}</div>
       </section>}
       {reviewing && <MotionButton type="button" className="button button-secondary" onClick={() => setReviewing(false)}>Tutup review</MotionButton>}
     </form> : <div className="empty-state">Belum ada soal dalam kategori ini.</div>)}
