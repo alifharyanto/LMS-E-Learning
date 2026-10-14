@@ -1,4 +1,5 @@
 import { getRequestUser, type User } from "@/lib/auth";
+import type { RowDataPacket } from "mysql2/promise";
 import { execute, queryRows } from "@/lib/db";
 import { json } from "@/lib/http";
 
@@ -17,8 +18,8 @@ export async function GET(request: Request) {
     const guard = await roleGuard(request);
     if (guard.response) return guard.response;
     await execute("INSERT INTO study_sessions (user_id, page_name, minutes_spent) VALUES (?, 'courses', 1)", [guard.user.id]);
-    const materials = await queryRows<any[]>(
-      "SELECT id, title, description, category, file_path, file_size, file_type, created_at FROM materials ORDER BY created_at DESC",
+    const materials = await queryRows<RowDataPacket[]>(
+      "SELECT id, title, description, category, file_path, file_size, file_type, youtube_embed_url, created_at FROM materials ORDER BY created_at DESC",
     );
     return json({ materials });
   } catch (error) {

@@ -1,6 +1,8 @@
 import { getRequestUser } from "@/lib/auth";
+import type { RowDataPacket } from "mysql2/promise";
 import { execute, queryRows } from "@/lib/db";
 import { json, parseId, readJson, safeString } from "@/lib/http";
+import { toYouTubeEmbedUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,8 +30,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const fileType = body?.file_type;
     if (!title || !category) return json({ error: "Judul dan kategori wajib diisi." }, 422);
 
-    const current = await queryRows<any[]>("SELECT id, file_type FROM materials WHERE id = ? LIMIT 1", [materialId]);
+    const current = await queryRows<(RowDataPacket & { id: number; file_type: string; youtube_embed_url: string | null })[]>("SELECT id, file_type, youtube_embed_url FROM materials WHERE id = ? LIMIT 1", [materialId]);
     if (!current.length) return json({ error: "Materi tidak ditemukan." }, 404);
+
+    const youtubeUrl = body?.youtube_url === undefined ? undefined : safeString(body.youtube_url, 2000);
+    const youtubeEmbedUrl = youtubeUrl === undefined
+      ? current[0].youtube_embed_url
+      : youtubeUrl ? toYouTubeEmbedUrl(youtubeUrl) : null;
+    if (youtubeUrl && !youtubeEmbedUrl) return json({ error: "Masukkan URL video YouTube yang valid." }, 422);
 
     const filePath = safeString(body?.file_path, 2000);
     if (filePath) {
@@ -46,10 +54,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       if (!validType || !uploadedFile.pathname.toLowerCase().endsWith(expectedExtension) || uploadedFile.protocol !== "https:" || !uploadedFile.hostname.endsWith(".blob.vercel-storage.com") || !uploadedFile.pathname.startsWith(`/materials/${guard.user.id}/`) || !Number.isSafeInteger(fileSize) || fileSize < 1 || fileSize > maximumSize) {
         return json({ error: "File pengganti harus PDF atau Markdown milik admin ini dan sesuai batas ukuran." }, 422);
       }
-      await execute("UPDATE materials SET title = ?, description = ?, category = ?, file_path = ?, file_size = ?, file_type = ? WHERE id = ?", [title, description, category, uploadedFile.toString(), fileSize, fileType, materialId]);
+      await execute("UPDATE materials SET title = ?, description = ?, category = ?, file_path = ?, file_size = ?, file_type = ?, youtube_embed_url = ? WHERE id = ?", [title, description, category, uploadedFile.toString(), fileSize, fileType, youtubeEmbedUrl, materialId]);
     } else {
       if (fileType && fileType !== current[0].file_type) return json({ error: "Pilih file baru saat mengganti format materi." }, 422);
-      await execute("UPDATE materials SET title = ?, description = ?, category = ? WHERE id = ?", [title, description, category, materialId]);
+      await execute("UPDATE materials SET title = ?, description = ?, category = ?, youtube_embed_url = ? WHERE id = ?", [title, description, category, youtubeEmbedUrl, materialId]);
     }
     return json({ success: true });
   } catch (error) {

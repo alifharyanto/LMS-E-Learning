@@ -5,6 +5,7 @@ export type CourseMaterial = {
   category: string;
   file_path: string | null;
   file_type: string | null;
+  youtube_embed_url: string | null;
   search_content?: string;
 };
 

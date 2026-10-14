@@ -195,6 +195,18 @@ export default function CourseMaterialPage({ slug }: { slug: string }) {
                     </MotionButton>
                   </div>
                 </header>
+                {selected.youtube_embed_url && (
+                  <div className="course-video-embed">
+                    <iframe
+                      src={selected.youtube_embed_url}
+                      title={`Video materi ${selected.title}`}
+                      loading="lazy"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
                 {selectedIsMarkdown ? selectedMarkdownError ? (
                   <div className="markdown-status markdown-error" role="alert"><p>{selectedMarkdownError}</p></div>
                 ) : selectedMarkdown === null ? (

@@ -8,7 +8,7 @@ import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui
 import { apiRequest } from "@/lib/browser-api";
 
 type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
-type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null };
+type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; youtube_embed_url: string | null };
 type Question = { id: number; question: string };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
 type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; is_correct: boolean };
@@ -136,7 +136,7 @@ export default function AdminPage() {
         const maximumSize = fileType === "application/pdf" ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
         if (!hasReplacementFile && isCreate) throw new Error("Pilih file materi terlebih dahulu.");
         if (!hasReplacementFile && !isCreate && fileType !== editingMaterialFormat) throw new Error("Pilih file baru saat mengganti format materi.");
-        body = { title: fields.get("title"), category: fields.get("category"), description: fields.get("description"), file_type: fileType };
+        body = { title: fields.get("title"), category: fields.get("category"), description: fields.get("description"), youtube_url: fields.get("youtube_url"), file_type: fileType };
         if (hasReplacementFile) {
           const validFile = fileType === "application/pdf"
             ? file.type === "application/pdf" && file.name.toLowerCase().endsWith(".pdf")
@@ -261,16 +261,18 @@ export default function AdminPage() {
             <label className="field"><span>Judul</span><input className="input" name="title" required /></label>
             <label className="field"><span>Kategori</span><input className="input" name="category" required /></label>
             <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" /></label>
+            <label className="field form-span"><span>URL video YouTube · opsional</span><input className="input" name="youtube_url" type="url" placeholder="https://youtu.be/..." /></label>
             <label className="field"><span>Format materi</span><select className="select" name="material_format" value={materialFormat} onChange={(event) => setMaterialFormat(event.target.value === "text/markdown" ? "text/markdown" : "application/pdf")}><option value="application/pdf">PDF</option><option value="text/markdown">Markdown (.md)</option></select></label>
             <label className="field"><span>File materi · {materialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={materialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} required /></label>
             <div className="admin-form-action"><MotionButton className="button button-primary" disabled={busy}>Tambah Materi</MotionButton></div>
           </form>
           {data.materials.length ? <div className="admin-material-list">{data.materials.map((item) => <article className="admin-material-item" key={item.id}>
-            <div className="admin-material-summary"><div className="admin-material-info"><div className="list-title">{item.title}</div><div className="list-meta">{item.category} · {item.file_type === "text/markdown" ? "Markdown" : "PDF"} · {item.file_size ? `${(item.file_size / (1024 * 1024)).toFixed(1)} MB` : "-"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingMaterialId === item.id} onClick={() => { if (editingMaterialId === item.id) setEditingMaterialId(null); else { setEditingMaterialId(item.id); setEditingMaterialFormat(item.file_type === "text/markdown" ? "text/markdown" : "application/pdf"); } }}><Pencil size={14} />Edit</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/materials/${item.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+            <div className="admin-material-summary"><div className="admin-material-info"><div className="list-title">{item.title}</div><div className="list-meta">{item.category} · {item.file_type === "text/markdown" ? "Markdown" : "PDF"} · {item.file_size ? `${(item.file_size / (1024 * 1024)).toFixed(1)} MB` : "-"}{item.youtube_embed_url ? " · Video YouTube" : ""}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingMaterialId === item.id} onClick={() => { if (editingMaterialId === item.id) setEditingMaterialId(null); else { setEditingMaterialId(item.id); setEditingMaterialFormat(item.file_type === "text/markdown" ? "text/markdown" : "application/pdf"); } }}><Pencil size={14} />Edit</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/materials/${item.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
             {editingMaterialId === item.id && <form className="admin-material-editor" onSubmit={(event) => void submit(event, `/api/v1/admin/materials/${item.id}`, "PUT")}>
               <label className="field"><span>Judul materi</span><input className="input" name="title" defaultValue={item.title} required maxLength={255} /></label>
               <label className="field"><span>Kategori</span><input className="input" name="category" defaultValue={item.category} required maxLength={100} /></label>
               <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" defaultValue={item.description ?? ""} maxLength={10000} /></label>
+              <label className="field form-span"><span>URL video YouTube · opsional</span><input className="input" name="youtube_url" type="url" defaultValue={item.youtube_embed_url ?? ""} placeholder="https://youtu.be/..." /></label>
               <label className="field"><span>Format materi</span><select className="select" name="material_format" value={editingMaterialFormat} onChange={(event) => setEditingMaterialFormat(event.target.value === "text/markdown" ? "text/markdown" : "application/pdf")}><option value="application/pdf">PDF</option><option value="text/markdown">Markdown (.md)</option></select></label>
               <label className="field form-span"><span>Ganti file · opsional · {editingMaterialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={editingMaterialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} /></label>
               <div className="admin-material-editor-actions"><MotionButton className="button button-primary" disabled={busy}><Save size={14} />Simpan perubahan</MotionButton><MotionButton type="button" className="button button-secondary" onClick={() => setEditingMaterialId(null)}><X size={14} />Batal</MotionButton></div>

@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     if (guard.response) return guard.response;
 
     const [materials, contacts, categories, questions, results, studentCounts, registrations, activeToday, activeStudents, quizSummary] = await Promise.all([
-      queryRows<RowDataPacket[]>("SELECT id, title, description, category, file_path, file_size, file_type, created_at FROM materials ORDER BY created_at DESC"),
+      queryRows<RowDataPacket[]>("SELECT id, title, description, category, file_path, file_size, file_type, youtube_embed_url, created_at FROM materials ORDER BY created_at DESC"),
       queryRows<RowDataPacket[]>("SELECT id, name, email, phone, subject, message, status, created_at FROM contacts ORDER BY created_at DESC"),
       queryRows<RowDataPacket[]>("SELECT c.id, c.name, c.time_limit_minutes, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id GROUP BY c.id, c.name, c.time_limit_minutes ORDER BY c.name"),
       queryRows<RowDataPacket[]>("SELECT id, category_id, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions ORDER BY created_at DESC"),
