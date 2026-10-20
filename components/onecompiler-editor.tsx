@@ -756,7 +756,7 @@ export default function OneCompilerEditor() {
           model.getPositionAt(model.getOffsetAt({ lineNumber: selection.startLineNumber, column: selection.startColumn })),
           model.getPositionAt(model.getOffsetAt({ lineNumber: selection.endLineNumber, column: selection.endColumn })),
         ];
-        selectionHandles.forEach(({ element }, index) => {
+        selectionHandles.forEach(({ element, side }, index) => {
           const visible = editor.getScrolledVisiblePosition(positions[index]);
           if (!visible) {
             element.hidden = true;
@@ -764,7 +764,8 @@ export default function OneCompilerEditor() {
           }
           element.hidden = false;
           element.style.left = `${editorBounds.left - hostBounds.left + visible.left}px`;
-          element.style.top = `${editorBounds.top - hostBounds.top + visible.top + visible.height}px`;
+          const endpointY = visible.top + visible.height;
+          element.style.top = `${editorBounds.top - hostBounds.top + endpointY - (side === "start" ? 15 : 0)}px`;
         });
       };
       const setSelectionFromOffsets = (startOffset: number, endOffset: number) => {
