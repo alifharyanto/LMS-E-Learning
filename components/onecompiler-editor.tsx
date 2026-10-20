@@ -699,6 +699,7 @@ export default function OneCompilerEditor() {
     editorRef.current = editor;
     const editorDomNode = editor.getDomNode();
     if (editorDomNode) {
+      const selectionHandleHost = editorDomNode.parentElement ?? editorDomNode;
       let touchSelection: {
         identifier: number;
         startX: number;
@@ -709,6 +710,18 @@ export default function OneCompilerEditor() {
         active: boolean;
       } | null = null;
       let holdTimer: number | null = null;
+      let draggedHandle: "start" | "end" | null = null;
+      let fixedHandleOffset: number | null = null;
+      const selectionHandles = (["start", "end"] as const).map((side) => {
+        const handle = document.createElement("button");
+        handle.type = "button";
+        handle.className = `oc-selection-handle is-${side}`;
+        handle.setAttribute("aria-label", side === "start" ? "Adjust selection start" : "Adjust selection end");
+        handle.innerHTML = '<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1a9 9 0 0 0-9 9c0 6 9 21 9 21s9-15 9-21a9 9 0 0 0-9-9Zm0 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/></svg>';
+        handle.hidden = true;
+        selectionHandleHost.appendChild(handle);
+        return { side, element: handle };
+      });
 
       const clearHoldTimer = () => {
         if (holdTimer !== null) window.clearTimeout(holdTimer);
@@ -730,6 +743,31 @@ export default function OneCompilerEditor() {
         const model = editor.getModel();
         return position && model ? model.getOffsetAt(position) : null;
       };
+      const updateSelectionHandles = () => {
+        const model = editor.getModel();
+        const selection = editor.getSelection();
+        const isMobile = window.matchMedia("(max-width: 760px)").matches;
+        if (!isMobile || !model || !selection || selection.isEmpty()) {
+          selectionHandles.forEach(({ element }) => { element.hidden = true; });
+          return;
+        }
+        const editorBounds = editorDomNode.getBoundingClientRect();
+        const hostBounds = selectionHandleHost.getBoundingClientRect();
+        const positions = [
+          model.getPositionAt(model.getOffsetAt({ lineNumber: selection.startLineNumber, column: selection.startColumn })),
+          model.getPositionAt(model.getOffsetAt({ lineNumber: selection.endLineNumber, column: selection.endColumn })),
+        ];
+        selectionHandles.forEach(({ element }, index) => {
+          const visible = editor.getScrolledVisiblePosition(positions[index]);
+          if (!visible) {
+            element.hidden = true;
+            return;
+          }
+          element.hidden = false;
+          element.style.left = `${editorBounds.left - hostBounds.left + visible.left}px`;
+          element.style.top = `${editorBounds.top - hostBounds.top + visible.top + visible.height}px`;
+        });
+      };
       const setSelectionFromOffsets = (startOffset: number, endOffset: number) => {
         const model = editor.getModel();
         if (!model) return;
@@ -742,6 +780,38 @@ export default function OneCompilerEditor() {
           endColumn: end.column,
         });
       };
+      const handlePointerDown = (side: "start" | "end", event: globalThis.PointerEvent) => {
+        const model = editor.getModel();
+        const selection = editor.getSelection();
+        if (!model || !selection || selection.isEmpty()) return;
+        event.preventDefault();
+        event.stopPropagation();
+        draggedHandle = side;
+        fixedHandleOffset = model.getOffsetAt(side === "start"
+          ? { lineNumber: selection.endLineNumber, column: selection.endColumn }
+          : { lineNumber: selection.startLineNumber, column: selection.startColumn });
+        selectionHandles.find((handle) => handle.side === side)?.element.setPointerCapture(event.pointerId);
+      };
+      const handlePointerMove = (event: globalThis.PointerEvent) => {
+        if (!draggedHandle || fixedHandleOffset === null) return;
+        const offset = getSelectionOffset(event.clientX, event.clientY);
+        if (offset === null) return;
+        setSelectionFromOffsets(offset, fixedHandleOffset);
+      };
+      const handlePointerEnd = () => {
+        draggedHandle = null;
+        fixedHandleOffset = null;
+      };
+      selectionHandles.forEach(({ side, element }) => {
+        element.addEventListener("pointerdown", (event) => handlePointerDown(side, event));
+        element.addEventListener("pointermove", handlePointerMove);
+        element.addEventListener("pointerup", handlePointerEnd);
+        element.addEventListener("pointercancel", handlePointerEnd);
+      });
+      const selectionListener = editor.onDidChangeCursorSelection(updateSelectionHandles);
+      const scrollListener = editor.onDidScrollChange(updateSelectionHandles);
+      const layoutListener = editor.onDidLayoutChange(updateSelectionHandles);
+      window.addEventListener("resize", updateSelectionHandles);
       const handleTouchStart = (event: TouchEvent) => {
         if (event.touches.length !== 1) {
           clearHoldTimer();
@@ -821,6 +891,11 @@ export default function OneCompilerEditor() {
       editorDomNode.addEventListener("-monaco-gesturecontextmenu", preventSelectionContextMenu, true);
       editor.onDidDispose(() => {
         clearHoldTimer();
+        selectionListener.dispose();
+        scrollListener.dispose();
+        layoutListener.dispose();
+        window.removeEventListener("resize", updateSelectionHandles);
+        selectionHandles.forEach(({ element }) => element.remove());
         editorDomNode.removeEventListener("touchstart", handleTouchStart, true);
         editorDomNode.removeEventListener("touchmove", handleTouchMove, true);
         editorDomNode.removeEventListener("touchend", handleTouchEnd, true);
