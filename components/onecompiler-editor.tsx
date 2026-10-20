@@ -722,7 +722,11 @@ export default function OneCompilerEditor() {
         return null;
       };
       const getSelectionOffset = (clientX: number, clientY: number) => {
-        const position = editor.getTargetAtClientPoint(clientX, clientY)?.position;
+        const bounds = editorDomNode.getBoundingClientRect();
+        const position = editor.getTargetAtClientPoint(
+          Math.max(bounds.left, Math.min(clientX, bounds.right - 1)),
+          Math.max(bounds.top, Math.min(clientY, bounds.bottom - 1)),
+        )?.position;
         const model = editor.getModel();
         return position && model ? model.getOffsetAt(position) : null;
       };
@@ -786,6 +790,7 @@ export default function OneCompilerEditor() {
         }
 
         event.preventDefault();
+        event.stopPropagation();
         const currentOffset = getSelectionOffset(touch.clientX, touch.clientY);
         if (currentOffset === null) return;
         const anchorOffset = currentOffset >= touchSelection.startOffset
@@ -803,26 +808,24 @@ export default function OneCompilerEditor() {
         clearHoldTimer();
         touchSelection = null;
       };
-      const stopSelectionGesture = (event: Event) => {
+      const preventSelectionContextMenu = (event: Event) => {
         if (!touchSelection?.active) return;
         event.preventDefault();
         event.stopImmediatePropagation();
       };
 
-      editorDomNode.addEventListener("touchstart", handleTouchStart, { passive: true });
-      editorDomNode.addEventListener("touchmove", handleTouchMove, { passive: false });
-      editorDomNode.addEventListener("touchend", handleTouchEnd, { passive: false });
-      editorDomNode.addEventListener("touchcancel", handleTouchCancel);
-      editorDomNode.addEventListener("-monaco-gesturechange", stopSelectionGesture, true);
-      editorDomNode.addEventListener("-monaco-gesturecontextmenu", stopSelectionGesture, true);
+      editorDomNode.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
+      editorDomNode.addEventListener("touchmove", handleTouchMove, { capture: true, passive: false });
+      editorDomNode.addEventListener("touchend", handleTouchEnd, { capture: true, passive: false });
+      editorDomNode.addEventListener("touchcancel", handleTouchCancel, true);
+      editorDomNode.addEventListener("-monaco-gesturecontextmenu", preventSelectionContextMenu, true);
       editor.onDidDispose(() => {
         clearHoldTimer();
-        editorDomNode.removeEventListener("touchstart", handleTouchStart);
-        editorDomNode.removeEventListener("touchmove", handleTouchMove);
-        editorDomNode.removeEventListener("touchend", handleTouchEnd);
-        editorDomNode.removeEventListener("touchcancel", handleTouchCancel);
-        editorDomNode.removeEventListener("-monaco-gesturechange", stopSelectionGesture, true);
-        editorDomNode.removeEventListener("-monaco-gesturecontextmenu", stopSelectionGesture, true);
+        editorDomNode.removeEventListener("touchstart", handleTouchStart, true);
+        editorDomNode.removeEventListener("touchmove", handleTouchMove, true);
+        editorDomNode.removeEventListener("touchend", handleTouchEnd, true);
+        editorDomNode.removeEventListener("touchcancel", handleTouchCancel, true);
+        editorDomNode.removeEventListener("-monaco-gesturecontextmenu", preventSelectionContextMenu, true);
       });
     }
     editor.onDidChangeModelContent((event) => {
