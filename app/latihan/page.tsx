@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { ArrowDown, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X } from "lucide-react";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
 import { MotionButton, StaggerGroup, StaggerItem } from "@/components/ui/motion";
@@ -438,10 +439,10 @@ export default function LatihanPage() {
     {error && <p className="status status-error" role="alert">{error}</p>}
     {loading && <div className="empty-state" role="status">Sedang memuat soal...</div>}
     {!loading && (questions.length ? result ? <>
-      <section className="quiz-result-panel" aria-labelledby="quiz-result-title">
+      <motion.section className="quiz-result-panel" aria-labelledby="quiz-result-title" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
         <div className="quiz-result-icon" aria-hidden="true"><Trophy size={24} /></div>
         <span className="quiz-kicker">LATIHAN SELESAI</span>
-        <h2 id="quiz-result-title">Selamat, Anda telah Selesai!</h2>
+        <h2 id="quiz-result-title">Selamat, Anda telah menyelesaikannya! Mainnya Hebat.</h2>
         <p className="quiz-result-caption">{categoryName ? `Ringkasan hasil latihan ${categoryName}` : "Berikut ringkasan hasil latihan Anda."}</p>
         <div className="quiz-result-stats">
           <div className="is-correct"><span className="quiz-result-stat-icon"><Check size={17} /></span><strong>{correctCount}</strong><span>Benar</span></div>
@@ -449,11 +450,14 @@ export default function LatihanPage() {
           <div className="is-unanswered"><span className="quiz-result-stat-icon"><Clock3 size={17} /></span><strong>{skippedCount}</strong><span>Tidak dijawab</span></div>
         </div>
         <div className="quiz-result-actions">
-          <MotionButton type="button" className="button button-primary" onClick={() => void repeatQuiz()} disabled={busy}>
+          <MotionButton type="button" className="button button-primary" onClick={() => router.push(`/latihan/hasil/${result.id}`)}>
+            Selanjutnya <ArrowRight size={16} />
+          </MotionButton>
+          <MotionButton type="button" className="button button-secondary" onClick={() => void repeatQuiz()} disabled={busy}>
             <RotateCcw size={16} /> {busy ? "Memulai ulang..." : "Ulangi Soal"}
           </MotionButton>
         </div>
-      </section>
+      </motion.section>
     </> : <div className="quiz-session">
       <section className="quiz-progress-panel" aria-label="Navigasi quiz">
         <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>

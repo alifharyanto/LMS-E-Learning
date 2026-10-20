@@ -22,7 +22,7 @@ export async function GET(request: Request) {
       queryRows<RowDataPacket[]>("SELECT id, title, description, category, file_path, file_size, file_type, youtube_embed_url, created_at FROM materials ORDER BY created_at DESC"),
       queryRows<RowDataPacket[]>("SELECT id, name, email, phone, subject, message, status, created_at FROM contacts ORDER BY created_at DESC"),
       queryRows<RowDataPacket[]>("SELECT c.id, c.name, c.time_limit_minutes, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id GROUP BY c.id, c.name, c.time_limit_minutes ORDER BY c.name"),
-      queryRows<RowDataPacket[]>("SELECT id, question FROM quiz_questions ORDER BY created_at DESC"),
+      queryRows<RowDataPacket[]>("SELECT id, question, answer_index, explanation FROM quiz_questions ORDER BY created_at DESC"),
       queryRows<RowDataPacket[]>("SELECT r.id, r.user_id, r.category_id, c.name AS category_name, r.score, r.total, r.percent, r.correct_answers, r.unanswered_answers, r.created_at, a.started_at, a.submitted_at, a.status, u.username, u.full_name FROM quiz_results r LEFT JOIN quiz_categories c ON c.id = r.category_id LEFT JOIN users u ON u.id = r.user_id LEFT JOIN quiz_attempts a ON a.result_id = r.id AND a.status IN ('submitted', 'expired') ORDER BY COALESCE(a.submitted_at, r.created_at) DESC, r.id DESC"),
       queryRows<RowDataPacket[]>("SELECT COUNT(*) AS total, COALESCE(SUM(created_at >= CURDATE()), 0) AS joined_today FROM users WHERE role = 'student'"),
       queryRows<RowDataPacket[]>("SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS date, COUNT(*) AS total FROM users WHERE role = 'student' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(created_at) ORDER BY DATE(created_at)"),

@@ -2937,6 +2937,8 @@ body { color: var(--ink); background-color: var(--paper); }
 .quiz-review-option.is-correction { border-color: var(--correct); color: #164b34; background: #eaf7ef; }
 .quiz-review-option.is-correction .quiz-review-option-letter { border-color: var(--correct); color: white; background: var(--correct); }
 .quiz-review-feedback { display: grid; margin: 12px 0 0; padding: 12px 14px; gap: 5px; border-left: 3px solid var(--wrong); color: var(--text-muted); background: #fff3f1; font-size: 11px; line-height: 1.5; }
+.quiz-review-feedback.is-correct { border-left-color: var(--correct); background: var(--accent-soft); }
+.quiz-review-feedback.is-incorrect { border-left-color: var(--wrong); background: #fff3f1; }
 .quiz-review-feedback strong { color: #164b34; }
 .quiz-review-feedback.is-unanswered { border-left-color: var(--text-muted); background: var(--bg); }
 .quiz-review-footer { display: flex; margin-top: 22px; justify-content: center; }

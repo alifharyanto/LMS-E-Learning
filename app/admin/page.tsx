@@ -9,7 +9,7 @@ import { apiRequest } from "@/lib/browser-api";
 
 type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
 type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; youtube_embed_url: string | null };
-type Question = { id: number; question: string };
+type Question = { id: number; question: string; answer_index: number; explanation: string | null };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
 type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; is_correct: boolean };
 type Result = {
@@ -89,6 +89,7 @@ export default function AdminPage() {
   const [userId, setUserId] = useState<number | null>(null);
   const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingExplanationId, setEditingExplanationId] = useState<number | null>(null);
   const [materialFormat, setMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
   const [editingMaterialFormat, setEditingMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
   const [busy, setBusy] = useState(false);
@@ -169,6 +170,7 @@ export default function AdminPage() {
       setNotice("Perubahan berhasil disimpan.");
       form.reset();
       if (endpoint.startsWith("/api/v1/admin/categories/")) setEditingCategoryId(null);
+      if (endpoint.startsWith("/api/v1/admin/questions/")) setEditingExplanationId(null);
       if (endpoint === "/api/v1/admin/materials") setMaterialFormat("application/pdf");
       if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); }
       await refresh();
@@ -358,7 +360,7 @@ export default function AdminPage() {
               <label className="field"><span>Pertanyaan</span><textarea className="textarea" name="question" required /></label>
               <div className="form-grid">{(["a", "b", "c", "d"] as const).map((letter) => <label className="field" key={letter}><span>Opsi {letter.toUpperCase()}</span><input className="input" name={`option_${letter}`} required /></label>)}</div>
               <label className="field"><span>Jawaban benar</span><select className="select" name="answer_index"><option value="0">Jawaban A</option><option value="1">Jawaban B</option><option value="2">Jawaban C</option><option value="3">Jawaban D</option></select></label>
-              <label className="field"><span>Penjelasan</span><textarea className="textarea" name="explanation" /></label>
+              <label className="field"><span>Alasan jawaban yang benar</span><textarea className="textarea" name="explanation" maxLength={10000} /></label>
               <MotionButton className="button button-primary" disabled={busy}>Simpan Soal</MotionButton>
             </form>
           </section>
@@ -381,7 +383,16 @@ export default function AdminPage() {
 
         <section className="surface surface-pad admin-section" id="questions" hidden={section !== "soal"}>
           <div className="admin-section-heading"><div><span className="list-meta">BANK KONTEN</span><h2 className="surface-title">Soal quiz</h2></div><span className="admin-count">{data.questions.length} soal</span></div>
-          {data.questions.length ? data.questions.map((question) => <div className="list-row" key={question.id}><span className="list-title">{question.question}</span><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/questions/${question.id}`)}><Trash2 size={14} />Hapus</MotionButton></div>) : <p className="empty-state">Belum ada soal quiz.</p>}
+          {data.questions.length ? data.questions.map((question) => <article className="admin-question-item" key={question.id}>
+            <div className="list-row"><span className="list-title">{question.question}</span><div className="admin-row-actions">
+              <MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingExplanationId === question.id} onClick={() => setEditingExplanationId(editingExplanationId === question.id ? null : question.id)}><Pencil size={14} />{question.explanation ? "Edit alasan" : "Tambah alasan"}</MotionButton>
+              <MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/questions/${question.id}`)}><Trash2 size={14} />Hapus</MotionButton>
+            </div></div>
+            {editingExplanationId === question.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/questions/${question.id}`, "PATCH")}>
+              <label className="field"><span>Alasan jawaban {String.fromCharCode(65 + question.answer_index)} yang benar</span><textarea className="textarea" name="explanation" defaultValue={question.explanation ?? ""} maxLength={10000} /></label>
+              <div className="admin-row-actions"><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan alasan</MotionButton><MotionButton type="button" className="button button-secondary button-small" onClick={() => setEditingExplanationId(null)}>Batal</MotionButton></div>
+            </form>}
+          </article>) : <p className="empty-state">Belum ada soal quiz.</p>}
         </section>
 
         <section className="surface surface-pad admin-section" id="results" hidden={section !== "hasilbelajar"}>
