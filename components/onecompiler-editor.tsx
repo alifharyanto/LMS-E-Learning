@@ -716,8 +716,7 @@ export default function OneCompilerEditor() {
         const handle = document.createElement("button");
         handle.type = "button";
         handle.className = `oc-selection-handle is-${side}`;
-        handle.setAttribute("aria-label", side === "start" ? "Adjust selection start" : "Adjust selection end");
-        handle.innerHTML = '<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 1a9 9 0 0 0-9 9c0 6 9 21 9 21s9-15 9-21a9 9 0 0 0-9-9Zm0 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z"/></svg>';
+        handle.setAttribute("aria-label", side === "start" ? "Atur awal pilihan teks" : "Atur akhir pilihan teks");
         handle.hidden = true;
         selectionHandleHost.appendChild(handle);
         return { side, element: handle };
