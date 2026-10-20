@@ -4,12 +4,9 @@ import Editor, { type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { useRouter } from "next/navigation";
 import JSZip from "jszip";
-import ReactMarkdown from "react-markdown";
 import {
   ArrowLeft,
-  Bot,
   Bug,
-  Check,
   CheckCircle2,
   ChevronRight,
   ClipboardPaste,
@@ -23,7 +20,6 @@ import {
   Folder,
   FolderOpen,
   FolderPlus,
-  History,
   Menu,
   Monitor,
   Plus,
@@ -31,21 +27,18 @@ import {
   Save,
   Search,
   Settings,
-  Sparkles,
   Terminal as TerminalIcon,
   X,
-  Send,
 } from "lucide-react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent } from "react";
 import { apiRequest } from "@/lib/browser-api";
 
-type ConsoleTab = "Terminal" | "AI Agent" | "Preview";
-type ToolPanel = "files" | "history" | "settings";
+type ConsoleTab = "Terminal" | "Preview";
+type ToolPanel = "files" | "settings";
 type RunState = "ready" | "running" | "success" | "error";
 type WorkspaceSaveState = "loading" | "saving" | "saved" | "local" | "error";
 type WorkspaceFile = { name: string; content: string };
 type ExplorerNode = { kind: "folder"; name: string; path: string; children: ExplorerNode[] } | { kind: "file"; name: string; path: string };
-type AiMessage = { id: number; role: "user" | "assistant"; markdown: string; changes?: { name: string; content: string }[]; applied?: boolean };
 type EditorUser = { id: number; username: string; full_name: string; profile_photo: string };
 
 const starterCode = `import java.util.*;
@@ -206,7 +199,6 @@ export default function OneCompilerEditor() {
   const [consoleOpen, setConsoleOpen] = useState(true);
   const [workspaceReady, setWorkspaceReady] = useState(false);
   const [workspaceSaveState, setWorkspaceSaveState] = useState<WorkspaceSaveState>("loading");
-  const [history, setHistory] = useState<string[]>([]);
   const [toolPanel, setToolPanel] = useState<ToolPanel | null>(null);
   const [openMenu, setOpenMenu] = useState<"language" | "more" | "new-file" | null>(null);
   const [newFileName, setNewFileName] = useState("");
@@ -219,12 +211,6 @@ export default function OneCompilerEditor() {
   const [previewSize, setPreviewSize] = useState<"desktop" | "iphone" | "pixel">("desktop");
   const [account, setAccount] = useState<EditorUser | null>(null);
   const [cloudSyncEnabled, setCloudSyncEnabled] = useState(false);
-  const [aiModels, setAiModels] = useState<{ id: string; label: string; provider: string }[]>([]);
-  const [aiModelId, setAiModelId] = useState("");
-  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
-  const [aiInput, setAiInput] = useState("");
-  const [aiSending, setAiSending] = useState(false);
-  const [aiError, setAiError] = useState("");
   const [terminalCommand, setTerminalCommand] = useState("");
   const [pythonRunnerOpen, setPythonRunnerOpen] = useState(false);
   const [pythonRuntimeReady, setPythonRuntimeReady] = useState(false);
@@ -236,9 +222,7 @@ export default function OneCompilerEditor() {
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const pythonRunnerRef = useRef<HTMLIFrameElement | null>(null);
   const mainPanesRef = useRef<HTMLDivElement | null>(null);
-  const aiMessagesEndRef = useRef<HTMLDivElement | null>(null);
   const phpRuntimeRef = useRef<unknown>(null);
-  const nextAiMessageId = useRef(1);
   const lastRunKey = useRef("");
   const nextPythonRunId = useRef(1);
   const monacoTypesReady = useRef(false);
@@ -391,22 +375,6 @@ export default function OneCompilerEditor() {
     }, 2200);
     return () => window.clearTimeout(timeout);
   }, [files, folders, workspaceReady, cloudSyncEnabled]);
-
-  useEffect(() => {
-    let active = true;
-    apiRequest<{ models: { id: string; label: string; provider: string }[] }>("/api/v1/code-workspace/assistant")
-      .then(({ models }) => {
-        if (!active) return;
-        setAiModels(models);
-        setAiModelId((current) => current || models[0]?.id || "");
-      })
-      .catch((error: Error) => { if (active) setAiError(error.message); });
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    aiMessagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, [aiMessages, aiSending]);
 
   const runPreview = useEffectEvent(() => { void runCode(); });
 
@@ -652,53 +620,6 @@ export default function OneCompilerEditor() {
       setFileOpen(false);
       setSource("");
     }
-  }
-
-  async function sendAiMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const prompt = aiInput.trim();
-    if (!prompt || !aiModelId) {
-      setAiError(account ? "Model AI belum tersedia." : "Masuk untuk menggunakan AI Agent.");
-      return;
-    }
-    const priorHistory = aiMessages.map((message) => ({ role: message.role, content: message.markdown }));
-    const userMessage: AiMessage = { id: nextAiMessageId.current++, role: "user", markdown: prompt };
-    setAiMessages((current) => [...current, userMessage]);
-    setAiInput("");
-    setAiSending(true);
-    setAiError("");
-    try {
-      let remainingContext = 48 * 1024;
-      const contextFiles = files.flatMap((file) => {
-        if (remainingContext <= 0) return [];
-        const content = file.content.slice(0, remainingContext);
-        remainingContext -= new TextEncoder().encode(content).byteLength;
-        return [{ name: file.name, content }];
-      });
-      const result = await apiRequest<{ markdown: string; changes: { name: string; content: string }[] }>("/api/v1/code-workspace/assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeFileName: activeName, prompt, modelId: aiModelId, files: contextFiles, history: priorHistory }),
-      });
-      setAiMessages((current) => [...current, { id: nextAiMessageId.current++, role: "assistant", markdown: result.markdown, changes: result.changes }]);
-    } catch (error) {
-      setAiError(error instanceof Error ? error.message : "AI Agent belum dapat merespons.");
-    } finally {
-      setAiSending(false);
-    }
-  }
-
-  function applyAiChanges(message: AiMessage) {
-    const existingNames = new Set(files.map((file) => file.name));
-    const validChanges = (message.changes ?? []).filter((change) => existingNames.has(change.name) && new TextEncoder().encode(change.content).byteLength <= 1024 * 1024);
-    if (!validChanges.length) {
-      setAiError("Tidak ada perubahan file yang valid untuk diterapkan.");
-      return;
-    }
-    const replacements = new Map(validChanges.map((change) => [change.name, change.content]));
-    setFiles((current) => current.map((file) => replacements.has(file.name) ? { ...file, content: replacements.get(file.name) ?? file.content } : file));
-    if (replacements.has(activeName)) setSource(replacements.get(activeName) ?? source);
-    setAiMessages((current) => current.map((item) => item.id === message.id ? { ...item, applied: true } : item));
   }
 
   function downloadActiveFile() {
@@ -981,15 +902,6 @@ export default function OneCompilerEditor() {
   function toggleToolPanel(panel: ToolPanel) {
     setMobileSidebarOpen(false);
     setOpenMenu(null);
-    if (panel === "history") {
-      const key = `code-editor-${activeName}`;
-      try {
-        const persisted = localStorage.getItem(key);
-        if (persisted !== null) setHistory((items) => [persisted, ...items.filter((item) => item !== persisted)].slice(0, 5));
-      } catch {
-        announce("Riwayat penyimpanan tidak dapat dibuka");
-      }
-    }
     setToolPanel((current) => current === panel ? null : panel);
   }
 
@@ -1039,8 +951,7 @@ export default function OneCompilerEditor() {
       <nav className="oc-mobile-switch" aria-label="Workspace panels">
         <button type="button" className={mobilePane === "editor" ? "is-active" : ""} aria-pressed={mobilePane === "editor"} onClick={() => setMobilePane("editor")}><Code2 size={16} /><span>Editor</span></button>
         <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "Preview"} onClick={() => selectOutputTab("Preview")}><Monitor size={16} /><span>Preview</span></button>
-        <button type="button" className={mobilePane === "output" && tab === "Terminal" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "Terminal"} onClick={() => selectOutputTab("Terminal")}><TerminalIcon size={16} /><span>Terminal</span></button>
-        <button type="button" className={mobilePane === "output" && tab === "AI Agent" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "AI Agent"} onClick={() => selectOutputTab("AI Agent")}><Bot size={16} /><span>AI Agent</span></button>
+        <button type="button" className={mobilePane === "output" && tab === "Terminal" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "Terminal"} onClick={() => selectOutputTab("Terminal")}><TerminalIcon size={16} /><span>Output</span></button>
       </nav>
 
       <aside className={`oc-sidebar${mobileSidebarOpen ? " is-mobile-expanded" : ""}`} aria-label="Editor tools">
@@ -1050,21 +961,19 @@ export default function OneCompilerEditor() {
           <button type="button" aria-label="Search" title="Find in code" onClick={openFindWidget}><Search /><span>Search</span></button>
         </div>
         <div className="oc-sidebar-bottom">
-          <button className={toolPanel === "history" ? "is-active" : ""} type="button" aria-label="History" aria-expanded={toolPanel === "history"} onClick={() => toggleToolPanel("history")}><History /><span>History</span></button>
           <button className={toolPanel === "settings" ? "is-active" : ""} type="button" aria-label="Settings" aria-expanded={toolPanel === "settings"} onClick={() => toggleToolPanel("settings")}><Settings /><span>Settings</span></button>
         </div>
       </aside>
       {mobileSidebarOpen && <button className="oc-sidebar-backdrop" type="button" aria-label="Tutup overlay sidebar" onClick={() => setMobileSidebarOpen(false)} />}
 
-      {toolPanel && <section className={`oc-tool-panel${toolPanel === "files" ? " is-files-panel" : toolPanel === "history" ? " is-history-panel" : " is-settings-panel"}`} aria-label={`${toolPanel} panel`}>
-        <div className="oc-tool-panel-heading"><strong>{toolPanel === "files" ? "Files" : toolPanel === "history" ? "History" : "Settings"}</strong><button type="button" aria-label="Close panel" onClick={() => setToolPanel(null)}><X size={17} /></button></div>
+      {toolPanel && <section className={`oc-tool-panel${toolPanel === "files" ? " is-files-panel" : " is-settings-panel"}`} aria-label={`${toolPanel} panel`}>
+        <div className="oc-tool-panel-heading"><strong>{toolPanel === "files" ? "Files" : "Settings"}</strong><button type="button" aria-label="Close panel" onClick={() => setToolPanel(null)}><X size={17} /></button></div>
         {toolPanel === "files" && <div className="oc-tool-panel-body">
           <div className="oc-explorer-actions"><button type="button" aria-label="New file" title="New file" onClick={() => { setOpenMenu("new-file"); setNewFolderOpen(false); setNewFileError(""); }}><Plus size={16} /></button><button type="button" aria-label="New folder" title="New folder" onClick={() => { setNewFolderOpen((open) => !open); setOpenMenu(null); setNewFileError(""); }}><FolderPlus size={16} /></button></div>
           {openMenu === "new-file" && <form className="oc-create-form" onSubmit={(event) => { event.preventDefault(); addFile(); }}><label htmlFor="oc-new-file-name">New file {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-file-name" autoFocus value={newFileName} onChange={(event) => { setNewFileName(event.target.value); setNewFileError(""); }} placeholder="src/index.php" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
           {newFolderOpen && <form className="oc-create-form" onSubmit={createFolder}><label htmlFor="oc-new-folder-name">New folder {activeFolder ? `in ${activeFolder}` : ""}</label><input id="oc-new-folder-name" autoFocus value={newFolderName} onChange={(event) => { setNewFolderName(event.target.value); setNewFileError(""); }} placeholder="src" /><small>Press Enter to create</small>{newFileError && <small role="alert">{newFileError}</small>}</form>}
           <div className="oc-file-list">{files.length ? renderExplorerNodes(explorerTree) : <p className="oc-panel-empty">Workspace masih kosong. Buat file pertama untuk mulai menulis kode.</p>}</div>
         </div>}
-        {toolPanel === "history" && <div className="oc-tool-panel-body"><p className="oc-panel-caption">Saved versions of {activeName}</p>{history.length ? history.map((version, index) => <button className="oc-history-item" key={`${index}-${version.slice(0, 12)}`} type="button" onClick={() => { updateSource(version); setToolPanel(null); announce("Version restored"); }}><span>Version {history.length - index}</span><code>{version.split("\n")[0] || "Empty file"}</code></button>) : <p className="oc-panel-empty">No saved versions yet</p>}</div>}
         {toolPanel === "settings" && <div className="oc-tool-panel-body"><div className="oc-setting-row"><span>Font size</span><div><button type="button" aria-label="Decrease font size" onClick={() => setFontSize((size) => Math.max(12, size - 1))}>-</button><span>{fontSize}px</span><button type="button" aria-label="Increase font size" onClick={() => setFontSize((size) => Math.min(28, size + 1))}>+</button></div></div><button className="oc-setting-toggle" type="button" aria-pressed={wordWrap} onClick={() => setWordWrap((value) => !value)}><span>Word wrap</span><span>{wordWrap ? "On" : "Off"}</span></button><button className="oc-setting-toggle" type="button" onClick={() => setDark((value) => !value)}><span>Dark theme</span><span>{dark ? "On" : "Off"}</span></button></div>}
       </section>}
 
@@ -1129,17 +1038,6 @@ export default function OneCompilerEditor() {
             {["tsx", "jsx"].includes(activeName.split(".").pop()?.toLowerCase() ?? "") ? <div className={`oc-device-frame is-${previewSize}`}><div className="oc-device-screen"><div className="oc-device-status"><span>9:41</span><span>● ▮ ▰</span></div><div className="oc-device-camera" /><iframe key={previewRunVersion} ref={previewRef} title={`${previewSize} React Native Web preview`} sandbox="allow-scripts" srcDoc={previewDocument} /><div className="oc-device-home" /></div></div> : <iframe key={previewRunVersion} ref={previewRef} onLoad={() => setRunState((state) => state === "running" ? "success" : state)} className="oc-preview-frame" title="Live code preview" sandbox="allow-scripts" srcDoc={previewDocument} />}
           </div> : <div className="oc-empty-state"><Code2 className="oc-empty-icon" size={42} strokeWidth={1.7} /><strong>Preview</strong><span>Run project untuk melihat hasil</span></div>)}
           {tab === "Terminal" && <div className="oc-terminal-view"><pre className="oc-output">{output || "Terminal siap. Ketik help untuk melihat perintah yang tersedia."}</pre><form className="oc-terminal-command" onSubmit={submitTerminalCommand}><span>›</span><input value={terminalCommand} onChange={(event) => setTerminalCommand(event.target.value)} aria-label="Terminal command" placeholder="help" autoComplete="off" spellCheck={false} /><button type="submit" aria-label="Run terminal command"><Play size={15} /></button></form></div>}
-          {tab === "AI Agent" && <section className="oc-ai-view" aria-label="AI Agent">
-            <header className="oc-ai-heading"><span><Bot size={18} /></span><div><strong>AI Agent</strong><small>{account ? "Konteks file project aktif" : "Masuk untuk menggunakan AI"}</small></div><select aria-label="AI model" value={aiModelId} onChange={(event) => setAiModelId(event.target.value)} disabled={!aiModels.length || aiSending}><option value="">{aiModels.length ? "Pilih model" : "Belum tersedia"}</option>{aiModels.map((model) => <option value={model.id} key={model.id}>{model.label}</option>)}</select></header>
-            <div className="oc-ai-messages" aria-live="polite">
-              {!aiMessages.length && <div className="oc-ai-welcome"><Sparkles size={24} /><strong>Halo, aku siap bantu.</strong><span>Tanya tentang kode atau minta bantuan mencari bug.</span></div>}
-              {aiMessages.map((message) => <article className={`oc-ai-message is-${message.role}`} key={message.id}><span>{message.role === "user" ? "Kamu" : "AI Agent"}</span><div><ReactMarkdown>{message.markdown}</ReactMarkdown></div>{!!message.changes?.length && <div className="oc-ai-changes"><p>{message.changes.length} proposed file change{message.changes.length === 1 ? "" : "s"}</p>{message.changes.map((change) => <code key={`${message.id}-${change.name}`}>{change.name}</code>)}<button type="button" disabled={message.applied} onClick={() => applyAiChanges(message)}>{message.applied ? <Check size={14} /> : <CheckCircle2 size={14} />}{message.applied ? "Applied" : "Apply changes"}</button></div>}</article>)}
-              {aiSending && <div className="oc-ai-thinking">Menganalisis file project...</div>}
-              <div ref={aiMessagesEndRef} />
-            </div>
-            {aiError && <p className="oc-ai-error" role="alert">{aiError}</p>}
-            <form className="oc-ai-composer" onSubmit={sendAiMessage}><textarea value={aiInput} onChange={(event) => setAiInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder={`Tanya tentang ${activeName}...`} rows={3} maxLength={2000} /><button type="submit" aria-label="Send message" disabled={aiSending || !aiInput.trim()}><Send size={16} />{aiSending ? "Mengirim" : "Kirim"}</button></form>
-          </section>}
         </div>
       </section>
       </div>

@@ -263,7 +263,6 @@ body, :root[data-theme="dark"] body {
 .oc-upgrade { display: inline-flex; height: 30px; padding: 0 12px; align-items: center; gap: 6px; border: 1px solid #a7f3d0; border-radius: 11px; color: #047857; background: #f0fdf4; font-size: 13px; font-weight: 600; }
 .oc-run-group { position: absolute; left: 50%; gap: 10px; transform: translateX(-50%); }
 .oc-action { display: inline-flex; height: 38px; padding: 0 13px; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 700; }
-.oc-ai-button { border-color: var(--oc-border); color: var(--oc-accent); background: var(--surface-secondary); }
 .oc-language-button { min-width: 101px; justify-content: space-between; border-color: var(--oc-border); color: var(--oc-text); background: var(--surface); }
 .oc-run-button { min-width: 94px; background: var(--teal); }
 .oc-icon-button, .oc-outline-button { display: inline-flex; height: 40px; padding: 0; align-items: center; justify-content: center; border: 0; color: inherit; background: transparent; }
@@ -351,16 +350,13 @@ body, :root[data-theme="dark"] body {
 .oc-tool-panel-heading button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; color: var(--oc-muted); background: transparent; }
 .oc-tool-panel-body { display: grid; padding: 10px; align-content: start; gap: 8px; overflow: auto; }
 .oc-file-list { display: grid; gap: 3px; }
-.oc-file-list button, .oc-history-item, .oc-setting-toggle { display: flex; min-height: 36px; padding: 0 8px; align-items: center; gap: 9px; border: 0; border-radius: 5px; color: inherit; background: transparent; text-align: left; }
+.oc-file-list button, .oc-setting-toggle { display: flex; min-height: 36px; padding: 0 8px; align-items: center; gap: 9px; border: 0; border-radius: 5px; color: inherit; background: transparent; text-align: left; }
 .oc-file-list button span:last-child, .oc-setting-toggle span:last-child { margin-left: auto; color: var(--oc-muted); font-size: 12px; }
-.oc-file-list button.is-selected, .oc-file-list button:hover, .oc-history-item:hover, .oc-setting-toggle:hover { background: #f3f4f6; }
-.is-dark .oc-file-list button.is-selected, .is-dark .oc-file-list button:hover, .is-dark .oc-history-item:hover, .is-dark .oc-setting-toggle:hover { background: #38383a; }
+.oc-file-list button.is-selected, .oc-file-list button:hover, .oc-setting-toggle:hover { background: #f3f4f6; }
+.is-dark .oc-file-list button.is-selected, .is-dark .oc-file-list button:hover, .is-dark .oc-setting-toggle:hover { background: #38383a; }
 .oc-file-list .oc-java-mark { font-size: 14px; }
 .oc-panel-command { display: flex; min-height: 36px; padding: 0 8px; align-items: center; gap: 8px; border: 1px solid var(--oc-border); border-radius: 6px; color: inherit; background: transparent; text-align: left; }
 .oc-panel-caption, .oc-panel-empty { margin: 2px 0 5px; color: var(--oc-muted); font-size: 12px; }
-.oc-history-item { display: grid; justify-items: start; gap: 4px; }
-.oc-history-item span { color: var(--oc-muted); font-size: 11px; }
-.oc-history-item code { max-width: 100%; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .oc-setting-row { display: flex; min-height: 38px; align-items: center; justify-content: space-between; font-size: 13px; }
 .oc-setting-row > div { display: flex; align-items: center; gap: 8px; }
 .oc-setting-row button { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid var(--oc-border); border-radius: 5px; color: inherit; background: transparent; }
@@ -411,14 +407,6 @@ body, :root[data-theme="dark"] body {
   .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle { width: 100%; font-size: 12px; font-weight: 600; }
   .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
   .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-toggle > span:last-child { min-width: 42px; margin-left: auto; padding: 5px 9px; border-radius: 999px; color: var(--oc-accent); background: var(--surface); font-size: 11px; font-weight: 600; text-align: center; }
-  .onecompiler-app .oc-tool-panel.is-history-panel { border-radius: 12px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-tool-panel-body { padding: 10px; gap: 8px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-caption { margin: 0; padding: 2px 2px 4px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item { width: 100%; min-height: 54px; padding: 9px 10px; gap: 5px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > span { color: var(--oc-text); font-size: 12px; font-weight: 600; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > code { color: var(--oc-muted); font-size: 11px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-empty { margin: 0; padding: 14px 12px; border: 1px dashed var(--oc-border); border-radius: 9px; line-height: 1.5; text-align: center; }
 }
 .onecompiler-app .oc-navbar .oc-upgrade,
 .onecompiler-app .oc-account-group .oc-login-button,
@@ -431,7 +419,6 @@ body, :root[data-theme="dark"] body {
 .onecompiler-app .oc-console-pane.is-hidden { display: none; }
 .onecompiler-app .oc-run-button:hover { background: #3d5d4e; }
 .onecompiler-app.is-dark .oc-run-button { color: #14251e; background: #83cfb4; }
-.onecompiler-app.is-dark .oc-ai-button { color: #b3dfcf; background: #203a35; }
 .onecompiler-app.is-dark .oc-language-button { color: var(--oc-text); background: #1a3235; }
 .onecompiler-app .oc-run-status { gap: 6px; }
 .onecompiler-app .oc-run-status.is-success svg { color: var(--success); }
@@ -2005,7 +1992,6 @@ body { color: var(--ink); background-color: var(--paper); }
 .onecompiler-app .oc-brand-mark { width: 42px; height: 36px; }
 .onecompiler-app .oc-run-group { position: relative; left: auto; margin-left: auto; gap: 7px; transform: none; }
 .onecompiler-app .oc-run-button { min-width: 76px; }
-.onecompiler-app .oc-ai-button { color: var(--oc-text); }
 .onecompiler-app .oc-more-button { order: -3; width: 31px; }
 .onecompiler-app .oc-account-button { display: inline-flex; max-width: 130px; height: 34px; padding: 0 7px; align-items: center; gap: 6px; overflow: hidden; border: 1px solid var(--oc-border); border-radius: 6px; color: var(--oc-text); background: transparent; font-size: 11px; }
 .onecompiler-app .oc-account-button img { width: 21px; height: 21px; border-radius: 50%; object-fit: cover; }
@@ -2052,34 +2038,6 @@ body { color: var(--ink); background-color: var(--paper); }
 .onecompiler-app .oc-terminal-command { display: flex; min-height: 39px; padding: 0 10px; align-items: center; gap: 8px; border-top: 1px solid var(--oc-border); color: var(--oc-accent); }
 .onecompiler-app .oc-terminal-command input { width: 100%; min-width: 0; border: 0; outline: 0; color: var(--oc-text); background: transparent; font: 12px Consolas, monospace; }
 .onecompiler-app .oc-terminal-command button { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border: 0; border-radius: 4px; color: var(--oc-accent); background: transparent; }
-.onecompiler-app .oc-ai-view { display: flex; width: 100%; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; }
-.onecompiler-app .oc-ai-heading { display: flex; min-height: 54px; padding: 8px 12px; align-items: center; gap: 9px; border-bottom: 1px solid var(--oc-border); }
-.onecompiler-app .oc-ai-heading > span { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 1px solid var(--oc-border); border-radius: 50%; color: var(--oc-accent); background: var(--surface-secondary); }
-.onecompiler-app .oc-ai-heading > div { display: grid; min-width: 0; gap: 3px; }
-.onecompiler-app .oc-ai-heading strong { font-size: 12px; }
-.onecompiler-app .oc-ai-heading small { overflow: hidden; color: var(--oc-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.onecompiler-app .oc-ai-heading select { max-width: 48%; min-width: 0; height: 29px; margin-left: auto; border: 1px solid var(--oc-border); border-radius: 4px; color: var(--oc-text); background: var(--surface); font-size: 10px; }
-.onecompiler-app .oc-ai-messages { display: flex; min-height: 0; padding: 12px; flex: 1; flex-direction: column; gap: 12px; overflow: auto; }
-.onecompiler-app .oc-ai-welcome { display: grid; max-width: 290px; margin: auto; justify-items: center; gap: 10px; color: var(--oc-muted); text-align: center; }
-.onecompiler-app .oc-ai-welcome svg { color: var(--oc-accent); }
-.onecompiler-app .oc-ai-welcome strong { color: var(--oc-text); font-size: 14px; }
-.onecompiler-app .oc-ai-welcome span { font-size: 11px; line-height: 1.5; }
-.onecompiler-app .oc-ai-message { max-width: 94%; padding: 10px 11px; border: 1px solid var(--oc-border); border-radius: 6px; color: var(--oc-text); background: var(--surface-secondary); }
-.onecompiler-app .oc-ai-message.is-user { align-self: flex-end; border-color: color-mix(in srgb, var(--oc-accent) 45%, var(--oc-border)); background: color-mix(in srgb, var(--oc-accent) 10%, var(--surface)); }
-.onecompiler-app .oc-ai-message > span { color: var(--oc-muted); font-size: 9px; font-weight: 700; }
-.onecompiler-app .oc-ai-message > div:first-of-type { margin-top: 6px; font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
-.onecompiler-app .oc-ai-message p { margin: 5px 0; }
-.onecompiler-app .oc-ai-message pre { max-width: 100%; padding: 8px; overflow: auto; background: var(--surface); }
-.onecompiler-app .oc-ai-changes { display: grid; margin-top: 9px; gap: 5px; }
-.onecompiler-app .oc-ai-changes p { margin: 0; color: var(--oc-muted); font-size: 10px; }
-.onecompiler-app .oc-ai-changes code { overflow-wrap: anywhere; font-size: 10px; }
-.onecompiler-app .oc-ai-changes button, .onecompiler-app .oc-ai-composer button { display: inline-flex; width: fit-content; min-height: 31px; padding: 0 10px; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--oc-border); border-radius: 5px; color: var(--oc-text); background: var(--surface-secondary); font-size: 10px; }
-.onecompiler-app .oc-ai-changes button:disabled, .onecompiler-app .oc-ai-composer button:disabled { opacity: .55; }
-.onecompiler-app .oc-ai-thinking, .onecompiler-app .oc-ai-error { margin: 0 12px; color: var(--oc-muted); font-size: 11px; }
-.onecompiler-app .oc-ai-error { color: #d6655e; }
-.onecompiler-app .oc-ai-composer { display: grid; padding: 10px; gap: 8px; border-top: 1px solid var(--oc-border); }
-.onecompiler-app .oc-ai-composer textarea { width: 100%; min-height: 64px; padding: 9px; resize: vertical; border: 1px solid var(--oc-border); border-radius: 5px; outline: 0; color: var(--oc-text); background: var(--surface); font: inherit; font-size: 11px; }
-.onecompiler-app .oc-ai-composer button { justify-self: end; color: var(--primary-foreground); background: var(--teal); }
 .onecompiler-app .oc-python-runner { position: absolute; width: 0; height: 0; border: 0; visibility: hidden; pointer-events: none; }
 .onecompiler-app .oc-explorer-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .onecompiler-app .oc-explorer-actions button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 4px; color: var(--oc-muted); background: transparent; }
@@ -2124,13 +2082,12 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app .oc-brand-mark { width: 36px; height: 32px; }
   .onecompiler-app .oc-run-group { gap: 4px; }
   .onecompiler-app .oc-run-button { min-width: 56px; height: 33px; padding: 0 8px; }
-  .onecompiler-app .oc-ai-button { width: 35px; height: 33px; padding: 0; font-size: 0; }
   .onecompiler-app .oc-more-button { width: 27px; }
   .onecompiler-app .oc-account-button { width: 31px; height: 31px; padding: 0; justify-content: center; }
   .onecompiler-app .oc-account-button span { display: none; }
   .onecompiler-app .oc-autosave { font-size: 0; }
   .onecompiler-app .oc-more-menu { right: 0; left: auto; width: min(220px, calc(100vw - 16px)); }
-  .onecompiler-app .oc-mobile-switch { display: grid; grid-row: 2; grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; gap: 4px; padding: 4px 8px; border-bottom: 1px solid var(--oc-border); background: var(--surface-secondary); }
+  .onecompiler-app .oc-mobile-switch { display: grid; grid-row: 2; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: center; gap: 4px; padding: 4px 8px; border-bottom: 1px solid var(--oc-border); background: var(--surface-secondary); }
   .onecompiler-app .oc-mobile-switch button { display: flex; min-width: 0; min-height: 40px; align-items: center; justify-content: center; gap: 6px; border: 1px solid transparent; border-radius: 8px; color: var(--oc-muted); background: transparent; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .onecompiler-app .oc-mobile-switch button.is-active { border-color: var(--oc-border); color: var(--oc-accent); background: var(--surface); box-shadow: 0 1px 3px rgb(16 35 30 / 8%); }
   .onecompiler-app .oc-sidebar { display: none; }
@@ -2202,14 +2159,6 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app .oc-device-picker button { min-height: 24px; padding: 0 6px; }
   .onecompiler-app .oc-tool-panel { top: calc(50px + 38px + 7px); right: 8px; bottom: 34px; left: 8px; width: auto; max-height: none; }
   .onecompiler-app .oc-tool-panel.is-files-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-tool-panel-body { padding: 10px; gap: 8px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-caption { margin: 0; padding: 2px 2px 4px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item { width: 100%; min-height: 54px; padding: 9px 10px; gap: 5px; border: 1px solid var(--oc-border); border-radius: 9px; background: var(--surface-secondary); }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item:hover { border-color: var(--oc-accent); background: var(--surface-secondary); }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > span { color: var(--oc-text); font-size: 12px; font-weight: 600; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-history-item > code { color: var(--oc-muted); font-size: 11px; }
-  .onecompiler-app .oc-tool-panel.is-history-panel .oc-panel-empty { margin: 0; padding: 14px 12px; border: 1px dashed var(--oc-border); border-radius: 9px; line-height: 1.5; text-align: center; }
   .onecompiler-app .oc-tool-panel.is-settings-panel { top: calc(50px + 38px + 7px); right: auto; bottom: auto; left: 8px; width: min(320px, calc(100vw - 32px)); max-height: min(62vh, 480px); border-radius: 12px; }
   .onecompiler-app .oc-tool-panel.is-settings-panel .oc-tool-panel-body { padding: 12px; gap: 9px; }
   .onecompiler-app .oc-tool-panel.is-settings-panel .oc-setting-row,
@@ -2226,10 +2175,6 @@ body { color: var(--ink); background-color: var(--paper); }
   .onecompiler-app .oc-status-left { gap: 8px; }
   .onecompiler-app .oc-workspace-status { display: none !important; }
   .onecompiler-app .oc-status-left > span:first-child { font-size: 9px; }
-  .onecompiler-app .oc-ai-heading { min-height: 48px; padding: 6px 9px; }
-  .onecompiler-app .oc-ai-messages { padding: 9px; }
-  .onecompiler-app .oc-ai-composer { padding: 8px; }
-  .onecompiler-app .oc-ai-message { max-width: 98%; }
 }
 @media (max-width: 390px) {
   .onecompiler-app .oc-brand > span:last-child { display: none; }
