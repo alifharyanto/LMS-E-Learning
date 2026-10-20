@@ -1,3 +1,4 @@
+import type { RowDataPacket } from "mysql2/promise";
 import { getRequestUser } from "@/lib/auth";
 import { transaction } from "@/lib/db";
 import { json, readJsonLimited } from "@/lib/http";
@@ -35,9 +36,19 @@ export async function DELETE(request: Request) {
 
     const deleted = await transaction(async (connection) => {
       let deletedCount = 0;
+      const resetCategories = new Map<string, { userId: number; categoryId: number }>();
       for (let offset = 0; offset < resultIds.length; offset += DELETE_BATCH_SIZE) {
         const batch = resultIds.slice(offset, offset + DELETE_BATCH_SIZE);
         const placeholders = batch.map(() => "?").join(", ");
+        const [resultRows] = await connection.execute<(RowDataPacket & { user_id: number; category_id: number })[]>(
+          `SELECT user_id, category_id FROM quiz_results WHERE id IN (${placeholders})`,
+          batch,
+        );
+        for (const result of resultRows) {
+          const userId = Number(result.user_id);
+          const categoryId = Number(result.category_id);
+          resetCategories.set(`${userId}:${categoryId}`, { userId, categoryId });
+        }
         await connection.execute(`DELETE FROM quiz_question_attempts WHERE result_id IN (${placeholders})`, batch);
         await connection.execute(`DELETE FROM quiz_attempts WHERE result_id IN (${placeholders})`, batch);
         const [deleteResult] = await connection.execute(
@@ -45,6 +56,13 @@ export async function DELETE(request: Request) {
           batch,
         );
         deletedCount += (deleteResult as { affectedRows: number }).affectedRows;
+      }
+
+      for (const { userId, categoryId } of resetCategories.values()) {
+        await connection.execute(
+          "DELETE FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status <> 'in_progress' AND (result_id IS NULL OR NOT EXISTS (SELECT 1 FROM quiz_results r WHERE r.id = quiz_attempts.result_id))",
+          [userId, categoryId],
+        );
       }
       return deletedCount;
     });

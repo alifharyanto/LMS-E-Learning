@@ -1,0 +1,14 @@
+[
+    {
+        "nama-lengkap": "TEST SISWA 1",
+        "email": "test1@courseup.com",
+        "password": "12345678",
+        "role": "student"
+    },
+    {
+        "nama-lengkap": "TEST ADMIN 1",
+        "email": "admin1@courseup.com",
+        "password": "12345678",
+        "role": "admin"
+    }
+]
