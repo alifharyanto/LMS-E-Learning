@@ -697,6 +697,134 @@ export default function OneCompilerEditor() {
 
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    const editorDomNode = editor.getDomNode();
+    if (editorDomNode) {
+      let touchSelection: {
+        identifier: number;
+        startX: number;
+        startY: number;
+        startOffset: number;
+        selectionStartOffset: number;
+        selectionEndOffset: number;
+        active: boolean;
+      } | null = null;
+      let holdTimer: number | null = null;
+
+      const clearHoldTimer = () => {
+        if (holdTimer !== null) window.clearTimeout(holdTimer);
+        holdTimer = null;
+      };
+      const getTouchById = (touches: TouchList, identifier: number) => {
+        for (let index = 0; index < touches.length; index += 1) {
+          const touch = touches.item(index);
+          if (touch?.identifier === identifier) return touch;
+        }
+        return null;
+      };
+      const getSelectionOffset = (clientX: number, clientY: number) => {
+        const position = editor.getTargetAtClientPoint(clientX, clientY)?.position;
+        const model = editor.getModel();
+        return position && model ? model.getOffsetAt(position) : null;
+      };
+      const setSelectionFromOffsets = (startOffset: number, endOffset: number) => {
+        const model = editor.getModel();
+        if (!model) return;
+        const start = model.getPositionAt(Math.min(startOffset, endOffset));
+        const end = model.getPositionAt(Math.max(startOffset, endOffset));
+        editor.setSelection({
+          startLineNumber: start.lineNumber,
+          startColumn: start.column,
+          endLineNumber: end.lineNumber,
+          endColumn: end.column,
+        });
+      };
+      const handleTouchStart = (event: TouchEvent) => {
+        if (event.touches.length !== 1) {
+          clearHoldTimer();
+          touchSelection = null;
+          return;
+        }
+        const touch = event.changedTouches.item(0);
+        const model = editor.getModel();
+        const position = touch && editor.getTargetAtClientPoint(touch.clientX, touch.clientY)?.position;
+        if (!touch || !position || !model) return;
+
+        clearHoldTimer();
+        const startOffset = model.getOffsetAt(position);
+        const word = model.getWordAtPosition(position);
+        const selectionStartOffset = word
+          ? model.getOffsetAt({ lineNumber: position.lineNumber, column: word.startColumn })
+          : startOffset;
+        const selectionEndOffset = word
+          ? model.getOffsetAt({ lineNumber: position.lineNumber, column: word.endColumn })
+          : Math.min(model.getValueLength(), startOffset + 1);
+        touchSelection = {
+          identifier: touch.identifier,
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startOffset,
+          selectionStartOffset,
+          selectionEndOffset,
+          active: false,
+        };
+        holdTimer = window.setTimeout(() => {
+          if (!touchSelection || touchSelection.identifier !== touch.identifier) return;
+          touchSelection.active = true;
+          setSelectionFromOffsets(touchSelection.selectionStartOffset, touchSelection.selectionEndOffset);
+        }, 450);
+      };
+      const handleTouchMove = (event: TouchEvent) => {
+        if (!touchSelection) return;
+        const touch = getTouchById(event.touches, touchSelection.identifier);
+        if (!touch) return;
+        if (!touchSelection.active) {
+          if (Math.hypot(touch.clientX - touchSelection.startX, touch.clientY - touchSelection.startY) > 10) {
+            clearHoldTimer();
+            touchSelection = null;
+          }
+          return;
+        }
+
+        event.preventDefault();
+        const currentOffset = getSelectionOffset(touch.clientX, touch.clientY);
+        if (currentOffset === null) return;
+        const anchorOffset = currentOffset >= touchSelection.startOffset
+          ? touchSelection.selectionStartOffset
+          : touchSelection.selectionEndOffset;
+        setSelectionFromOffsets(anchorOffset, currentOffset);
+      };
+      const handleTouchEnd = (event: TouchEvent) => {
+        if (!touchSelection || !getTouchById(event.changedTouches, touchSelection.identifier)) return;
+        if (touchSelection.active) event.preventDefault();
+        clearHoldTimer();
+        window.setTimeout(() => { touchSelection = null; }, 0);
+      };
+      const handleTouchCancel = () => {
+        clearHoldTimer();
+        touchSelection = null;
+      };
+      const stopSelectionGesture = (event: Event) => {
+        if (!touchSelection?.active) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      };
+
+      editorDomNode.addEventListener("touchstart", handleTouchStart, { passive: true });
+      editorDomNode.addEventListener("touchmove", handleTouchMove, { passive: false });
+      editorDomNode.addEventListener("touchend", handleTouchEnd, { passive: false });
+      editorDomNode.addEventListener("touchcancel", handleTouchCancel);
+      editorDomNode.addEventListener("-monaco-gesturechange", stopSelectionGesture, true);
+      editorDomNode.addEventListener("-monaco-gesturecontextmenu", stopSelectionGesture, true);
+      editor.onDidDispose(() => {
+        clearHoldTimer();
+        editorDomNode.removeEventListener("touchstart", handleTouchStart);
+        editorDomNode.removeEventListener("touchmove", handleTouchMove);
+        editorDomNode.removeEventListener("touchend", handleTouchEnd);
+        editorDomNode.removeEventListener("touchcancel", handleTouchCancel);
+        editorDomNode.removeEventListener("-monaco-gesturechange", stopSelectionGesture, true);
+        editorDomNode.removeEventListener("-monaco-gesturecontextmenu", stopSelectionGesture, true);
+      });
+    }
     editor.onDidChangeModelContent((event) => {
       if (event.isUndoing || event.isRedoing || event.changes.length !== 1 || event.changes[0].text !== ">") return;
       const extension = activeName.split(".").pop()?.toLowerCase();
