@@ -1,5 +1,5 @@
 import { getRequestUser } from "@/lib/auth";
-import { execute } from "@/lib/db";
+import { transaction } from "@/lib/db";
 import { json, parseId } from "@/lib/http";
 
 export const runtime = "nodejs";
@@ -21,7 +21,11 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     const resultId = parseId(id);
     if (!resultId) return json({ error: "Hasil quiz tidak ditemukan." }, 404);
 
-    await execute("DELETE FROM quiz_results WHERE id = ?", [resultId]);
+    await transaction(async (connection) => {
+      await connection.execute("DELETE FROM quiz_question_attempts WHERE result_id = ?", [resultId]);
+      await connection.execute("DELETE FROM quiz_attempts WHERE result_id = ?", [resultId]);
+      await connection.execute("DELETE FROM quiz_results WHERE id = ?", [resultId]);
+    });
     return json({ success: true });
   } catch (error) {
     console.error("Admin result delete error:", error);

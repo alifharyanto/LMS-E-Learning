@@ -15,21 +15,23 @@ type ResultQuestion = { id: number; question: string; option_a: string; option_b
 type Result = {
   id: number;
   user_id: number;
+  category_id: number;
+  category_name: string | null;
   username: string | null;
   full_name: string | null;
   score: number;
   total: number;
   correct_answers: number;
   incorrect_answers: number;
+  unanswered_answers: number;
   percent: number;
   status: string;
   started_at: string | null;
   submitted_at: string | null;
   created_at: string;
   duration_seconds: number;
-  questions: ResultQuestion[];
 };
-type ResultDetail = { result: { id: number; user_id: number; username: string | null; full_name: string | null; score: number; total: number; correct_answers: number; incorrect_answers: number; percent: number; started_at: string | null; submitted_at: string | null; duration_seconds: number }; questions: ResultQuestion[] };
+type ResultDetail = { result: { id: number; user_id: number; username: string | null; full_name: string | null; score: number; total: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number; percent: number; started_at: string | null; submitted_at: string | null; duration_seconds: number }; questions: ResultQuestion[] };
 type RegistrationDay = { date: string; total: number };
 type ActiveStudent = { id: number; username: string; full_name: string; last_active: string };
 type AdminOverview = { total_students: number; joined_today: number; active_today: number; registrations: RegistrationDay[]; active_students: ActiveStudent[]; quiz_30d: { attempts: number; average_percent: number; passed: number } };
@@ -52,6 +54,15 @@ function formatDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
   return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+}
+
+function resultDate(result: Pick<Result, "submitted_at" | "created_at">) {
+  const date = new Date(result.submitted_at || result.created_at);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function formatTime(value: string | null) {
@@ -89,9 +100,14 @@ export default function AdminPage() {
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [resultDetail, setResultDetail] = useState<ResultDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [resultPeriod, setResultPeriod] = useState("");
+  const [resultExactDate, setResultExactDate] = useState("");
+  const [selectedResultIds, setSelectedResultIds] = useState<Set<number>>(new Set());
+  const [deletingSelectedResults, setDeletingSelectedResults] = useState(false);
 
   async function refresh() {
     setData(await apiRequest<AdminData>("/api/v1/admin"));
+    setSelectedResultIds(new Set());
   }
 
   async function openResultDetail(result: Result) {
@@ -174,6 +190,30 @@ export default function AdminPage() {
     }
   }
 
+  async function deleteSelectedResults() {
+    const resultIds = Array.from(selectedResultIds);
+    if (!resultIds.length) return;
+    const confirmed = window.confirm(`Yakin ingin menghapus ${resultIds.length} hasil belajar beserta detail jawabannya? Data yang dihapus tidak dapat dipulihkan.`);
+    if (!confirmed) return;
+
+    setDeletingSelectedResults(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiRequest<{ deleted: number }>("/api/v1/admin/results/bulk", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: resultIds }),
+      });
+      await refresh();
+      setNotice(`${response.deleted} hasil belajar berhasil dihapus.`);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Hasil belajar yang dipilih gagal dihapus.");
+    } finally {
+      setDeletingSelectedResults(false);
+    }
+  }
+
   async function markRead(id: number) {
     try {
       await apiRequest(`/api/v1/admin/contacts/${id}`, { method: "PATCH" });
@@ -231,6 +271,24 @@ export default function AdminPage() {
   const unreadContacts = data.contacts.filter((contact) => contact.status === "unread").length;
   const registrationDays = data.overview.registrations;
   const maxRegistrations = Math.max(1, ...registrationDays.map((day) => Number(day.total)));
+  const datedResults = data.results.flatMap((result) => {
+    const date = resultDate(result);
+    return date ? [{ result, date }] : [];
+  });
+  const filteredResults = datedResults
+    .filter(({ date }) => (!resultPeriod || dateKey(date).startsWith(resultPeriod))
+      && (!resultExactDate || dateKey(date) === resultExactDate))
+    .map(({ result }) => result);
+  const allVisibleResultsSelected = filteredResults.length > 0 && filteredResults.every((result) => selectedResultIds.has(result.id));
+  const resultsByDate = new Map<string, Result[]>();
+  for (const result of filteredResults) {
+    const date = resultDate(result);
+    if (!date) continue;
+    const key = dateKey(date);
+    const dateResults = resultsByDate.get(key) ?? [];
+    dateResults.push(result);
+    resultsByDate.set(key, dateResults);
+  }
 
   return <div className="admin-page">
     <header className="page-heading admin-heading">
@@ -327,23 +385,60 @@ export default function AdminPage() {
         </section>
 
         <section className="surface surface-pad admin-section" id="results" hidden={section !== "hasilbelajar"}>
-          <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar</h2></div><span className="admin-count">{data.results.length} hasil</span></div>
-          {data.results.length ? data.results.map((result) => <article className="result-card" key={result.id}>
-            <div className="result-card-main">
-              <div className="result-card-user"><strong>{result.full_name || result.username || "Pengguna"}</strong><span>@{result.username || "pengguna"}</span></div>
-              <div className="result-card-metric"><span>Skor</span><strong>{result.score}/{result.total}</strong></div>
-              <div className="result-card-metric"><span>Benar</span><strong className="result-correct">{result.correct_answers}</strong></div>
-              <div className="result-card-metric"><span>Salah</span><strong className="result-incorrect">{result.incorrect_answers}</strong></div>
-              <div className="result-card-metric"><span>Persentase</span><strong>{result.percent}%</strong></div>
-              <div className="result-card-time"><span><Clock3 size={13} /> {formatDuration(result.duration_seconds)}</span><span><CalendarDays size={13} /> {formatDate(result.submitted_at || result.created_at)}</span></div>
-            </div>
-            <div className="result-card-actions">
-              <span className="result-time-label"><Clock3 size={13} /> Mulai: {formatTime(result.started_at)}</span>
-              <span className="result-time-label"><CheckCircle2 size={13} /> Selesai: {formatTime(result.submitted_at)}</span>
-              <MotionButton type="button" className="button button-secondary button-small" onClick={() => void openResultDetail(result)}><Eye size={14} />Detail jawaban</MotionButton>
-              <MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/results/${result.id}`)}><Trash2 size={14} />Hapus</MotionButton>
-            </div>
-          </article>) : <p className="empty-state">Belum ada hasil quiz.</p>}
+          <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar</h2></div><span className="admin-count">{filteredResults.length}{filteredResults.length !== data.results.length ? ` / ${data.results.length}` : ""} hasil</span></div>
+          <div className="result-date-filters" aria-label="Filter tanggal hasil belajar">
+            <label><span>Pilih bulan &amp; tahun</span><input className="input" aria-label="Pilih bulan dan tahun hasil belajar" type="month" value={resultPeriod} onChange={(event) => { setResultPeriod(event.target.value); setResultExactDate(""); setSelectedResultIds(new Set()); }} /></label>
+            <label><span>Atau pilih tanggal</span><input className="input" aria-label="Pilih tanggal hasil belajar" type="date" value={resultExactDate} onChange={(event) => { setResultExactDate(event.target.value); if (event.target.value) setResultPeriod(event.target.value.slice(0, 7)); setSelectedResultIds(new Set()); }} /></label>
+            <MotionButton type="button" className="button button-secondary button-small result-filter-reset" disabled={!resultPeriod && !resultExactDate} onClick={() => { setResultPeriod(""); setResultExactDate(""); setSelectedResultIds(new Set()); }}>Tampilkan semua</MotionButton>
+          </div>
+          {filteredResults.length > 0 && <div className="result-selection-toolbar">
+            <label className="result-select-all"><input type="checkbox" checked={allVisibleResultsSelected} onChange={(event) => {
+              const visibleIds = filteredResults.map((result) => result.id);
+              setSelectedResultIds((current) => {
+                const next = new Set(current);
+                if (event.target.checked) visibleIds.forEach((id) => next.add(id));
+                else visibleIds.forEach((id) => next.delete(id));
+                return next;
+              });
+            }} /><span>Pilih semua hasil yang tampil</span></label>
+            {selectedResultIds.size > 0 && <div className="result-selection-actions">
+              <span>{selectedResultIds.size} dipilih</span>
+              <MotionButton type="button" className="button button-danger button-small" onClick={() => void deleteSelectedResults()} disabled={deletingSelectedResults}>
+                <Trash2 size={14} />{deletingSelectedResults ? "Menghapus..." : `Hapus yang dipilih (${selectedResultIds.size})`}
+              </MotionButton>
+            </div>}
+          </div>}
+          {filteredResults.length ? Array.from(resultsByDate, ([key, results]) => {
+            const [year, month, day] = key.split("-").map(Number);
+            const heading = new Date(year, month - 1, day).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+            return <div className="result-month-group" key={key}>
+            <h3 className="result-month-heading"><CalendarDays size={15} />{heading}<span>{results.length} hasil</span></h3>
+            {results.map((result) => <article className="result-card" key={result.id}>
+              <label className="result-card-select"><input type="checkbox" checked={selectedResultIds.has(result.id)} onChange={(event) => setSelectedResultIds((current) => {
+                const next = new Set(current);
+                if (event.target.checked) next.add(result.id);
+                else next.delete(result.id);
+                return next;
+              })} /><span>Pilih hasil ini</span></label>
+              <div className="result-card-category"><span>Kategori quiz</span><strong>{result.category_name || "Kategori tidak tersedia"}</strong></div>
+              <div className="result-card-main">
+                <div className="result-card-user"><strong>{result.full_name || result.username || "Pengguna"}</strong><span>@{result.username || "pengguna"}</span></div>
+                <div className="result-card-metric"><span>Skor</span><strong>{result.score}/{result.total}</strong></div>
+                <div className="result-card-metric"><span>Benar</span><strong className="result-correct">{result.correct_answers}</strong></div>
+                <div className="result-card-metric"><span>Salah</span><strong className="result-incorrect">{result.incorrect_answers}</strong></div>
+                <div className="result-card-metric"><span>Kosong</span><strong>{result.unanswered_answers}</strong></div>
+                <div className="result-card-metric"><span>Persentase</span><strong>{result.percent}%</strong></div>
+                <div className="result-card-time"><span><Clock3 size={13} /> {formatDuration(result.duration_seconds)}</span><span><CalendarDays size={13} /> {formatDate(result.submitted_at || result.created_at)}</span></div>
+              </div>
+              <div className="result-card-actions">
+                <span className="result-time-label"><Clock3 size={13} /> Mulai: {formatTime(result.started_at)}</span>
+                <span className="result-time-label"><CheckCircle2 size={13} /> Selesai: {formatTime(result.submitted_at)}</span>
+                <MotionButton type="button" className="button button-secondary button-small" onClick={() => void openResultDetail(result)}><Eye size={14} />Detail jawaban</MotionButton>
+                <MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/results/${result.id}`)}><Trash2 size={14} />Hapus</MotionButton>
+              </div>
+            </article>)}
+          </div>;
+          }) : <p className="empty-state">{data.results.length ? "Tidak ada hasil pada tanggal yang dipilih." : "Belum ada hasil quiz."}</p>}
         </section>
 
         {selectedResult && <div className="result-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedResult(null); }}>
@@ -357,14 +452,15 @@ export default function AdminPage() {
                 <div><span>Skor</span><strong>{resultDetail.result.score}/{resultDetail.result.total}</strong></div>
                 <div><span>Benar</span><strong className="result-correct">{resultDetail.result.correct_answers}</strong></div>
                 <div><span>Salah</span><strong className="result-incorrect">{resultDetail.result.incorrect_answers}</strong></div>
+                <div><span>Tidak dijawab</span><strong>{resultDetail.result.unanswered_answers}</strong></div>
                 <div><span>Durasi</span><strong>{formatDuration(resultDetail.result.duration_seconds)}</strong></div>
               </div>
               <div className="result-detail-list">
                 {resultDetail.questions.map((question, index) => {
                   const selectedLabel = question.selected_index === null ? "Belum dijawab" : `Jawaban ${String.fromCharCode(65 + question.selected_index)}`;
                   const correctLabel = `Jawaban benar ${String.fromCharCode(65 + question.answer_index)}`;
-                  return <article className={`result-question ${question.is_correct ? "is-correct" : "is-incorrect"}`} key={question.id}>
-                    <div className="result-question-head"><span>Soal {index + 1}</span><strong>{question.is_correct ? "Benar" : "Salah"}</strong></div>
+                  return <article className={`result-question ${question.selected_index === null ? "is-unanswered" : question.is_correct ? "is-correct" : "is-incorrect"}`} key={question.id}>
+                    <div className="result-question-head"><span>Soal {index + 1}</span><strong>{question.selected_index === null ? "Tidak dijawab" : question.is_correct ? "Benar" : "Salah"}</strong></div>
                     <h3>{question.question}</h3>
                     <div className="result-options">
                       {([question.option_a, question.option_b, question.option_c, question.option_d] as const).map((option, optionIndex) => {

@@ -34,6 +34,9 @@ type QuizResult = {
   score: number;
   total: number;
   percent: number;
+  correct_answers: number;
+  incorrect_answers: number;
+  unanswered_answers: number;
   explanations: { id: number; text: string | null; answer_index: number }[];
 };
 
@@ -69,8 +72,8 @@ function parseAnswers(value: unknown, snapshot: SnapshotQuestion[]) {
 }
 
 async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promise<QuizResult | null> {
-  const rows = await queryRows<(RowDataPacket & { id: number; score: number; total: number; percent: number })[]>(
-    "SELECT id, score, total, percent FROM quiz_results WHERE id = ? LIMIT 1",
+  const rows = await queryRows<(RowDataPacket & { id: number; score: number; total: number; percent: number; unanswered_answers: number })[]>(
+    "SELECT id, score, total, percent, unanswered_answers FROM quiz_results WHERE id = ? LIMIT 1",
     [resultId],
   );
   const row = rows[0];
@@ -79,6 +82,9 @@ async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promis
     score: Number(row.score),
     total: Number(row.total),
     percent: Number(row.percent),
+    correct_answers: Number(row.score),
+    incorrect_answers: Math.max(0, Number(row.total) - Number(row.score) - Number(row.unanswered_answers)),
+    unanswered_answers: Number(row.unanswered_answers),
     explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
   } : null;
 }
@@ -86,37 +92,63 @@ async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promis
 async function completeAttempt(attemptId: number, userId: number, submittedAnswers: unknown) {
   return transaction(async (connection) => {
     const [attemptRows] = await connection.execute<AttemptRow[]>(
-      "SELECT *, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1 FOR UPDATE",
+      "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1 FOR UPDATE",
       [attemptId, userId],
     );
     const attempt = attemptRows[0];
     if (!attempt) return { error: "Attempt quiz tidak ditemukan.", status: 404 as const };
 
     const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
-    if (attempt.status !== "in_progress") {
-      return { result: attempt.result_id ? await getResult(attempt.result_id, snapshot) : null, status: 200 as const };
+    if (!snapshot.length) {
+      return { error: "Data soal attempt tidak tersedia.", status: 422 as const };
     }
 
-    const [clockRows] = await connection.execute<(RowDataPacket & { expired: number })[]>(
-      "SELECT expires_at <= UTC_TIMESTAMP() AS expired FROM quiz_attempts WHERE id = ?",
-      [attemptId],
-    );
-    const expired = Boolean(clockRows[0]?.expired);
-    const savedAnswers = parseJson<Record<string, number>>(attempt.answers, {});
-    const incomingAnswers = expired ? {} : parseAnswers(submittedAnswers, snapshot);
-    if (!expired && incomingAnswers === null) return { error: "Jawaban quiz tidak valid.", status: 422 as const };
-    const answers = incomingAnswers === null ? savedAnswers : { ...savedAnswers, ...incomingAnswers };
+    const savedAnswers = parseAnswers(parseJson<unknown>(attempt.answers, {}), snapshot);
+    if (!savedAnswers) return { error: "Data jawaban attempt tidak valid.", status: 422 as const };
+
+    if (attempt.status !== "in_progress" && attempt.result_id) {
+      const existingResult = await getResult(attempt.result_id, snapshot);
+      if (existingResult) return { result: existingResult, status: 200 as const };
+    }
+
+    let answers = savedAnswers;
+    let expired = attempt.status === "expired";
+    if (attempt.status === "in_progress") {
+      const [clockRows] = await connection.execute<(RowDataPacket & { expired: number })[]>(
+        "SELECT expires_at <= UTC_TIMESTAMP() AS expired FROM quiz_attempts WHERE id = ?",
+        [attemptId],
+      );
+      expired = Boolean(clockRows[0]?.expired);
+      const incomingAnswers = expired ? null : parseAnswers(submittedAnswers, snapshot);
+      if (!expired && incomingAnswers === null) return { error: "Jawaban quiz tidak valid.", status: 422 as const };
+      answers = incomingAnswers === null ? savedAnswers : { ...savedAnswers, ...incomingAnswers };
+    }
+
     const score = snapshot.reduce((total, question) => total + (answers[String(question.id)] === question.answer_index ? 1 : 0), 0);
     const total = snapshot.length;
     const percent = total ? Math.floor((score / total) * 100) : 0;
     const [result] = await connection.execute(
-      "INSERT INTO quiz_results (user_id, category_id, score, total, percent, correct_answers) VALUES (?, ?, ?, ?, ?, ?)",
-      [userId, attempt.category_id, score, total, percent, score],
+      "INSERT INTO quiz_results (user_id, category_id, score, total, percent, correct_answers, unanswered_answers, questions_snapshot, answers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [userId, attempt.category_id, score, total, percent, score, total - Object.keys(answers).length, JSON.stringify(snapshot), JSON.stringify(answers)],
     );
     const resultId = Number((result as { insertId: number }).insertId);
+    const answeredQuestions = snapshot.filter((question) => answers[String(question.id)] !== undefined);
+    if (answeredQuestions.length) {
+      const placeholders = answeredQuestions.map(() => "(?, ?, ?, ?)").join(", ");
+      const values = answeredQuestions.flatMap((question) => [
+        resultId,
+        question.id,
+        answers[String(question.id)],
+        answers[String(question.id)] === question.answer_index ? 1 : 0,
+      ]);
+      await connection.execute(
+        `INSERT INTO quiz_question_attempts (result_id, question_id, selected_index, is_correct) VALUES ${placeholders}`,
+        values,
+      );
+    }
     await connection.execute(
-      "UPDATE quiz_attempts SET answers = ?, status = ?, submitted_at = UTC_TIMESTAMP(), result_id = ? WHERE id = ? AND status = 'in_progress'",
-      [JSON.stringify(answers), expired ? "expired" : "submitted", resultId, attemptId],
+      "UPDATE quiz_attempts SET answers = ?, status = ?, submitted_at = COALESCE(submitted_at, UTC_TIMESTAMP()), result_id = ? WHERE id = ?",
+      [JSON.stringify(answers), expired || attempt.status === "expired" ? "expired" : "submitted", resultId, attemptId],
     );
 
     return {
@@ -125,6 +157,9 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
         score,
         total,
         percent,
+        correct_answers: score,
+        incorrect_answers: total - score - (total - Object.keys(answers).length),
+        unanswered_answers: total - Object.keys(answers).length,
         explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
       } satisfies QuizResult,
       status: 200 as const,
@@ -134,14 +169,14 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
 
 async function findAttempt(userId: number, categoryId: number) {
   let rows = await queryRows<AttemptRow[]>(
-    "SELECT *, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status = 'in_progress' ORDER BY id DESC LIMIT 1",
+    "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status = 'in_progress' ORDER BY id DESC LIMIT 1",
     [userId, categoryId],
   );
   let attempt = rows[0];
   if (attempt?.status === "in_progress" && Number(attempt.remaining_seconds) <= 0) {
     await completeAttempt(Number(attempt.id), userId, {});
     const refreshed = await queryRows<AttemptRow[]>(
-      "SELECT *, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
+      "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
       [attempt.id, userId],
     );
     attempt = refreshed[0];
@@ -153,7 +188,7 @@ async function findAttempt(userId: number, categoryId: number) {
     );
     if (Number(categories[0]?.time_limit_minutes) > 0) {
       rows = await queryRows<AttemptRow[]>(
-        "SELECT *, 0 AS remaining_seconds FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status <> 'in_progress' ORDER BY id DESC LIMIT 1",
+        "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, 0 AS remaining_seconds FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status <> 'in_progress' ORDER BY id DESC LIMIT 1",
         [userId, categoryId],
       );
       attempt = rows[0];
@@ -162,12 +197,20 @@ async function findAttempt(userId: number, categoryId: number) {
   if (!attempt) return null;
 
   const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
-  const result = attempt.result_id ? await getResult(Number(attempt.result_id), snapshot) : null;
+  const answers = parseJson<Record<string, number>>(attempt.answers, {});
+  let result: QuizResult | null = null;
+  if (attempt.status !== "in_progress") {
+    const completed = await completeAttempt(Number(attempt.id), userId, {});
+    if ("error" in completed) throw new Error(completed.error);
+    result = completed.result;
+  } else if (attempt.result_id) {
+    result = await getResult(Number(attempt.result_id), snapshot);
+  }
   return {
     id: Number(attempt.id),
     status: attempt.status,
     questions: publicQuestions(snapshot),
-    answers: parseJson<Record<string, number>>(attempt.answers, {}),
+    answers,
     remaining_seconds: Number(attempt.remaining_seconds),
     result,
   };
@@ -175,7 +218,7 @@ async function findAttempt(userId: number, categoryId: number) {
 
 async function findAttemptById(attemptId: number, userId: number) {
   const rows = await queryRows<AttemptRow[]>(
-    "SELECT *, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
+    "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
     [attemptId, userId],
   );
   const attempt = rows[0];
@@ -268,7 +311,7 @@ export async function POST(request: Request) {
 
     if (body.action === "save") {
       const attempts = await queryRows<AttemptRow[]>(
-        "SELECT *, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
+        "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, GREATEST(TIMESTAMPDIFF(SECOND, UTC_TIMESTAMP(), expires_at), 0) AS remaining_seconds FROM quiz_attempts WHERE id = ? AND user_id = ? LIMIT 1",
         [attemptId, guard.user.id],
       );
       const attempt = attempts[0];

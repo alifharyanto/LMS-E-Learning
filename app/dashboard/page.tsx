@@ -9,7 +9,7 @@ import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui
 import { apiRequest } from "@/lib/browser-api";
 
 type User = { id: number; username: string; email: string; full_name: string; profile_photo: string };
-type QuizResult = { id: number; score: number; total: number; percent: number; created_at: string };
+type QuizResult = { id: number; score: number; total: number; percent: number; category_name: string | null; correct_answers: number; incorrect_answers: number; unanswered_answers: number; created_at: string };
 type Dashboard = { user: User; results: QuizResult[]; average: number; threads: number; minutes: number };
 
 export default function DashboardPage() {
@@ -103,7 +103,7 @@ export default function DashboardPage() {
     </div>
     <div className="grid-two" style={{ marginTop: 20 }}>
       <Reveal className="dashboard-reveal"><section className="surface surface-pad"><h2 className="surface-title"><UserRound size={16} /> Perbarui Profil</h2><form className="form-grid" style={{ marginTop: 17 }} onSubmit={updateProfile}><label className="field"><span>Nama lengkap</span><input className="input" name="full_name" defaultValue={dashboard.user.full_name} required /></label><label className="field"><span>Email</span><input className="input" name="email" type="email" defaultValue={dashboard.user.email} required /></label><label className="field"><span>Foto profil · JPG, PNG, WebP · maks. 2 MB</span><input className="input" name="profile_photo" type="file" accept="image/jpeg,image/png,image/webp" /></label><div className="form-span"><MotionButton className="button button-primary" disabled={busy}>{busy ? "Menyimpan..." : "Simpan Profil"}</MotionButton></div></form></section></Reveal>
-      <Reveal className="dashboard-reveal"><section className="surface surface-pad"><h2 className="surface-title"><BookOpen size={16} /> Riwayat Quiz</h2>{dashboard.results.length ? dashboard.results.map((result) => <div className="list-row" key={result.id}><div><div className="list-title">{result.score}/{result.total} jawaban benar</div><div className="list-meta">{new Date(result.created_at).toLocaleString("id-ID")}</div></div><strong>{result.percent}%</strong></div>) : <p className="page-intro">Belum ada hasil quiz.</p>}</section></Reveal>
+      <Reveal className="dashboard-reveal"><section className="surface surface-pad"><h2 className="surface-title"><BookOpen size={16} /> Riwayat Quiz</h2>{dashboard.results.length ? dashboard.results.map((result) => <div className="list-row" key={result.id}><div><div className="list-title">{result.category_name || "Latihan"} · {result.correct_answers}/{result.total} benar</div><div className="list-meta">{result.incorrect_answers} salah · {result.unanswered_answers} tidak dijawab · {new Date(result.created_at).toLocaleString("id-ID")}</div></div><strong>{result.percent}%</strong></div>) : <p className="page-intro">Belum ada hasil quiz.</p>}</section></Reveal>
     </div>
   </>;
 }

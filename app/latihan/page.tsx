@@ -1,14 +1,14 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X } from "lucide-react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { ArrowDown, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X } from "lucide-react";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
-import { MotionButton, MotionLink, StaggerGroup, StaggerItem } from "@/components/ui/motion";
+import { MotionButton, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 
 type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
 type Question = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string };
-type QuizResult = { score: number; total: number; percent: number; explanations: { id: number; text: string | null; answer_index: number }[] };
+type QuizResult = { id: number; score: number; total: number; percent: number; correct_answers?: number; incorrect_answers?: number; unanswered_answers?: number; explanations: { id: number; text: string | null; answer_index: number }[] };
 type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number>; remaining_seconds: number; result: QuizResult | null };
 type AnswerCheck = { correct: boolean; answer_index: number };
 const QUESTION_SECONDS = 30;
@@ -42,11 +42,11 @@ export default function LatihanPage() {
   const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const [questionSeconds, setQuestionSeconds] = useState(QUESTION_SECONDS);
-  const [reviewing, setReviewing] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const submittingAttemptRef = useRef(false);
+  const attemptIdRef = useRef<number | null>(null);
   const remainingSecondsRef = useRef<number | null>(null);
   const currentIndexRef = useRef(0);
   const answerProcessingRef = useRef(new Set<number>());
@@ -74,7 +74,6 @@ export default function LatihanPage() {
     setFlaggedIds(new Set());
     setSkippedIds(new Set());
     setQuestionSeconds(QUESTION_SECONDS);
-    setReviewing(false);
   }
 
   useEffect(() => {
@@ -87,6 +86,7 @@ export default function LatihanPage() {
         setCategoryName(data.category?.name ?? "");
         setResult(null);
         setAttemptId(null);
+        attemptIdRef.current = null;
         setRemainingSeconds(null);
         setTimeLimitMinutes(null);
         setAnswers({});
@@ -113,9 +113,12 @@ export default function LatihanPage() {
             setAnswers(attempt.answers);
             if (attempt.status === "in_progress") {
               setAttemptId(attempt.id);
+              attemptIdRef.current = attempt.id;
               setRemainingSeconds(attempt.remaining_seconds);
-            } else {
+            } else if (attempt.result) {
               setResult(attempt.result);
+            } else {
+              setError("Quiz sudah selesai tetapi hasilnya belum tersedia. Silakan muat ulang halaman.");
             }
           }
           submittingAttemptRef.current = false;
@@ -132,20 +135,50 @@ export default function LatihanPage() {
     return () => { active = false; };
   }, [categoryId, router]);
 
-  async function submitTimedQuiz(timedOut = false) {
-    if (attemptId === null || submittingAttemptRef.current) return;
+  async function submitTimedQuiz(timedOut = false, submittedAnswers = answers) {
+    if (submittingAttemptRef.current) return;
     submittingAttemptRef.current = true;
     setBusy(true);
     setError("");
     try {
       await saveQueueRef.current;
-      const response = await apiRequest<{ result: QuizResult }>("/api/v1/quizzes/attempts", {
+      let currentAttemptId = attemptIdRef.current ?? attemptId;
+      let currentAttempt: QuizAttempt | null = null;
+
+      if (currentAttemptId === null && categoryId) {
+        const existing = await apiRequest<{ attempt: QuizAttempt | null }>(`/api/v1/quizzes/attempts?category_id=${encodeURIComponent(categoryId)}`);
+        currentAttempt = existing.attempt;
+        if (!currentAttempt) {
+          const started = await apiRequest<{ attempt: QuizAttempt }>("/api/v1/quizzes/attempts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "start", category_id: categoryId }),
+          });
+          currentAttempt = started.attempt;
+        }
+        currentAttemptId = currentAttempt.id;
+        attemptIdRef.current = currentAttemptId;
+      }
+
+      if (currentAttempt && currentAttempt.status !== "in_progress") {
+        if (!currentAttempt.result) throw new Error("Quiz sudah selesai, tetapi hasilnya belum tersedia. Muat ulang halaman untuk melihat hasil.");
+        setResult(currentAttempt.result);
+        setAttemptId(null);
+        attemptIdRef.current = null;
+        setRemainingSeconds(null);
+        return;
+      }
+      if (currentAttemptId === null) throw new Error("Attempt quiz tidak tersedia. Muat ulang halaman dan coba kembali.");
+
+      const response = await apiRequest<{ result: QuizResult | null }>("/api/v1/quizzes/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "submit", attempt_id: attemptId, answers, timed_out: timedOut }),
+        body: JSON.stringify({ action: "submit", attempt_id: currentAttemptId, answers: submittedAnswers, timed_out: timedOut }),
       });
+      if (!response.result) throw new Error("Hasil quiz belum diterima. Silakan coba selesaikan kembali.");
       setResult(response.result);
       setAttemptId(null);
+      attemptIdRef.current = null;
       setRemainingSeconds(null);
     } catch (requestError) {
       submittingAttemptRef.current = false;
@@ -203,6 +236,10 @@ export default function LatihanPage() {
         answerProcessingRef.current.delete(questionId);
         answerAdvanceTimeoutRef.current = null;
         const nextIndex = answeredIndex + 1;
+        if (answeredCount + skippedIds.size + 1 >= questions.length) {
+          void finishQuiz(nextAnswers);
+          return;
+        }
         if (currentIndexRef.current !== answeredIndex || nextIndex >= questions.length) return;
         currentIndexRef.current = nextIndex;
         setQuestionSeconds(QUESTION_SECONDS);
@@ -242,56 +279,66 @@ export default function LatihanPage() {
     });
   }
 
-  async function retryQuiz() {
-    setError("");
-    if (!categoryId || !timeLimitMinutes) {
-      setResult(null);
-      setAnswers({});
-      setAnswerChecks({});
-      prepareQuestions(questions);
-      return;
-    }
-    setBusy(true);
-    try {
-      const response = await apiRequest<{ attempt: QuizAttempt }>("/api/v1/quizzes/attempts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", category_id: categoryId }),
-      });
-      prepareQuestions(response.attempt.questions);
-      setAnswers(response.attempt.answers);
-      setAnswerChecks({});
-      setResult(null);
-      setAttemptId(response.attempt.id);
-      setRemainingSeconds(response.attempt.remaining_seconds);
-      remainingSecondsRef.current = response.attempt.remaining_seconds;
-      submittingAttemptRef.current = false;
-      saveQueueRef.current = Promise.resolve();
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Quiz gagal dimulai kembali.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function submitQuiz(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function finishQuiz(submittedAnswers = answers) {
     if (!categoryId) return;
-    if (attemptId !== null) {
-      await submitTimedQuiz();
+    if (timeLimitMinutes !== null || attemptIdRef.current !== null || attemptId !== null) {
+      await submitTimedQuiz(false, submittedAnswers);
       return;
     }
+    if (submittingAttemptRef.current) return;
+    submittingAttemptRef.current = true;
     setBusy(true);
     setError("");
     try {
       const response = await apiRequest<{ result: QuizResult }>("/api/v1/quizzes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category_id: categoryId, answers }),
+        body: JSON.stringify({ category_id: categoryId, answers: submittedAnswers }),
       });
+      if (!response.result) throw new Error("Hasil quiz belum diterima. Silakan coba selesaikan kembali.");
       setResult(response.result);
     } catch (requestError) {
+      submittingAttemptRef.current = false;
       setError(requestError instanceof Error ? requestError.message : "Quiz gagal dikirim.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function repeatQuiz() {
+    if (!categoryId) return;
+    setBusy(true);
+    setError("");
+    try {
+      let nextQuestions: Question[];
+      if (timeLimitMinutes !== null) {
+        const response = await apiRequest<{ attempt: QuizAttempt }>("/api/v1/quizzes/attempts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start", category_id: categoryId }),
+        });
+        nextQuestions = response.attempt.questions;
+        setAttemptId(response.attempt.id);
+        attemptIdRef.current = response.attempt.id;
+        setRemainingSeconds(response.attempt.remaining_seconds);
+        remainingSecondsRef.current = response.attempt.remaining_seconds;
+      } else {
+        const response = await apiRequest<{ questions?: Question[] }>(`/api/v1/quizzes?category_id=${encodeURIComponent(categoryId)}`);
+        nextQuestions = response.questions ?? [];
+        setAttemptId(null);
+        attemptIdRef.current = null;
+        setRemainingSeconds(null);
+        remainingSecondsRef.current = null;
+      }
+      if (!nextQuestions.length) throw new Error("Soal untuk kategori ini belum tersedia.");
+      setResult(null);
+      setAnswers({});
+      setAnswerChecks({});
+      submittingAttemptRef.current = false;
+      saveQueueRef.current = Promise.resolve();
+      prepareQuestions(nextQuestions);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Quiz gagal diulangi.");
     } finally {
       setBusy(false);
     }
@@ -322,7 +369,12 @@ export default function LatihanPage() {
   const skipCurrentQuestion = useEffectEvent(() => {
     if (!currentQuestion || answers[String(currentQuestion.id)] !== undefined || skippedIds.has(currentQuestion.id)) return;
     setSkippedIds((previous) => new Set(previous).add(currentQuestion.id));
+    const allQuestionsComplete = answeredCount + skippedIds.size + 1 >= questions.length;
     setQuestionSeconds(QUESTION_SECONDS);
+    if (allQuestionsComplete) {
+      void finishQuiz();
+      return;
+    }
     const nextIndex = Math.min(currentIndexRef.current + 1, questions.length - 1);
     currentIndexRef.current = nextIndex;
     setCurrentIndex(nextIndex);
@@ -374,20 +426,35 @@ export default function LatihanPage() {
     {!loading && (categories.length ? <StaggerGroup className="grid-three quiz-categories" aria-label="Pilih kategori quiz">{categories.map((category) => <StaggerItem className="quiz-category-item" key={category.id}><MotionButton type="button" className="surface surface-pad quiz-category" onClick={() => router.push(`/latihan?category_id=${category.id}`)}><span className="list-meta"><Brain size={14} /> KATEGORI</span><h2 className="surface-title">{category.name}</h2><p className="page-intro">Total soal: <strong>{category.questions_count}</strong></p><span className="link-inline">Mulai latihan <ArrowRight className="quiz-arrow" size={15} /></span></MotionButton></StaggerItem>)}</StaggerGroup> : <div className="empty-state">{error || "Belum ada kategori quiz. Silakan hubungi admin."}</div>)}
   </div>;
 
-  const correctCount = result?.score ?? 0;
-  const skippedCount = result ? Math.max(0, result.total - answeredCount) : skippedIds.size;
-  const wrongCount = result ? Math.max(0, result.total - correctCount - skippedCount) : 0;
-  const currentExplanation = currentQuestion ? result?.explanations.find((item) => item.id === currentQuestion.id) : undefined;
+  const correctCount = result?.correct_answers ?? result?.score ?? 0;
+  const skippedCount = result ? result.unanswered_answers ?? Math.max(0, result.total - answeredCount) : skippedIds.size;
+  const wrongCount = result ? result.incorrect_answers ?? Math.max(0, result.total - correctCount - skippedCount) : 0;
   const currentAnswerCheck = currentQuestion ? answerChecks[String(currentQuestion.id)] : undefined;
-  const currentCorrectAnswerIndex = currentExplanation?.answer_index ?? currentAnswerCheck?.answer_index;
-  const liveScore = result?.score ?? Object.values(answerChecks).filter((check) => check.correct).length;
+  const currentCorrectAnswerIndex = currentAnswerCheck?.answer_index;
+  const liveScore = Object.values(answerChecks).filter((check) => check.correct).length;
   const questionTimerColor = questionSeconds <= 8 ? "is-low" : "";
-
   return <div className="quiz-page">
     <header className="page-heading quiz-page-heading"><span className="eyebrow">LATIHAN SOAL</span><h1 className="page-title">{categoryName || "Latihan"}</h1><p className="page-intro">Jawab semua soal dengan hati-hati.</p></header>
     {error && <p className="status status-error" role="alert">{error}</p>}
     {loading && <div className="empty-state" role="status">Sedang memuat soal...</div>}
-    {!loading && (questions.length ? result && !reviewing ? <section className="quiz-result-panel" aria-labelledby="quiz-result-title"><span className="quiz-kicker"><Trophy size={15} /> HASIL LATIHAN</span><h2 id="quiz-result-title">Latihan selesai!</h2><p>Hasil latihan {categoryName} sudah tersimpan.</p><div className="quiz-result-score"><strong>{result.percent}%</strong><span>Skor akhir · {result.score * 10} dari {result.total * 10} poin ({result.score} benar)</span></div><div className="quiz-result-stats"><div><Check size={17} /><strong>{correctCount}</strong><span>Benar</span></div><div><X size={17} /><strong>{wrongCount}</strong><span>Salah</span></div><div><Clock3 size={17} /><strong>{skippedCount}</strong><span>Terlewat</span></div></div><div className="quiz-result-actions"><MotionButton type="button" className="button button-primary" onClick={() => void retryQuiz()} disabled={busy}><RotateCcw size={15} />Ulangi Latihan</MotionButton><MotionButton type="button" className="button button-secondary" onClick={() => { setReviewing(true); setCurrentIndex(0); }}>Review Jawaban</MotionButton><MotionLink className="button button-secondary" href="/latihan"><ArrowLeft size={15} />Kategori</MotionLink></div></section> : <form className="quiz-session" onSubmit={(event) => void submitQuiz(event)}>
+    {!loading && (questions.length ? result ? <>
+      <section className="quiz-result-panel" aria-labelledby="quiz-result-title">
+        <div className="quiz-result-icon" aria-hidden="true"><Trophy size={24} /></div>
+        <span className="quiz-kicker">LATIHAN SELESAI</span>
+        <h2 id="quiz-result-title">Selamat, Anda telah Selesai!</h2>
+        <p className="quiz-result-caption">{categoryName ? `Ringkasan hasil latihan ${categoryName}` : "Berikut ringkasan hasil latihan Anda."}</p>
+        <div className="quiz-result-stats">
+          <div className="is-correct"><span className="quiz-result-stat-icon"><Check size={17} /></span><strong>{correctCount}</strong><span>Benar</span></div>
+          <div className="is-incorrect"><span className="quiz-result-stat-icon"><X size={17} /></span><strong>{wrongCount}</strong><span>Salah</span></div>
+          <div className="is-unanswered"><span className="quiz-result-stat-icon"><Clock3 size={17} /></span><strong>{skippedCount}</strong><span>Tidak dijawab</span></div>
+        </div>
+        <div className="quiz-result-actions">
+          <MotionButton type="button" className="button button-primary" onClick={() => void repeatQuiz()} disabled={busy}>
+            <RotateCcw size={16} /> {busy ? "Memulai ulang..." : "Ulangi Soal"}
+          </MotionButton>
+        </div>
+      </section>
+    </> : <div className="quiz-session">
       <section className="quiz-progress-panel" aria-label="Navigasi quiz">
         <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>
         <div className="quiz-progress-track" role="progressbar" aria-label="Progres jawaban" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={questions.length}><span style={{ width: `${completion}%` }} /></div>
@@ -399,22 +466,23 @@ export default function LatihanPage() {
         })}</div>
         <div className="quiz-progress-footer"><div className="quiz-legend"><span><i className="is-legend-unanswered" />Belum dijawab</span><span><i className="is-legend-answered" />Sudah dijawab</span><span><i className="is-legend-current" />Sedang dibuka</span><span><i className="is-legend-flagged" />Ditandai</span></div><label className="quiz-filter"><input type="checkbox" checked={showUnansweredOnly} onChange={(event) => setShowUnansweredOnly(event.target.checked)} />Tampilkan belum dijawab saja</label></div>
         {unansweredCount > 0 && <MotionButton type="button" className="quiz-next-unanswered" onClick={jumpToFirstUnanswered}><ArrowDown size={14} />Ke soal belum dijawab</MotionButton>}
+        {busy && <p className="quiz-auto-submit-status" role="status">Quiz selesai. Sedang menyimpan hasil...</p>}
+        {error && unansweredCount === 0 && !busy && <MotionButton type="button" className="button button-secondary quiz-retry-submit" onClick={() => void finishQuiz()}>Coba simpan hasil lagi</MotionButton>}
       </section>
       {currentQuestion && <section className="quiz-question-card" aria-labelledby={`quiz-question-${currentQuestion.id}`}>
         <div className="quiz-question-heading"><span>SOAL {currentIndex + 1} <span>/ {questions.length}</span></span><MotionButton type="button" className={`quiz-flag-button${flaggedIds.has(currentQuestion.id) ? " is-active" : ""}`} aria-pressed={flaggedIds.has(currentQuestion.id)} onClick={() => toggleFlag(currentQuestion.id)}><Flag size={15} />{flaggedIds.has(currentQuestion.id) ? "Ditandai" : "Tandai soal"}</MotionButton></div>
-        <div className="quiz-question-metrics"><div className={`quiz-question-clock ${questionTimerColor}`} role="timer" aria-label={`${questionSeconds} detik untuk soal ini`} style={{ background: `conic-gradient(${questionSeconds <= 8 ? "var(--wrong)" : "var(--accent)"} ${questionSeconds / QUESTION_SECONDS * 360}deg, var(--border) 0deg)` }}><span>{questionSeconds}</span></div><div className="quiz-live-score"><span>SKOR</span><strong>{result ? result.score * 10 : liveScore * 10}</strong><small>{result ? `dari ${result.total * 10} poin` : "poin"}</small></div></div>
+        <div className="quiz-question-metrics"><div className={`quiz-question-clock ${questionTimerColor}`} role="timer" aria-label={`${questionSeconds} detik untuk soal ini`} style={{ background: `conic-gradient(${questionSeconds <= 8 ? "var(--wrong)" : "var(--accent)"} ${questionSeconds / QUESTION_SECONDS * 360}deg, var(--border) 0deg)` }}><span>{questionSeconds}</span></div><div className="quiz-live-score"><span>SKOR</span><strong>{liveScore * 10}</strong><small>poin</small></div></div>
         <div className="quiz-question-prompt" id={`quiz-question-${currentQuestion.id}`}><p>{currentQuestion.question}</p></div>
         <div className="quiz-options" role="group" aria-label="Pilihan jawaban">{currentOptionOrder.map((originalIndex, displayIndex) => {
           const option = currentOptions[originalIndex];
           const isChosen = currentAnswer === originalIndex;
           const isCorrect = currentCorrectAnswerIndex === originalIndex;
           const isWrong = isChosen && currentCorrectAnswerIndex !== undefined && !isCorrect;
-          return <MotionButton type="button" key={`${currentQuestion.id}-${originalIndex}`} className={`quiz-answer-option${isChosen ? " is-chosen" : ""}${isCorrect ? " is-correct" : ""}${isWrong ? " is-wrong" : ""}`} aria-pressed={isChosen} disabled={currentAnswer !== undefined || skippedIds.has(currentQuestion.id) || result !== null} onClick={() => selectAnswer(currentQuestion.id, originalIndex)}><span className="quiz-answer-letter">{String.fromCharCode(65 + displayIndex)}</span><span>{option}</span>{isCorrect && <Check className="quiz-answer-mark" size={17} />}{isWrong && <X className="quiz-answer-mark" size={17} />}</MotionButton>;
+          return <MotionButton type="button" key={`${currentQuestion.id}-${originalIndex}`} className={`quiz-answer-option${isChosen ? " is-chosen" : ""}${isCorrect ? " is-correct" : ""}${isWrong ? " is-wrong" : ""}`} aria-pressed={isChosen} disabled={currentAnswer !== undefined || skippedIds.has(currentQuestion.id)} onClick={() => selectAnswer(currentQuestion.id, originalIndex)}><span className="quiz-answer-letter">{String.fromCharCode(65 + displayIndex)}</span><span>{option}</span>{isCorrect && <Check className="quiz-answer-mark" size={17} />}{isWrong && <X className="quiz-answer-mark" size={17} />}</MotionButton>;
         })}</div>
-        {(result && currentExplanation || currentAnswerCheck) && <div className="quiz-answer-feedback" role="status">{currentAnswer === undefined ? <><strong>Soal ini terlewat.</strong> Jawaban benar ditandai hijau.</> : currentCorrectAnswerIndex === currentAnswer ? <strong>Benar! Jawabanmu tepat.</strong> : <><strong>Belum tepat.</strong> Jawaban benar ditandai hijau.</>}{currentExplanation?.text && <p>{currentExplanation.text}</p>}</div>}
-        {skippedIds.has(currentQuestion.id) && !result && <p className="quiz-skipped-note">Waktu soal habis. Soal ini ditandai terlewat.</p>}
+        {currentAnswerCheck && <div className="quiz-answer-feedback" role="status">{currentCorrectAnswerIndex === currentAnswer ? <strong>Benar! Jawabanmu tepat.</strong> : <><strong>Belum tepat.</strong> Jawaban benar ditandai hijau.</>}</div>}
+        {skippedIds.has(currentQuestion.id) && <p className="quiz-skipped-note">Waktu soal habis. Soal ini ditandai terlewat.</p>}
       </section>}
-      {reviewing && <MotionButton type="button" className="button button-secondary" onClick={() => setReviewing(false)}>Tutup review</MotionButton>}
-    </form> : <div className="empty-state">Belum ada soal dalam kategori ini.</div>)}
+    </div> : <div className="empty-state">Belum ada soal dalam kategori ini.</div>)}
   </div>;
 }

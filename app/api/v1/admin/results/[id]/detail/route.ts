@@ -45,10 +45,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const rows = await queryRows<(RowDataPacket & {
       id: number;
       user_id: number;
+      category_id: number;
       score: number;
       total: number;
       percent: number;
       correct_answers: number;
+      unanswered_answers: number;
       created_at: string;
       started_at: string | null;
       submitted_at: string | null;
@@ -57,14 +59,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       username: string | null;
       full_name: string | null;
     })[]>(
-      "SELECT r.id, r.user_id, r.score, r.total, r.percent, r.correct_answers, r.created_at, a.started_at, a.submitted_at, a.questions_snapshot, a.answers, u.username, u.full_name FROM quiz_results r LEFT JOIN users u ON u.id = r.user_id LEFT JOIN quiz_attempts a ON a.result_id = r.id WHERE r.id = ? LIMIT 1",
+      "SELECT r.id, r.user_id, r.category_id, r.score, r.total, r.percent, r.correct_answers, r.unanswered_answers, r.created_at, a.started_at, a.submitted_at, a.questions_snapshot, a.answers, u.username, u.full_name FROM quiz_results r LEFT JOIN users u ON u.id = r.user_id LEFT JOIN quiz_attempts a ON a.result_id = r.id WHERE r.id = ? LIMIT 1",
       [resultId],
     );
     const row = rows[0];
     if (!row) return json({ error: "Hasil quiz tidak ditemukan." }, 404);
 
     const snapshot = parseJson<SnapshotQuestion[]>(row.questions_snapshot, []);
-    const answers = parseJson<Record<string, number>>(row.answers, {});
+    const answerRows = await queryRows<(RowDataPacket & { question_id: number; selected_index: number })[]>(
+      "SELECT question_id, selected_index FROM quiz_question_attempts WHERE result_id = ?",
+      [resultId],
+    );
+    const questions = snapshot.length ? snapshot : await queryRows<(RowDataPacket & SnapshotQuestion)[]>(
+      "SELECT id, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id",
+      [row.category_id],
+    );
+    const savedAnswers = parseJson<Record<string, number>>(row.answers, {});
+    const answers = snapshot.length ? savedAnswers : Object.fromEntries(
+      answerRows.map((answer) => [String(answer.question_id), Number(answer.selected_index)]),
+    );
+    const correctAnswers = Number(row.correct_answers ?? row.score);
+    const unansweredAnswers = Number(row.unanswered_answers ?? 0);
     const startedAt = row.started_at ? new Date(row.started_at).getTime() : null;
     const submittedAt = row.submitted_at ? new Date(row.submitted_at).getTime() : null;
     const completedAt = submittedAt ?? new Date(row.created_at).getTime();
@@ -77,14 +92,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         full_name: row.full_name ?? null,
         score: Number(row.score),
         total: Number(row.total),
-        correct_answers: Number(row.correct_answers),
-        incorrect_answers: Math.max(0, Number(row.total) - Number(row.correct_answers)),
+        correct_answers: correctAnswers,
+        incorrect_answers: Math.max(0, Number(row.total) - correctAnswers - unansweredAnswers),
+        unanswered_answers: unansweredAnswers,
         percent: Number(row.percent),
         started_at: row.started_at,
         submitted_at: row.submitted_at,
         duration_seconds: startedAt && completedAt ? Math.max(0, Math.floor((completedAt - startedAt) / 1000)) : 0,
       },
-      questions: snapshot.map((question) => {
+      questions: questions.map((question) => {
         const selectedIndex = answers[String(question.id)] ?? null;
         return {
           id: Number(question.id),

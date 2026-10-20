@@ -1,0 +1,2 @@
+ALTER TABLE quiz_results
+  ADD COLUMN unanswered_answers SMALLINT UNSIGNED NOT NULL DEFAULT 0;

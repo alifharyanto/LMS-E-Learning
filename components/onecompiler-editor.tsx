@@ -32,6 +32,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Terminal as TerminalIcon,
   X,
   Send,
 } from "lucide-react";
@@ -1036,8 +1037,10 @@ export default function OneCompilerEditor() {
       </header>
 
       <nav className="oc-mobile-switch" aria-label="Workspace panels">
-        <button type="button" className={mobilePane === "editor" ? "is-active" : ""} onClick={() => setMobilePane("editor")}><Code2 size={15} />Editor</button>
-        <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} onClick={() => selectOutputTab("Preview")}><Monitor size={15} />Preview</button>
+        <button type="button" className={mobilePane === "editor" ? "is-active" : ""} aria-pressed={mobilePane === "editor"} onClick={() => setMobilePane("editor")}><Code2 size={16} /><span>Editor</span></button>
+        <button type="button" className={mobilePane === "output" && tab === "Preview" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "Preview"} onClick={() => selectOutputTab("Preview")}><Monitor size={16} /><span>Preview</span></button>
+        <button type="button" className={mobilePane === "output" && tab === "Terminal" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "Terminal"} onClick={() => selectOutputTab("Terminal")}><TerminalIcon size={16} /><span>Terminal</span></button>
+        <button type="button" className={mobilePane === "output" && tab === "AI Agent" ? "is-active" : ""} aria-pressed={mobilePane === "output" && tab === "AI Agent"} onClick={() => selectOutputTab("AI Agent")}><Bot size={16} /><span>AI Agent</span></button>
       </nav>
 
       <aside className={`oc-sidebar${mobileSidebarOpen ? " is-mobile-expanded" : ""}`} aria-label="Editor tools">
