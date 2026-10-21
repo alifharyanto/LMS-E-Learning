@@ -2936,3 +2936,97 @@ body { color: var(--ink); background-color: var(--paper); }
   .quiz-question-navigation .button { min-height: 38px; padding: 0 9px; }
   .quiz-result-actions { align-items: stretch; flex-direction: column; }
 }
+
+@media (max-width: 700px) {
+  .site-header.is-mobile-menu-open { backdrop-filter: none; }
+
+  .menu-button { position: relative; z-index: 34; }
+
+  .mobile-nav-backdrop {
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(24, 38, 34, .32);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .24s ease, visibility 0s linear .24s;
+    visibility: hidden;
+  }
+
+  .mobile-nav-backdrop.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0s;
+    visibility: visible;
+  }
+
+  .mobile-nav {
+    position: fixed;
+    z-index: 32;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    width: min(300px, 84vw);
+    height: 100vh;
+    height: 100dvh;
+    padding: max(96px, calc(env(safe-area-inset-top) + 78px)) 16px max(18px, env(safe-area-inset-bottom));
+    align-content: start;
+    gap: 3px;
+    overflow-y: auto;
+    border-left: 1px solid var(--line);
+    color: var(--ink);
+    background: var(--paper);
+    box-shadow: -12px 0 32px rgba(24, 38, 34, .12);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+    transition: transform .24s ease, opacity .18s ease, visibility 0s linear .24s;
+    visibility: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-nav.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+    transition-delay: 0s;
+    visibility: visible;
+  }
+
+  .mobile-nav a,
+  .mobile-nav button {
+    display: flex;
+    width: 100%;
+    min-height: 47px;
+    padding: 11px 12px;
+    align-items: center;
+    border: 0;
+    border-radius: 8px;
+    color: #405b60;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .mobile-nav a:hover,
+  .mobile-nav a:focus-visible,
+  .mobile-nav button:hover,
+  .mobile-nav button:focus-visible {
+    outline: none;
+    background: #eff8f3;
+  }
+}
+
+@media (max-width: 700px) and (prefers-reduced-motion: reduce) {
+  .mobile-nav,
+  .mobile-nav-backdrop {
+    transition-duration: .01ms;
+  }
+}

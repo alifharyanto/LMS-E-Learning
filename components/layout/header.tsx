@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, UserRound, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MotionButton, MotionLink } from "@/components/ui/motion";
 
 export type SessionUser = {
@@ -20,6 +20,23 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
   const pathname = usePathname() || "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const navLinks = [["Beranda", "/"], ["Kursus Materi", "/kursus"], ["Latihan Soal", "/latihan"], ["Code Editor", "/code"]];
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [menuOpen]);
 
   return <header className={`site-header${menuOpen ? " is-mobile-menu-open" : ""}`}>
     <nav className="nav-inner" aria-label="Navigasi utama">
@@ -40,7 +57,7 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
           <UserRound size={19} aria-hidden="true" />
         </MotionLink>
       </> : <div className="nav-actions"><MotionLink className="button button-secondary button-small" href="/login">Masuk</MotionLink><MotionLink className="button button-primary button-small" href="/register">Daftar</MotionLink></div>}
-      <MotionButton type="button" className="menu-button" aria-label={menuOpen ? "Tutup menu" : "Buka menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={19} /> : <Menu size={19} />}</MotionButton>
+      <MotionButton type="button" className="menu-button" aria-label={menuOpen ? "Tutup menu" : "Buka menu"} aria-expanded={menuOpen} aria-controls="mobile-navigation" onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={19} /> : <Menu size={19} />}</MotionButton>
       <button
         type="button"
         className={`mobile-nav-backdrop${menuOpen ? " is-visible" : ""}`}
@@ -50,6 +67,7 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
         onClick={() => setMenuOpen(false)}
       />
       <div
+        id="mobile-navigation"
         className={`mobile-nav${menuOpen ? " is-open" : ""}`}
         aria-label="Menu navigasi"
         aria-hidden={!menuOpen}
