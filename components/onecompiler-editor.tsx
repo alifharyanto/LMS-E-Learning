@@ -1145,10 +1145,6 @@ export default function OneCompilerEditor() {
             <button type="button" role="menuitem" onClick={openLiveBrowser}><ExternalLink size={16} />Open in browser</button>
             <button type="button" role="menuitem" onClick={resetCode}><X size={16} />Reset file</button>
           </div>}
-          <button className="oc-account-button" type="button" aria-label={account ? `Account ${account.full_name}` : "Login"} title={account?.full_name ?? "Login"} onClick={() => router.push(account ? "/dashboard" : "/login")}>
-            <CircleUserRound size={20} />
-            <span>{account ? account.full_name.split(" ")[0] : "Login"}</span>
-          </button>
           <span className={`oc-autosave is-${workspaceSaveState}`} role="status"><span />{workspaceSaveState === "loading" ? "Memuat" : workspaceSaveState === "saving" ? "Menyimpan" : workspaceSaveState === "error" ? "Belum tersinkron" : workspaceSaveState === "local" ? "Tersimpan lokal" : "Tersimpan"}</span>
           <button className="oc-action oc-run-button" type="button" onClick={runCode}><Play size={17} fill="currentColor" />Run</button>
         </div>
@@ -1168,6 +1164,10 @@ export default function OneCompilerEditor() {
         </div>
         <div className="oc-sidebar-bottom">
           <button className={toolPanel === "settings" ? "is-active" : ""} type="button" aria-label="Settings" aria-expanded={toolPanel === "settings"} onClick={() => toggleToolPanel("settings")}><Settings /><span>Settings</span></button>
+          <button className="oc-account-button oc-sidebar-account-button" type="button" aria-label={account ? `Account ${account.full_name}` : "Login"} title={account?.full_name ?? "Login"} onClick={() => { setMobileSidebarOpen(false); router.push(account ? "/dashboard" : "/login"); }}>
+            <CircleUserRound size={20} />
+            <span>{account ? account.full_name.split(" ")[0] : "Login"}</span>
+          </button>
         </div>
       </aside>
       {mobileSidebarOpen && <button className="oc-sidebar-backdrop" type="button" aria-label="Tutup overlay sidebar" onClick={() => setMobileSidebarOpen(false)} />}

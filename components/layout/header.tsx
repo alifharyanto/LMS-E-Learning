@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { LogOut, Menu, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { MotionButton, MotionLink } from "@/components/ui/motion";
@@ -42,10 +41,23 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
         </MotionLink>
       </> : <div className="nav-actions"><MotionLink className="button button-secondary button-small" href="/login">Masuk</MotionLink><MotionLink className="button button-primary button-small" href="/register">Daftar</MotionLink></div>}
       <MotionButton type="button" className="menu-button" aria-label={menuOpen ? "Tutup menu" : "Buka menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={19} /> : <Menu size={19} />}</MotionButton>
-      <AnimatePresence initial={false}>{menuOpen && <motion.div className="mobile-nav" initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}>
+      <button
+        type="button"
+        className={`mobile-nav-backdrop${menuOpen ? " is-visible" : ""}`}
+        aria-label="Tutup menu"
+        aria-hidden={!menuOpen}
+        tabIndex={menuOpen ? 0 : -1}
+        onClick={() => setMenuOpen(false)}
+      />
+      <div
+        className={`mobile-nav${menuOpen ? " is-open" : ""}`}
+        aria-label="Menu navigasi"
+        aria-hidden={!menuOpen}
+        inert={!menuOpen}
+      >
         {navLinks.map(([label, href]) => <MotionLink key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</MotionLink>)}
-        {user ? <><MotionLink href={user.role === "admin" ? "/admin" : "/dashboard"}>{user.role === "admin" ? "Panel Admin" : "Dashboard"}</MotionLink><MotionButton onClick={onLogout}>Keluar</MotionButton></> : <><MotionLink href="/login" onClick={() => setMenuOpen(false)}>Masuk</MotionLink><MotionLink href="/register" onClick={() => setMenuOpen(false)}>Daftar</MotionLink></>}
-      </motion.div>}</AnimatePresence>
+        {user ? <><MotionLink href={user.role === "admin" ? "/admin" : "/dashboard"} onClick={() => setMenuOpen(false)}>{user.role === "admin" ? "Panel Admin" : "Dashboard"}</MotionLink><MotionButton onClick={() => { setMenuOpen(false); onLogout(); }}>Keluar</MotionButton></> : <><MotionLink href="/login" onClick={() => setMenuOpen(false)}>Masuk</MotionLink><MotionLink href="/register" onClick={() => setMenuOpen(false)}>Daftar</MotionLink></>}
+      </div>
     </nav>
   </header>;
 }

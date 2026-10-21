@@ -69,6 +69,7 @@ button { cursor: pointer; }
 .mobile-header-actions { display: none; }
 .menu-button { display: none; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 11px; background: white; color: var(--teal); font-size: 20px; }
 .mobile-nav { display: none; }
+.mobile-nav-backdrop { display: none; }
 .page-wrap { max-width: 1240px; min-height: calc(100vh - 150px); margin: auto; padding: 42px 28px 64px; }
 .site-footer { border-top: 1px solid var(--line); color: #6d8082; background: white; }
 .footer-inner { display: flex; max-width: 1240px; margin: auto; padding: 24px 28px; justify-content: space-between; gap: 18px; font-size: 13px; }
@@ -2245,8 +2246,6 @@ body { color: var(--ink); background-color: var(--paper); }
   .admin-analytics-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 700px) {
-  .site-header.is-mobile-menu-open { position: sticky; top: 0; z-index: 40; background: var(--paper); }
-  .site-header.is-mobile-menu-open .mobile-nav { position: relative; z-index: 1; display: grid; width: 100%; padding: 7px 0 4px; gap: 2px; border-top: 1px solid var(--line); background: var(--paper); }
   .nav-inner { min-height: 64px; padding: 0 18px; }
   .nav-primary-nav, .desktop-only, .nav-actions { display: none; }
   .mobile-header-actions { display: inline-flex; margin-left: auto; align-items: center; gap: 8px; }
@@ -2313,6 +2312,19 @@ body { color: var(--ink); background-color: var(--paper); }
   width: 29px;
   height: 29px;
   border-radius: 5px;
+}
+.onecompiler-app .oc-sidebar-account-button {
+  width: 42px;
+  height: 38px;
+  max-width: none;
+  padding: 0;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+.onecompiler-app .oc-sidebar-account-button:hover {
+  color: var(--oc-accent);
+  background: var(--surface-secondary);
 }
 .code-route-shell .code-explorer-search {
   min-height: 34px;
@@ -2923,161 +2935,4 @@ body { color: var(--ink); background-color: var(--paper); }
   .quiz-question-heading { align-items: flex-start; }
   .quiz-question-navigation .button { min-height: 38px; padding: 0 9px; }
   .quiz-result-actions { align-items: stretch; flex-direction: column; }
-}
-
-/* Acode-inspired editor chrome; keep workspace behavior and theme selection intact. */
-.onecompiler-app {
-  --oc-accent: var(--teal);
-  grid-template-columns: 48px minmax(0, 1.7fr) minmax(280px, 1fr);
-  grid-template-rows: 52px minmax(0, 1fr) 28px;
-}
-.onecompiler-app.is-dark {
-  --oc-border: #30363d;
-  --oc-text: #e6edf3;
-  --oc-muted: #9da7b3;
-  --oc-accent: #4cc38a;
-  color: var(--oc-text);
-  background: #0d1117;
-}
-.onecompiler-app .oc-navbar {
-  padding: 0 14px;
-  border-color: var(--oc-border);
-  background: var(--surface-secondary);
-}
-.onecompiler-app .oc-back-button,
-.onecompiler-app .oc-save-button,
-.onecompiler-app .oc-account-button {
-  min-height: 32px;
-  border-radius: 5px;
-}
-.onecompiler-app .oc-brand {
-  gap: 8px;
-  font-size: 16px;
-}
-.onecompiler-app .oc-brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-}
-.onecompiler-app .oc-run-button {
-  min-height: 32px;
-  border-radius: 5px;
-}
-.onecompiler-app .oc-sidebar {
-  border-color: var(--oc-border);
-}
-.onecompiler-app.is-dark .oc-navbar,
-.onecompiler-app.is-dark .oc-editor-tabs,
-.onecompiler-app.is-dark .oc-console-tabs,
-.onecompiler-app.is-dark .oc-statusbar,
-.onecompiler-app.is-dark .oc-clipboard-tools {
-  background: #21262d;
-}
-.onecompiler-app.is-dark .oc-sidebar {
-  background: #161b22;
-}
-.onecompiler-app.is-dark .oc-editor-pane,
-.onecompiler-app.is-dark .oc-console-pane {
-  background: #0d1117;
-}
-.onecompiler-app.is-dark .oc-file-tab.is-active {
-  border-top: 2px solid var(--oc-accent);
-  background: #0d1117;
-}
-.onecompiler-app.is-dark .oc-sidebar button.is-active {
-  color: var(--oc-accent);
-  background: #21262d;
-}
-.onecompiler-app .oc-editor-tabs,
-.onecompiler-app .oc-console-tabs {
-  height: 42px;
-  min-height: 42px;
-}
-.onecompiler-app .oc-file-tab {
-  min-width: 132px;
-  flex-basis: 132px;
-  padding-right: 10px;
-  padding-left: 14px;
-  gap: 9px;
-  font-size: 13px;
-}
-.onecompiler-app .oc-clipboard-tools {
-  min-height: 34px;
-  padding: 3px 8px;
-}
-.onecompiler-app .oc-clipboard-tools button {
-  min-height: 27px;
-  border-radius: 4px;
-}
-.onecompiler-app .oc-statusbar {
-  padding: 0 12px;
-  font-size: 11px;
-}
-.onecompiler-app .oc-status-left,
-.onecompiler-app .oc-status-right {
-  gap: 12px;
-}
-.onecompiler-app .oc-tool-panel {
-  border-radius: 5px;
-}
-
-@media (max-width: 760px) {
-  .onecompiler-app {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 50px minmax(0, 1fr) 27px;
-  }
-  .onecompiler-app .oc-navbar {
-    padding: 0 9px;
-  }
-  .onecompiler-app .oc-brand {
-    font-size: 14px;
-  }
-  .onecompiler-app .oc-brand-mark {
-    width: 26px;
-    height: 26px;
-  }
-  .onecompiler-app .oc-workbench {
-    grid-column: 1;
-  }
-  .onecompiler-app .oc-sidebar:not(.is-mobile-expanded) {
-    display: none;
-  }
-  .onecompiler-app .oc-sidebar.is-mobile-expanded {
-    top: 50px;
-    right: auto;
-    bottom: 27px;
-    left: 0;
-    width: min(280px, calc(100vw - 52px));
-    max-height: none;
-    border-radius: 0 8px 8px 0;
-  }
-  .onecompiler-app .oc-sidebar-backdrop {
-    top: 50px;
-    bottom: 27px;
-  }
-  .onecompiler-app .oc-editor-pane {
-    grid-column: 1;
-  }
-  .onecompiler-app .oc-console-pane {
-    left: 0;
-    bottom: 27px;
-  }
-  .onecompiler-app .oc-statusbar {
-    grid-row: 3;
-    padding: 0 8px;
-    font-size: 10px;
-  }
-  .onecompiler-app .oc-status-left,
-  .onecompiler-app .oc-status-right {
-    gap: 7px;
-  }
-}
-
-@media (max-width: 600px) {
-  .onecompiler-app {
-    grid-template-rows: 50px 48px minmax(0, 1fr) 27px;
-  }
-  .onecompiler-app .oc-statusbar {
-    grid-row: 4;
-  }
 }
