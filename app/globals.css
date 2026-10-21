@@ -2924,3 +2924,160 @@ body { color: var(--ink); background-color: var(--paper); }
   .quiz-question-navigation .button { min-height: 38px; padding: 0 9px; }
   .quiz-result-actions { align-items: stretch; flex-direction: column; }
 }
+
+/* Acode-inspired editor chrome; keep workspace behavior and theme selection intact. */
+.onecompiler-app {
+  --oc-accent: var(--teal);
+  grid-template-columns: 48px minmax(0, 1.7fr) minmax(280px, 1fr);
+  grid-template-rows: 52px minmax(0, 1fr) 28px;
+}
+.onecompiler-app.is-dark {
+  --oc-border: #30363d;
+  --oc-text: #e6edf3;
+  --oc-muted: #9da7b3;
+  --oc-accent: #4cc38a;
+  color: var(--oc-text);
+  background: #0d1117;
+}
+.onecompiler-app .oc-navbar {
+  padding: 0 14px;
+  border-color: var(--oc-border);
+  background: var(--surface-secondary);
+}
+.onecompiler-app .oc-back-button,
+.onecompiler-app .oc-save-button,
+.onecompiler-app .oc-account-button {
+  min-height: 32px;
+  border-radius: 5px;
+}
+.onecompiler-app .oc-brand {
+  gap: 8px;
+  font-size: 16px;
+}
+.onecompiler-app .oc-brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+.onecompiler-app .oc-run-button {
+  min-height: 32px;
+  border-radius: 5px;
+}
+.onecompiler-app .oc-sidebar {
+  border-color: var(--oc-border);
+}
+.onecompiler-app.is-dark .oc-navbar,
+.onecompiler-app.is-dark .oc-editor-tabs,
+.onecompiler-app.is-dark .oc-console-tabs,
+.onecompiler-app.is-dark .oc-statusbar,
+.onecompiler-app.is-dark .oc-clipboard-tools {
+  background: #21262d;
+}
+.onecompiler-app.is-dark .oc-sidebar {
+  background: #161b22;
+}
+.onecompiler-app.is-dark .oc-editor-pane,
+.onecompiler-app.is-dark .oc-console-pane {
+  background: #0d1117;
+}
+.onecompiler-app.is-dark .oc-file-tab.is-active {
+  border-top: 2px solid var(--oc-accent);
+  background: #0d1117;
+}
+.onecompiler-app.is-dark .oc-sidebar button.is-active {
+  color: var(--oc-accent);
+  background: #21262d;
+}
+.onecompiler-app .oc-editor-tabs,
+.onecompiler-app .oc-console-tabs {
+  height: 42px;
+  min-height: 42px;
+}
+.onecompiler-app .oc-file-tab {
+  min-width: 132px;
+  flex-basis: 132px;
+  padding-right: 10px;
+  padding-left: 14px;
+  gap: 9px;
+  font-size: 13px;
+}
+.onecompiler-app .oc-clipboard-tools {
+  min-height: 34px;
+  padding: 3px 8px;
+}
+.onecompiler-app .oc-clipboard-tools button {
+  min-height: 27px;
+  border-radius: 4px;
+}
+.onecompiler-app .oc-statusbar {
+  padding: 0 12px;
+  font-size: 11px;
+}
+.onecompiler-app .oc-status-left,
+.onecompiler-app .oc-status-right {
+  gap: 12px;
+}
+.onecompiler-app .oc-tool-panel {
+  border-radius: 5px;
+}
+
+@media (max-width: 760px) {
+  .onecompiler-app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 50px minmax(0, 1fr) 27px;
+  }
+  .onecompiler-app .oc-navbar {
+    padding: 0 9px;
+  }
+  .onecompiler-app .oc-brand {
+    font-size: 14px;
+  }
+  .onecompiler-app .oc-brand-mark {
+    width: 26px;
+    height: 26px;
+  }
+  .onecompiler-app .oc-workbench {
+    grid-column: 1;
+  }
+  .onecompiler-app .oc-sidebar:not(.is-mobile-expanded) {
+    display: none;
+  }
+  .onecompiler-app .oc-sidebar.is-mobile-expanded {
+    top: 50px;
+    right: auto;
+    bottom: 27px;
+    left: 0;
+    width: min(280px, calc(100vw - 52px));
+    max-height: none;
+    border-radius: 0 8px 8px 0;
+  }
+  .onecompiler-app .oc-sidebar-backdrop {
+    top: 50px;
+    bottom: 27px;
+  }
+  .onecompiler-app .oc-editor-pane {
+    grid-column: 1;
+  }
+  .onecompiler-app .oc-console-pane {
+    left: 0;
+    bottom: 27px;
+  }
+  .onecompiler-app .oc-statusbar {
+    grid-row: 3;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+  .onecompiler-app .oc-status-left,
+  .onecompiler-app .oc-status-right {
+    gap: 7px;
+  }
+}
+
+@media (max-width: 600px) {
+  .onecompiler-app {
+    grid-template-rows: 50px 48px minmax(0, 1fr) 27px;
+  }
+  .onecompiler-app .oc-statusbar {
+    grid-row: 4;
+  }
+}
