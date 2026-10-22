@@ -7,11 +7,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 import { apiRequest } from "@/lib/browser-api";
 
-type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
+type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
 type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; youtube_embed_url: string | null };
-type Question = { id: number; question: string; answer_index: number; explanation: string | null };
+type Question = { id: number; question: string; answer_index: number; explanation: string | null; question_type?: "pilihan" | "essay" };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
-type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; is_correct: boolean };
+type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; selected_text?: string | null; is_correct: boolean; question_type?: "pilihan" | "essay"; teacher_check?: boolean | null };
 type Result = {
   id: number;
   user_id: number;
@@ -101,6 +101,7 @@ export default function AdminPage() {
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [resultDetail, setResultDetail] = useState<ResultDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [essayQuestionType, setEssayQuestionType] = useState<"pilihan" | "essay">("pilihan");
   const [resultPeriod, setResultPeriod] = useState("");
   const [resultExactDate, setResultExactDate] = useState("");
   const [selectedResultIds, setSelectedResultIds] = useState<Set<number>>(new Set());
@@ -121,6 +122,46 @@ export default function AdminPage() {
       setError(requestError instanceof Error ? requestError.message : "Detail hasil quiz gagal dimuat.");
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function gradeEssayQuestion(questionId: number, isCorrect: boolean) {
+    if (!selectedResult) return;
+    setBusy(true);
+    try {
+      const response = await apiRequest<{ success: boolean; score: number; total: number; percent: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number }>(`/api/v1/admin/results/${selectedResult.id}/detail`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question_id: questionId, is_correct: isCorrect }),
+      });
+      setData((current) => current ? {
+        ...current,
+        results: current.results.map((result) => result.id === selectedResult.id ? {
+          ...result,
+          score: response.score,
+          percent: response.percent,
+          correct_answers: response.correct_answers,
+          incorrect_answers: response.incorrect_answers,
+          unanswered_answers: response.unanswered_answers,
+        } : result),
+      } : current);
+      setResultDetail((current) => current ? {
+        ...current,
+        result: {
+          ...current.result,
+          score: Number(response.score),
+          correct_answers: Number(response.correct_answers),
+          incorrect_answers: Number(response.incorrect_answers),
+          unanswered_answers: Number(response.unanswered_answers),
+          percent: Number(response.percent),
+        },
+        questions: current.questions.map((question) => question.id === questionId ? { ...question, teacher_check: isCorrect, is_correct: isCorrect, question_type: question.question_type ?? "essay" } : question),
+      } : current);
+      setNotice("Penilaian essay berhasil diperbarui.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Penilaian essay gagal disimpan.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -346,20 +387,24 @@ export default function AdminPage() {
             <form className="admin-category-form admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}>
               <label className="field"><span>Nama kategori</span><input className="input" name="category_name" placeholder="Nama kategori" required /></label>
               <label className="field"><span>Menit</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue="30" required /></label>
+              <label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue="pilihan"><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
               <MotionButton className="button button-primary button-small">Tambah</MotionButton>
             </form>
             {data.categories.length ? data.categories.map((category) => <div key={category.id}>
-              <div className="list-row"><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal · {category.time_limit_minutes ? `${category.time_limit_minutes} menit` : "Timer belum diatur"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingCategoryId === category.id} onClick={() => setEditingCategoryId(editingCategoryId === category.id ? null : category.id)}><Pencil size={14} />Waktu</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
-              {editingCategoryId === category.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/categories/${category.id}`, "PUT")}><label className="field"><span>Durasi dalam menit · kosongkan untuk tanpa timer</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={category.time_limit_minutes ?? ""} /></label><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan</MotionButton></form>}
+              <div className="list-row"><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal · {category.question_type === "essay" ? "Essay" : "Pilihan ganda"} · {category.time_limit_minutes ? `${category.time_limit_minutes} menit` : "Timer belum diatur"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingCategoryId === category.id} onClick={() => setEditingCategoryId(editingCategoryId === category.id ? null : category.id)}><Pencil size={14} />Waktu</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+              {editingCategoryId === category.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/categories/${category.id}`, "PUT")}><label className="field"><span>Durasi dalam menit · kosongkan untuk tanpa timer</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={category.time_limit_minutes ?? ""} /></label><label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue={category.question_type ?? "pilihan"}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan</MotionButton></form>}
             </div>) : <p className="empty-state">Belum ada kategori quiz.</p>}
           </section>
           <section className="surface surface-pad admin-section" hidden={section !== "soal"}>
             <div className="admin-section-heading"><div><span className="list-meta">KONTEN BARU</span><h2 className="surface-title">Buat soal</h2></div></div>
             <form className="stack admin-form" onSubmit={(event) => void submit(event, "/api/v1/admin/questions")}>
               <label className="field"><span>Kategori</span><select className="select" name="category_id" required defaultValue=""><option value="" disabled>Pilih kategori</option>{data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+              <label className="field"><span>Jenis soal</span><select className="select" name="question_type" value={essayQuestionType} onChange={(event) => setEssayQuestionType(event.target.value === "essay" ? "essay" : "pilihan")}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
               <label className="field"><span>Pertanyaan</span><textarea className="textarea" name="question" required /></label>
-              <div className="form-grid">{(["a", "b", "c", "d"] as const).map((letter) => <label className="field" key={letter}><span>Opsi {letter.toUpperCase()}</span><input className="input" name={`option_${letter}`} required /></label>)}</div>
-              <label className="field"><span>Jawaban benar</span><select className="select" name="answer_index"><option value="0">Jawaban A</option><option value="1">Jawaban B</option><option value="2">Jawaban C</option><option value="3">Jawaban D</option></select></label>
+              {essayQuestionType === "pilihan" ? <>
+                <div className="form-grid">{(["a", "b", "c", "d"] as const).map((letter) => <label className="field" key={letter}><span>Opsi {letter.toUpperCase()}</span><input className="input" name={`option_${letter}`} required /></label>)}</div>
+                <label className="field"><span>Jawaban benar</span><select className="select" name="answer_index"><option value="0">Jawaban A</option><option value="1">Jawaban B</option><option value="2">Jawaban C</option><option value="3">Jawaban D</option></select></label>
+              </> : <div className="surface surface-pad" style={{ padding: "0.75rem 1rem" }}><p className="page-intro">Soal essay tidak memerlukan opsi jawaban. Guru akan menilai jawaban siswa di detail hasil belajar.</p></div>}
               <label className="field"><span>Alasan jawaban yang benar</span><textarea className="textarea" name="explanation" maxLength={10000} /></label>
               <MotionButton className="button button-primary" disabled={busy}>Simpan Soal</MotionButton>
             </form>
@@ -368,7 +413,7 @@ export default function AdminPage() {
 
         <section className="surface surface-pad admin-section" id="quiz-import" hidden={section !== "soal"}>
           <div className="admin-section-heading"><div><span className="list-meta">IMPORT MASSAL</span><h2 className="surface-title"><FileSpreadsheet size={16} /> Import soal dari file</h2></div><span className="admin-count">CSV · JSON · XLSX</span></div>
-          <p className="page-intro">Gunakan kolom category, question, option_a, option_b, option_c, option_d, answer_index, dan explanation. Jawaban dapat ditulis A-D atau 0-3. Maksimal 1.000 soal.</p>
+          <p className="page-intro">Untuk JSON, isi kategori dan durasi pada objek pertama (category dan time); kategori akan dibuat atau diperbarui otomatis dan dipakai untuk semua soal berikutnya. Soal tidak perlu memiliki category. CSV/XLSX tetap memakai kolom category per soal. Jawaban dapat ditulis A-D atau 0-3. Maksimal 1.000 soal.</p>
           <form className="admin-import-form" onSubmit={(event) => void previewImport(event)}>
             <label className="field"><span>File bank soal</span><input className="input" name="quiz_file" type="file" accept=".csv,.json,.xlsx,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required /></label>
             <MotionButton className="button button-secondary" disabled={importBusy}><FileSpreadsheet size={14} />{importBusy ? "Membaca file..." : "Preview file"}</MotionButton>
@@ -468,6 +513,21 @@ export default function AdminPage() {
               </div>
               <div className="result-detail-list">
                 {resultDetail.questions.map((question, index) => {
+                  if (question.question_type === "essay") {
+                    return <article className={`result-question ${question.teacher_check === null ? "is-unanswered" : question.teacher_check ? "is-correct" : "is-incorrect"}`} key={question.id}>
+                      <div className="result-question-head"><span>Soal {index + 1}</span><strong>{question.teacher_check === null ? "Belum dinilai" : question.teacher_check ? "Benar" : "Salah"}</strong></div>
+                      <h3>{question.question}</h3>
+                      <div className="result-essay-answer">
+                        <span>Jawaban siswa</span>
+                        <p>{question.selected_text || "Siswa belum mengisi jawaban essay."}</p>
+                      </div>
+                      <label className="result-essay-grade">
+                        <input type="checkbox" checked={Boolean(question.teacher_check)} disabled={!question.selected_text?.trim() || busy} onChange={(event) => void gradeEssayQuestion(question.id, event.target.checked)} />
+                        <span>Centang jika jawaban benar</span>
+                      </label>
+                    </article>;
+                  }
+
                   const selectedLabel = question.selected_index === null ? "Belum dijawab" : `Jawaban ${String.fromCharCode(65 + question.selected_index)}`;
                   const correctLabel = `Jawaban benar ${String.fromCharCode(65 + question.answer_index)}`;
                   return <article className={`result-question ${question.selected_index === null ? "is-unanswered" : question.is_correct ? "is-correct" : "is-incorrect"}`} key={question.id}>

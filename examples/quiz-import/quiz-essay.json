@@ -1,0 +1,19 @@
+[
+  {
+    "category": "Soal Essay Web Development",
+    "jenis-soal": "essay",
+    "time": "10"
+  },
+  {
+    "no": 1,
+    "soal": "Bahasa untuk membuat web"
+  },
+  {
+    "no": 2,
+    "soal": "Bahasa untuk membuat web dinamis"
+  },
+  {
+    "no": 3,
+    "soal": "Bahasa untuk membuat web interaktif"
+  }
+]

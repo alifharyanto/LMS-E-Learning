@@ -21,11 +21,12 @@ export async function POST(request: Request) {
     const name = safeString(body?.category_name, 150);
     const parentId = body?.parent_id ? Number(body.parent_id) : null;
     const timeLimit = Number(body?.time_limit_minutes);
+    const questionType = String(body?.question_type ?? "pilihan").toLowerCase() === "essay" ? "essay" : "pilihan";
     if (!name || !Number.isInteger(timeLimit) || timeLimit < 1 || timeLimit > 1440) {
       return json({ error: "Nama kategori dan durasi 1-1440 menit wajib diisi." }, 422);
     }
 
-    const result = await execute("INSERT INTO quiz_categories (name, parent_id, time_limit_minutes) VALUES (?, ?, ?)", [name, parentId, timeLimit]);
+    const result = await execute("INSERT INTO quiz_categories (name, parent_id, time_limit_minutes, question_type) VALUES (?, ?, ?, ?)", [name, parentId, timeLimit, questionType]);
     return json({ success: true, id: result.insertId }, 201);
   } catch (error) {
     console.error("Admin category create error:", error);

@@ -25,13 +25,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await readJson(request);
     const rawTimeLimit = body?.time_limit_minutes;
     const timeLimit = rawTimeLimit === "" || rawTimeLimit === null || rawTimeLimit === undefined ? null : Number(rawTimeLimit);
+    const questionType = String(body?.question_type ?? "pilihan").toLowerCase() === "essay" ? "essay" : "pilihan";
     if (timeLimit !== null && (!Number.isInteger(timeLimit) || timeLimit < 1 || timeLimit > 1440)) {
       return json({ error: "Durasi harus antara 1-1440 menit atau dikosongkan." }, 422);
     }
 
     const categories = await queryRows<(RowDataPacket & { id: number })[]>("SELECT id FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
     if (!categories[0]) return json({ error: "Kategori tidak ditemukan." }, 404);
-    await execute("UPDATE quiz_categories SET time_limit_minutes = ? WHERE id = ?", [timeLimit, categoryId]);
+    await execute("UPDATE quiz_categories SET time_limit_minutes = ?, question_type = ? WHERE id = ?", [timeLimit, questionType, categoryId]);
     return json({ success: true });
   } catch (error) {
     console.error("Admin category update error:", error);

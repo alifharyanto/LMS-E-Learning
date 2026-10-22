@@ -9,12 +9,13 @@ export const dynamic = "force-dynamic";
 type SnapshotQuestion = {
   id: number;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  answer_index: number;
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
+  answer_index: number | null;
   explanation: string | null;
+  question_type?: "pilihan" | "essay";
 };
 
 type AttemptRow = RowDataPacket & {
@@ -37,7 +38,7 @@ type QuizResult = {
   correct_answers: number;
   incorrect_answers: number;
   unanswered_answers: number;
-  explanations: { id: number; text: string | null; answer_index: number }[];
+  explanations: { id: number; text: string | null; answer_index: number | null }[];
 };
 
 function parseJson<T>(value: unknown, fallback: T): T {
@@ -49,7 +50,7 @@ function parseJson<T>(value: unknown, fallback: T): T {
   }
 }
 
-function publicQuestions(snapshot: SnapshotQuestion[]) {
+function publicQuestions(snapshot: SnapshotQuestion[], fallbackType: "pilihan" | "essay" = "pilihan") {
   return snapshot.map((question) => ({
     id: question.id,
     question: question.question,
@@ -57,16 +58,28 @@ function publicQuestions(snapshot: SnapshotQuestion[]) {
     option_b: question.option_b,
     option_c: question.option_c,
     option_d: question.option_d,
+    question_type: question.question_type ?? fallbackType,
   }));
+}
+
+function normalizeSnapshot(snapshot: SnapshotQuestion[], fallbackType: "pilihan" | "essay") {
+  return snapshot.map((question) => ({ ...question, question_type: fallbackType }));
 }
 
 function parseAnswers(value: unknown, snapshot: SnapshotQuestion[]) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const validIds = new Set(snapshot.map((question) => String(question.id)));
-  const answers: Record<string, number> = {};
-  for (const [questionId, selectedIndex] of Object.entries(value)) {
-    if (!validIds.has(questionId) || !Number.isInteger(selectedIndex) || Number(selectedIndex) < 0 || Number(selectedIndex) > 3) return null;
-    answers[questionId] = Number(selectedIndex);
+  const questions = new Map(snapshot.map((question) => [String(question.id), question]));
+  const answers: Record<string, number | string> = {};
+  for (const [questionId, submittedAnswer] of Object.entries(value)) {
+    const question = questions.get(questionId);
+    if (!question) return null;
+    if (question.question_type === "essay") {
+      if (typeof submittedAnswer !== "string" || submittedAnswer.length > 20_000) return null;
+      answers[questionId] = submittedAnswer;
+    } else {
+      if (!Number.isInteger(submittedAnswer) || Number(submittedAnswer) < 0 || Number(submittedAnswer) > 3) return null;
+      answers[questionId] = Number(submittedAnswer);
+    }
   }
   return answers;
 }
@@ -77,16 +90,21 @@ async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promis
     [resultId],
   );
   const row = rows[0];
-  return row ? {
+  if (!row) return null;
+  const answerRows = await queryRows<(RowDataPacket & { is_correct: number | null })[]>(
+    "SELECT is_correct FROM quiz_question_attempts WHERE result_id = ?",
+    [resultId],
+  );
+  return {
     id: Number(row.id),
     score: Number(row.score),
     total: Number(row.total),
     percent: Number(row.percent),
     correct_answers: Number(row.score),
-    incorrect_answers: Math.max(0, Number(row.total) - Number(row.score) - Number(row.unanswered_answers)),
+    incorrect_answers: answerRows.filter((answer) => answer.is_correct !== null && Number(answer.is_correct) === 0).length,
     unanswered_answers: Number(row.unanswered_answers),
     explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
-  } : null;
+  };
 }
 
 async function completeAttempt(attemptId: number, userId: number, submittedAnswers: unknown) {
@@ -98,7 +116,13 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
     const attempt = attemptRows[0];
     if (!attempt) return { error: "Attempt quiz tidak ditemukan.", status: 404 as const };
 
-    const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
+    const rawSnapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
+    const [categoryRows] = await connection.execute<(RowDataPacket & { question_type: string | null })[]>(
+      "SELECT question_type FROM quiz_categories WHERE id = ? LIMIT 1",
+      [attempt.category_id],
+    );
+    const fallbackType = categoryRows[0]?.question_type === "essay" ? "essay" : "pilihan";
+    const snapshot = normalizeSnapshot(rawSnapshot, fallbackType);
     if (!snapshot.length) {
       return { error: "Data soal attempt tidak tersedia.", status: 422 as const };
     }
@@ -124,22 +148,25 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
       answers = incomingAnswers === null ? savedAnswers : { ...savedAnswers, ...incomingAnswers };
     }
 
-    const score = snapshot.reduce((total, question) => total + (answers[String(question.id)] === question.answer_index ? 1 : 0), 0);
+    const score = snapshot.reduce((total, question) => total + (question.question_type !== "essay" && answers[String(question.id)] === question.answer_index ? 1 : 0), 0);
     const total = snapshot.length;
     const percent = total ? Math.floor((score / total) * 100) : 0;
+    const answeredQuestions = snapshot.filter((question) => {
+      const answer = answers[String(question.id)];
+      return typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
+    });
     const [result] = await connection.execute(
       "INSERT INTO quiz_results (user_id, category_id, score, total, percent, correct_answers, unanswered_answers, questions_snapshot, answers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [userId, attempt.category_id, score, total, percent, score, total - Object.keys(answers).length, JSON.stringify(snapshot), JSON.stringify(answers)],
+      [userId, attempt.category_id, score, total, percent, score, total - answeredQuestions.length, JSON.stringify(snapshot), JSON.stringify(answers)],
     );
     const resultId = Number((result as { insertId: number }).insertId);
-    const answeredQuestions = snapshot.filter((question) => answers[String(question.id)] !== undefined);
     if (answeredQuestions.length) {
       const placeholders = answeredQuestions.map(() => "(?, ?, ?, ?)").join(", ");
       const values = answeredQuestions.flatMap((question) => [
         resultId,
         question.id,
-        answers[String(question.id)],
-        answers[String(question.id)] === question.answer_index ? 1 : 0,
+        question.question_type === "essay" ? null : answers[String(question.id)],
+        question.question_type === "essay" ? null : answers[String(question.id)] === question.answer_index ? 1 : 0,
       ]);
       await connection.execute(
         `INSERT INTO quiz_question_attempts (result_id, question_id, selected_index, is_correct) VALUES ${placeholders}`,
@@ -158,8 +185,8 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
         total,
         percent,
         correct_answers: score,
-        incorrect_answers: total - score - (total - Object.keys(answers).length),
-        unanswered_answers: total - Object.keys(answers).length,
+        incorrect_answers: answeredQuestions.filter((question) => question.question_type !== "essay").length - score,
+        unanswered_answers: total - answeredQuestions.length,
         explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
       } satisfies QuizResult,
       status: 200 as const,
@@ -196,8 +223,14 @@ async function findAttempt(userId: number, categoryId: number) {
   }
   if (!attempt) return null;
 
-  const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
-  const answers = parseJson<Record<string, number>>(attempt.answers, {});
+  const rawSnapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
+  const categories = await queryRows<(RowDataPacket & { question_type: string | null })[]>(
+    "SELECT question_type FROM quiz_categories WHERE id = ? LIMIT 1",
+    [categoryId],
+  );
+  const fallbackType = categories[0]?.question_type === "essay" ? "essay" : "pilihan";
+  const snapshot = normalizeSnapshot(rawSnapshot, fallbackType);
+  const answers = parseJson<Record<string, number | string>>(attempt.answers, {});
   let result: QuizResult | null = null;
   if (attempt.status !== "in_progress") {
     const completed = await completeAttempt(Number(attempt.id), userId, {});
@@ -209,7 +242,7 @@ async function findAttempt(userId: number, categoryId: number) {
   return {
     id: Number(attempt.id),
     status: attempt.status,
-    questions: publicQuestions(snapshot),
+    questions: publicQuestions(snapshot, fallbackType),
     answers,
     remaining_seconds: Number(attempt.remaining_seconds),
     result,
@@ -223,12 +256,18 @@ async function findAttemptById(attemptId: number, userId: number) {
   );
   const attempt = rows[0];
   if (!attempt) return null;
-  const snapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
+  const rawSnapshot = parseJson<SnapshotQuestion[]>(attempt.questions_snapshot, []);
+  const categories = await queryRows<(RowDataPacket & { question_type: string | null })[]>(
+    "SELECT question_type FROM quiz_categories WHERE id = ? LIMIT 1",
+    [attempt.category_id],
+  );
+  const fallbackType = categories[0]?.question_type === "essay" ? "essay" : "pilihan";
+  const snapshot = normalizeSnapshot(rawSnapshot, fallbackType);
   return {
     id: Number(attempt.id),
     status: attempt.status,
-    questions: publicQuestions(snapshot),
-    answers: parseJson<Record<string, number>>(attempt.answers, {}),
+    questions: publicQuestions(snapshot, fallbackType),
+    answers: parseJson<Record<string, number | string>>(attempt.answers, {}),
     remaining_seconds: Number(attempt.remaining_seconds),
     result: null,
   };
@@ -267,8 +306,8 @@ export async function POST(request: Request) {
       if (existing?.status === "in_progress") return json({ attempt: existing });
 
       const started = await transaction(async (connection) => {
-        const [categories] = await connection.execute<(RowDataPacket & { id: number; time_limit_minutes: number | null })[]>(
-          "SELECT id, time_limit_minutes FROM quiz_categories WHERE id = ? LIMIT 1 FOR UPDATE",
+        const [categories] = await connection.execute<(RowDataPacket & { id: number; time_limit_minutes: number | null; question_type: string | null })[]>(
+          "SELECT id, time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1 FOR UPDATE",
           [categoryId],
         );
         if (!categories[0]) return { error: "Kategori quiz tidak ditemukan.", status: 404 as const };
@@ -282,7 +321,7 @@ export async function POST(request: Request) {
         const timeLimit = Number(categories[0].time_limit_minutes);
         if (!Number.isInteger(timeLimit) || timeLimit < 1) return { error: "Timer belum diatur untuk kategori ini.", status: 422 as const };
         const [questions] = await connection.execute<(RowDataPacket & SnapshotQuestion)[]>(
-          "SELECT id, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id",
+          "SELECT id, question, option_a, option_b, option_c, option_d, answer_index, explanation, question_type FROM quiz_questions WHERE category_id = ? ORDER BY id",
           [categoryId],
         );
         if (!questions.length) return { error: "Kategori ini belum memiliki soal.", status: 422 as const };
@@ -293,8 +332,9 @@ export async function POST(request: Request) {
           option_b: question.option_b,
           option_c: question.option_c,
           option_d: question.option_d,
-          answer_index: Number(question.answer_index),
+          answer_index: question.answer_index === null ? null : Number(question.answer_index),
           explanation: question.explanation,
+          question_type: categories[0].question_type === "essay" ? "essay" : "pilihan",
         }));
         const [insertResult] = await connection.execute(
           "INSERT INTO quiz_attempts (user_id, category_id, time_limit_minutes, questions_snapshot, answers, expires_at) VALUES (?, ?, ?, ?, ?, TIMESTAMPADD(MINUTE, ?, UTC_TIMESTAMP()))",
@@ -334,7 +374,9 @@ export async function POST(request: Request) {
         const completed = await completeAttempt(attemptId, guard.user.id, {});
         return json({ expired: true, result: completed.result }, completed.status);
       }
-      return json({ success: true, answer_check: { correct: answers[String(question.id)] === question.answer_index, answer_index: question.answer_index } });
+      return question.question_type === "essay"
+        ? json({ success: true })
+        : json({ success: true, answer_check: { correct: answers[String(question.id)] === question.answer_index, answer_index: question.answer_index } });
     }
 
     if (body.action === "submit") {

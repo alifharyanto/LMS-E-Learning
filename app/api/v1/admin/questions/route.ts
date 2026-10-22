@@ -20,13 +20,21 @@ export async function POST(request: Request) {
     const body = await readJson(request);
     const categoryId = parseId(String(body?.category_id ?? ""));
     const question = safeString(body?.question, 10_000);
+    const rawQuestionType = String(body?.question_type ?? "pilihan").toLowerCase();
+    const questionType = rawQuestionType === "essay" || rawQuestionType === "esai" ? "essay" : "pilihan";
     const options = ["option_a", "option_b", "option_c", "option_d"].map((field) => safeString(body?.[field], 255));
     const answerIndex = Number(body?.answer_index);
-    if (!categoryId || !question || options.some((option) => !option) || !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3) {
-      return json({ error: "Lengkapi kategori, pertanyaan, empat opsi, dan jawaban benar." }, 422);
+    if (!categoryId || !question) {
+      return json({ error: "Lengkapi kategori dan pertanyaan." }, 422);
+    }
+    if (questionType === "pilihan" && (!options.some((option) => !option) || !Number.isInteger(answerIndex) || answerIndex < 0 || answerIndex > 3)) {
+      return json({ error: "Untuk soal pilihan, lengkapi empat opsi dan jawaban benar." }, 422);
     }
 
-    const result = await execute("INSERT INTO quiz_questions (category_id, question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [categoryId, question, ...options, answerIndex, safeString(body?.explanation, 10_000)]);
+    const result = await execute(
+      "INSERT INTO quiz_questions (category_id, question_type, question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [categoryId, questionType, question, questionType === "essay" ? null : options[0], questionType === "essay" ? null : options[1], questionType === "essay" ? null : options[2], questionType === "essay" ? null : options[3], questionType === "essay" ? null : answerIndex, safeString(body?.explanation, 10_000)],
+    );
 
     return json({ success: true, id: result.insertId }, 201);
   } catch (error) {

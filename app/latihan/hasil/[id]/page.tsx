@@ -10,14 +10,17 @@ import { apiRequest, type ApiError } from "@/lib/browser-api";
 type ReviewQuestion = {
   id: number;
   question: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  answer_index: number;
+  option_a: string | null;
+  option_b: string | null;
+  option_c: string | null;
+  option_d: string | null;
+  answer_index: number | null;
   selected_index: number | null;
+  selected_text: string | null;
+  question_type: "pilihan" | "essay";
+  teacher_check: boolean | null;
   explanation: string | null;
-  status: "correct" | "incorrect" | "unanswered";
+  status: "correct" | "incorrect" | "unanswered" | "pending";
 };
 
 type ReviewData = {
@@ -76,11 +79,13 @@ export default function QuizResultReviewPage() {
         <div><span>Terjawab benar</span><strong className="is-correct">{result.correct_answers}</strong></div>
         <div><span>Terjawab salah</span><strong className="is-incorrect">{result.incorrect_answers}</strong></div>
         <div><span>Tidak dijawab</span><strong>{result.unanswered_answers}</strong></div>
+        <div><span>Menunggu guru</span><strong>{questions.filter((question) => question.status === "pending").length}</strong></div>
       </div>
       <div className="quiz-review-list">
         {questions.map((question, questionIndex) => {
-          const options = [question.option_a, question.option_b, question.option_c, question.option_d];
-          const statusLabel = question.status === "correct" ? "Benar" : question.status === "incorrect" ? "Salah" : "Tidak dijawab";
+          const options = [question.option_a ?? "", question.option_b ?? "", question.option_c ?? "", question.option_d ?? ""];
+          const answerIndex = question.answer_index ?? 0;
+          const statusLabel = question.status === "correct" ? "Benar" : question.status === "incorrect" ? "Salah" : question.status === "pending" ? "Menunggu penilaian" : "Tidak dijawab";
           const StatusIcon = question.status === "correct" ? CheckCircle2 : question.status === "incorrect" ? XCircle : Circle;
           return <motion.article
             className={`quiz-review-card is-${question.status}`}
@@ -92,10 +97,17 @@ export default function QuizResultReviewPage() {
           >
             <div className="quiz-review-card-heading"><span>SOAL {questionIndex + 1} / {questions.length}</span><strong><StatusIcon size={15} />{statusLabel}</strong></div>
             <h2>{question.question}</h2>
+            {question.question_type === "essay" ? <div className="quiz-review-feedback quiz-review-essay-answer">
+              <span>Jawaban Anda</span>
+              <p>{question.selected_text?.trim() || "Tidak ada jawaban yang dikirim."}</p>
+              {question.status === "pending" && <strong>Jawaban ini masih menunggu pemeriksaan guru.</strong>}
+              {question.status === "correct" && <strong>Guru menandai jawaban ini benar.</strong>}
+              {question.status === "incorrect" && <strong>Guru menandai jawaban ini belum benar.</strong>}
+            </div> : <>
             <div className="quiz-review-options" role="list" aria-label={`Pilihan jawaban soal ${questionIndex + 1}`}>
               {options.map((option, optionIndex) => {
                 const isSelected = question.selected_index === optionIndex;
-                const isCorrect = question.answer_index === optionIndex;
+                const isCorrect = answerIndex === optionIndex;
                 const tags = [isSelected ? "Jawaban Anda" : "", isCorrect ? "Jawaban benar" : ""].filter(Boolean).join(" · ");
                 return <div className={`quiz-review-option${isSelected ? " is-selected" : ""}${isCorrect ? " is-correction" : ""}`} role="listitem" key={`${question.id}-${optionIndex}`}>
                   <span className="quiz-review-option-letter">{letters[optionIndex]}</span>
@@ -106,9 +118,10 @@ export default function QuizResultReviewPage() {
             </div>
             <div className={`quiz-review-feedback is-${question.status}`}>
               <span>{question.selected_index === null ? "Jawaban Anda: Tidak dijawab" : `Jawaban Anda: ${letters[question.selected_index]} — ${options[question.selected_index]}`}</span>
-              <strong>Jawaban yang benar: {letters[question.answer_index]} — {options[question.answer_index]}</strong>
+              <strong>Jawaban yang benar: {letters[answerIndex]} — {options[answerIndex]}</strong>
               <p>{question.explanation?.trim() || "Admin belum menambahkan alasan untuk jawaban ini."}</p>
             </div>
+            </>}
           </motion.article>;
         })}
       </div>

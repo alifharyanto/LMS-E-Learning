@@ -7,10 +7,10 @@ import { ArrowDown, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X
 import { apiRequest, type ApiError } from "@/lib/browser-api";
 import { MotionButton, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 
-type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null };
-type Question = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string };
-type QuizResult = { id: number; score: number; total: number; percent: number; correct_answers?: number; incorrect_answers?: number; unanswered_answers?: number; explanations: { id: number; text: string | null; answer_index: number }[] };
-type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number>; remaining_seconds: number; result: QuizResult | null };
+type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
+type Question = { id: number; question: string; option_a: string | null; option_b: string | null; option_c: string | null; option_d: string | null; question_type?: "pilihan" | "essay" };
+type QuizResult = { id: number; score: number; total: number; percent: number; correct_answers?: number; incorrect_answers?: number; unanswered_answers?: number; explanations: { id: number; text: string | null; answer_index: number | null }[] };
+type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number | string>; remaining_seconds: number; result: QuizResult | null };
 type AnswerCheck = { correct: boolean; answer_index: number };
 const QUESTION_SECONDS = 30;
 const ANSWER_REVEAL_MS = 1500;
@@ -30,8 +30,9 @@ export default function LatihanPage() {
   const categoryId = searchParams.get("category_id");
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryName, setCategoryName] = useState("");
+  const [questionType, setQuestionType] = useState<"pilihan" | "essay">("pilihan");
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [answers, setAnswers] = useState<Record<string, number | string>>({});
   const [answerChecks, setAnswerChecks] = useState<Record<string, AnswerCheck>>({});
   const [result, setResult] = useState<QuizResult | null>(null);
   const [attemptId, setAttemptId] = useState<number | null>(null);
@@ -52,14 +53,22 @@ export default function LatihanPage() {
   const currentIndexRef = useRef(0);
   const answerProcessingRef = useRef(new Set<number>());
   const answerAdvanceTimeoutRef = useRef<number | null>(null);
+  const essaySaveTimeoutRef = useRef<number | null>(null);
+  const pendingEssaySaveRef = useRef<{ questionId: number; answers: Record<string, number | string> } | null>(null);
   const [loadedCategoryId, setLoadedCategoryId] = useState<string | null | undefined>(undefined);
   const loading = loadedCategoryId !== categoryId;
-  const answeredCount = questions.filter((question) => answers[String(question.id)] !== undefined).length;
+  const answeredCount = questions.filter((question) => {
+    const answer = answers[String(question.id)];
+    return typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
+  }).length;
   const completion = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
-  const firstUnansweredIndex = questions.findIndex((question) => answers[String(question.id)] === undefined && !skippedIds.has(question.id));
+  const firstUnansweredIndex = questions.findIndex((question) => {
+    const answer = answers[String(question.id)];
+    return answer === undefined || (typeof answer === "string" && !answer.trim()) ? !skippedIds.has(question.id) : false;
+  });
   const currentQuestion = questions[currentIndex];
   const currentAnswer = currentQuestion ? answers[String(currentQuestion.id)] : undefined;
-  const currentOptions = currentQuestion ? [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d] : [];
+  const currentOptions = currentQuestion ? [currentQuestion.option_a ?? "", currentQuestion.option_b ?? "", currentQuestion.option_c ?? "", currentQuestion.option_d ?? ""] : [];
   const currentOptionOrder = currentQuestion ? optionOrders[String(currentQuestion.id)] ?? [0, 1, 2, 3] : [];
   const unansweredCount = questions.length - answeredCount - skippedIds.size;
 
@@ -80,11 +89,15 @@ export default function LatihanPage() {
   useEffect(() => {
     let active = true;
     const endpoint = categoryId ? `/api/v1/quizzes?category_id=${encodeURIComponent(categoryId)}` : "/api/v1/quizzes";
-    apiRequest<{ categories?: Category[]; category?: { name: string; time_limit_minutes: number | null }; questions?: Question[] }>(endpoint)
+    if (essaySaveTimeoutRef.current !== null) window.clearTimeout(essaySaveTimeoutRef.current);
+    essaySaveTimeoutRef.current = null;
+    pendingEssaySaveRef.current = null;
+    apiRequest<{ categories?: Category[]; category?: { name: string; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" }; questions?: Question[] }>(endpoint)
       .then(async (data) => {
         if (!active) return;
         setCategories(data.categories ?? []);
         setCategoryName(data.category?.name ?? "");
+        setQuestionType(data.category?.question_type ?? "pilihan");
         setResult(null);
         setAttemptId(null);
         attemptIdRef.current = null;
@@ -110,7 +123,9 @@ export default function LatihanPage() {
           }
           if (!active) return;
           if (attempt) {
-            nextQuestions = attempt.questions;
+            const categoryQuestionType = data.category?.question_type ?? "pilihan";
+            nextQuestions = attempt.questions.map((question) => ({ ...question, question_type: categoryQuestionType }));
+            setQuestionType(categoryQuestionType);
             setAnswers(attempt.answers);
             if (attempt.status === "in_progress") {
               setAttemptId(attempt.id);
@@ -136,12 +151,47 @@ export default function LatihanPage() {
     return () => { active = false; };
   }, [categoryId, router]);
 
+  function flushEssaySave() {
+    if (essaySaveTimeoutRef.current !== null) {
+      window.clearTimeout(essaySaveTimeoutRef.current);
+      essaySaveTimeoutRef.current = null;
+    }
+    const pending = pendingEssaySaveRef.current;
+    pendingEssaySaveRef.current = null;
+    if (!pending || attemptIdRef.current === null) return;
+    const currentAttemptId = attemptIdRef.current;
+    saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(async () => {
+      const response = await apiRequest<{ result?: QuizResult }>("/api/v1/quizzes/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save", attempt_id: currentAttemptId, question_id: pending.questionId, answers: pending.answers }),
+      });
+      if (response.result) {
+        setResult(response.result);
+        setAttemptId(null);
+        attemptIdRef.current = null;
+        setRemainingSeconds(null);
+      }
+    }).catch((requestError) => {
+      setError(requestError instanceof Error ? requestError.message : "Jawaban essay gagal disimpan.");
+    });
+  }
+
+  function updateEssayAnswer(questionId: number, text: string) {
+    const nextAnswers = { ...answers, [String(questionId)]: text };
+    setAnswers(nextAnswers);
+    pendingEssaySaveRef.current = { questionId, answers: nextAnswers };
+    if (essaySaveTimeoutRef.current !== null) window.clearTimeout(essaySaveTimeoutRef.current);
+    essaySaveTimeoutRef.current = window.setTimeout(flushEssaySave, 400);
+  }
+
   async function submitTimedQuiz(timedOut = false, submittedAnswers = answers) {
     if (submittingAttemptRef.current) return;
     submittingAttemptRef.current = true;
     setBusy(true);
     setError("");
     try {
+      flushEssaySave();
       await saveQueueRef.current;
       let currentAttemptId = attemptIdRef.current ?? attemptId;
       let currentAttempt: QuizAttempt | null = null;
@@ -318,14 +368,14 @@ export default function LatihanPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "start", category_id: categoryId }),
         });
-        nextQuestions = response.attempt.questions;
+        nextQuestions = response.attempt.questions.map((question) => ({ ...question, question_type: questionType }));
         setAttemptId(response.attempt.id);
         attemptIdRef.current = response.attempt.id;
         setRemainingSeconds(response.attempt.remaining_seconds);
         remainingSecondsRef.current = response.attempt.remaining_seconds;
       } else {
         const response = await apiRequest<{ questions?: Question[] }>(`/api/v1/quizzes?category_id=${encodeURIComponent(categoryId)}`);
-        nextQuestions = response.questions ?? [];
+        nextQuestions = (response.questions ?? []).map((question) => ({ ...question, question_type: questionType }));
         setAttemptId(null);
         attemptIdRef.current = null;
         setRemainingSeconds(null);
@@ -382,7 +432,7 @@ export default function LatihanPage() {
   });
 
   useEffect(() => {
-    if (!categoryId || loading || result || !currentQuestion || currentAnswer !== undefined || skippedIds.has(currentQuestion.id)) return;
+    if (!categoryId || loading || result || !currentQuestion || currentQuestion.question_type === "essay" || currentAnswer !== undefined || skippedIds.has(currentQuestion.id)) return;
     let seconds = QUESTION_SECONDS;
     const interval = window.setInterval(() => {
       seconds -= 1;
@@ -442,13 +492,13 @@ export default function LatihanPage() {
       <motion.section className="quiz-result-panel" aria-labelledby="quiz-result-title" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
         <div className="quiz-result-icon" aria-hidden="true"><Trophy size={24} /></div>
         <span className="quiz-kicker">LATIHAN SELESAI</span>
-        <h2 id="quiz-result-title">Selamat, Anda telah menyelesaikannya! Mainnya Hebat.</h2>
-        <p className="quiz-result-caption">{categoryName ? `Ringkasan hasil latihan ${categoryName}` : "Berikut ringkasan hasil latihan Anda."}</p>
-        <div className="quiz-result-stats">
+        <h2 id="quiz-result-title">{questionType === "essay" ? "Jawaban essay berhasil dikirim." : "Selamat, Anda telah menyelesaikannya! Mainnya Hebat."}</h2>
+        <p className="quiz-result-caption">{questionType === "essay" ? "Guru akan memeriksa jawaban dan memperbarui nilai setelah penilaian." : categoryName ? `Ringkasan hasil latihan ${categoryName}` : "Berikut ringkasan hasil latihan Anda."}</p>
+        {questionType !== "essay" && <div className="quiz-result-stats">
           <div className="is-correct"><span className="quiz-result-stat-icon"><Check size={17} /></span><strong>{correctCount}</strong><span>Benar</span></div>
           <div className="is-incorrect"><span className="quiz-result-stat-icon"><X size={17} /></span><strong>{wrongCount}</strong><span>Salah</span></div>
           <div className="is-unanswered"><span className="quiz-result-stat-icon"><Clock3 size={17} /></span><strong>{skippedCount}</strong><span>Tidak dijawab</span></div>
-        </div>
+        </div>}
         <div className="quiz-result-actions">
           <MotionButton type="button" className="button button-primary" onClick={() => router.push(`/latihan/hasil/${result.id}`)}>
             Selanjutnya <ArrowRight size={16} />
@@ -463,7 +513,8 @@ export default function LatihanPage() {
         <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>
         <div className="quiz-progress-track" role="progressbar" aria-label="Progres jawaban" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={questions.length}><span style={{ width: `${completion}%` }} /></div>
         <div className="quiz-question-jump" role="list" aria-label="Status soal">{questions.map((question, index) => {
-          const isAnswered = answers[String(question.id)] !== undefined;
+          const answer = answers[String(question.id)];
+          const isAnswered = typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
           const isSkipped = skippedIds.has(question.id);
           if (showUnansweredOnly && (isAnswered || isSkipped)) return null;
           return <span role="listitem" key={question.id} className={`quiz-jump${isAnswered ? " is-answered" : ""}${index === currentIndex ? " is-current" : ""}${flaggedIds.has(question.id) ? " is-flagged" : ""}${isSkipped ? " is-skipped" : ""}`} aria-current={index === currentIndex ? "step" : undefined}>{index + 1}</span>;
@@ -475,17 +526,25 @@ export default function LatihanPage() {
       </section>
       {currentQuestion && <section className="quiz-question-card" aria-labelledby={`quiz-question-${currentQuestion.id}`}>
         <div className="quiz-question-heading"><span>SOAL {currentIndex + 1} <span>/ {questions.length}</span></span><MotionButton type="button" className={`quiz-flag-button${flaggedIds.has(currentQuestion.id) ? " is-active" : ""}`} aria-pressed={flaggedIds.has(currentQuestion.id)} onClick={() => toggleFlag(currentQuestion.id)}><Flag size={15} />{flaggedIds.has(currentQuestion.id) ? "Ditandai" : "Tandai soal"}</MotionButton></div>
-        <div className="quiz-question-metrics"><div className={`quiz-question-clock ${questionTimerColor}`} role="timer" aria-label={`${questionSeconds} detik untuk soal ini`} style={{ background: `conic-gradient(${questionSeconds <= 8 ? "var(--wrong)" : "var(--accent)"} ${questionSeconds / QUESTION_SECONDS * 360}deg, var(--border) 0deg)` }}><span>{questionSeconds}</span></div><div className="quiz-live-score"><span>SKOR</span><strong>{liveScore * 10}</strong><small>poin</small></div></div>
+        {currentQuestion.question_type !== "essay" && <div className="quiz-question-metrics"><div className={`quiz-question-clock ${questionTimerColor}`} role="timer" aria-label={`${questionSeconds} detik untuk soal ini`} style={{ background: `conic-gradient(${questionSeconds <= 8 ? "var(--wrong)" : "var(--accent)"} ${questionSeconds / QUESTION_SECONDS * 360}deg, var(--border) 0deg)` }}><span>{questionSeconds}</span></div><div className="quiz-live-score"><span>SKOR</span><strong>{liveScore * 10}</strong><small>poin</small></div></div>}
         <div className="quiz-question-prompt" id={`quiz-question-${currentQuestion.id}`}><p>{currentQuestion.question}</p></div>
-        <div className="quiz-options" role="group" aria-label="Pilihan jawaban">{currentOptionOrder.map((originalIndex, displayIndex) => {
+        {currentQuestion.question_type === "essay" ? <div className="quiz-essay-answer">
+          <label htmlFor={`quiz-answer-${currentQuestion.id}`}>Jawaban essay Anda</label>
+          <textarea id={`quiz-answer-${currentQuestion.id}`} value={typeof currentAnswer === "string" ? currentAnswer : ""} maxLength={20_000} placeholder="Ketik jawaban Anda di sini..." onChange={(event) => updateEssayAnswer(currentQuestion.id, event.target.value)} />
+          <span>{typeof currentAnswer === "string" ? currentAnswer.length : 0}/20.000 karakter · Jawaban tersimpan otomatis</span>
+        </div> : <div className="quiz-options" role="group" aria-label="Pilihan jawaban">{currentOptionOrder.map((originalIndex, displayIndex) => {
           const option = currentOptions[originalIndex];
           const isChosen = currentAnswer === originalIndex;
           const isCorrect = currentCorrectAnswerIndex === originalIndex;
           const isWrong = isChosen && currentCorrectAnswerIndex !== undefined && !isCorrect;
           return <MotionButton type="button" key={`${currentQuestion.id}-${originalIndex}`} className={`quiz-answer-option${isChosen ? " is-chosen" : ""}${isCorrect ? " is-correct" : ""}${isWrong ? " is-wrong" : ""}`} aria-pressed={isChosen} disabled={currentAnswer !== undefined || skippedIds.has(currentQuestion.id)} onClick={() => selectAnswer(currentQuestion.id, originalIndex)}><span className="quiz-answer-letter">{String.fromCharCode(65 + displayIndex)}</span><span>{option}</span>{isCorrect && <Check className="quiz-answer-mark" size={17} />}{isWrong && <X className="quiz-answer-mark" size={17} />}</MotionButton>;
-        })}</div>
+        })}</div>}
         {currentAnswerCheck && <div className="quiz-answer-feedback" role="status">{currentCorrectAnswerIndex === currentAnswer ? <strong>Benar! Jawabanmu tepat.</strong> : <><strong>Belum tepat.</strong> Jawaban benar ditandai hijau.</>}</div>}
         {skippedIds.has(currentQuestion.id) && <p className="quiz-skipped-note">Waktu soal habis. Soal ini ditandai terlewat.</p>}
+        <div className="quiz-question-navigation">
+          <MotionButton type="button" className="button button-secondary" disabled={currentIndex === 0} onClick={() => goToQuestion(currentIndex - 1)}>Sebelumnya</MotionButton>
+          {currentIndex < questions.length - 1 ? <MotionButton type="button" className="button button-primary" onClick={() => { flushEssaySave(); goToQuestion(currentIndex + 1); }}>{currentQuestion.question_type === "essay" ? "Simpan & lanjut" : "Berikutnya"}<ArrowRight size={15} /></MotionButton> : <MotionButton type="button" className="button button-primary" disabled={busy} onClick={() => { flushEssaySave(); void finishQuiz(); }}>{busy ? "Mengirim..." : "Kirim jawaban"}<ArrowRight size={15} /></MotionButton>}
+        </div>
       </section>}
     </div> : <div className="empty-state">Belum ada soal dalam kategori ini.</div>)}
   </div>;

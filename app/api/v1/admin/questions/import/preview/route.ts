@@ -7,7 +7,7 @@ import type { RowDataPacket } from "mysql2";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CategoryRow = RowDataPacket & { id: number; name: string };
+type CategoryRow = RowDataPacket & { id: number; name: string; question_type: string | null };
 
 export async function POST(request: Request) {
   const user = await getRequestUser(request);
@@ -20,12 +20,17 @@ export async function POST(request: Request) {
 
   try {
     const parsed = await parseQuizImport(file);
-    const categories = await queryRows<CategoryRow[]>("SELECT id, name FROM quiz_categories");
-    const categoryMap = new Map(categories.map((category) => [category.name.trim().toLocaleLowerCase("id-ID"), category.id]));
+    const categories = await queryRows<CategoryRow[]>("SELECT id, name, question_type FROM quiz_categories");
+    const categoryMap = new Map(categories.map((category) => [category.name.trim().toLocaleLowerCase("id-ID"), { id: category.id, questionType: category.question_type ?? "pilihan" }]));
     const errors: QuizImportError[] = [...parsed.errors];
     const rows = parsed.rows.filter((row) => {
-      if (!categoryMap.has(row.category.toLocaleLowerCase("id-ID"))) {
+      const categoryLookup = parsed.category ? { id: 0, questionType: parsed.category.questionType } : categoryMap.get(row.category.toLocaleLowerCase("id-ID"));
+      if (!categoryLookup) {
         errors.push({ rowNumber: row.rowNumber, message: `Kategori \"${row.category}\" tidak ditemukan.` });
+        return false;
+      }
+      if (categoryLookup.questionType === "essay" && row.question_type !== "essay") {
+        errors.push({ rowNumber: row.rowNumber, message: `Kategori \"${row.category}\" diatur sebagai essay, tetapi soal ini bukan jenis essay.` });
         return false;
       }
       return true;

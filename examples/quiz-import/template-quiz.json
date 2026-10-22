@@ -1,6 +1,9 @@
 [
   {
-    "category": "HTML",
+    "category" : "Web Development",
+    "time" : "20"
+  },
+  {
     "question": "Tag untuk heading terbesar adalah?",
     "option_a": "<h1>",
     "option_b": "<h2>",
@@ -10,7 +13,6 @@
     "explanation": "Tag <h1> adalah heading paling besar."
   },
   {
-    "category": "CSS",
     "question": "Properti yang digunakan untuk mengubah warna teks adalah?",
     "option_a": "color",
     "option_b": "background",
@@ -20,7 +22,6 @@
     "explanation": "Properti color mengatur warna teks."
   },
   {
-    "category": "PHP",
     "question": "Operator untuk mengecek kesamaan nilai dan tipe data adalah?",
     "option_a": "==",
     "option_b": "===",
