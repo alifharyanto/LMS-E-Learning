@@ -44,6 +44,7 @@ export default function LatihanPage() {
   const [skippedIds, setSkippedIds] = useState<Set<number>>(new Set());
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const [questionSeconds, setQuestionSeconds] = useState(QUESTION_SECONDS);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -84,6 +85,7 @@ export default function LatihanPage() {
     setFlaggedIds(new Set());
     setSkippedIds(new Set());
     setQuestionSeconds(QUESTION_SECONDS);
+    setCountdownSeconds(shuffledQuestions.length ? 5 : null);
   }
 
   useEffect(() => {
@@ -178,6 +180,7 @@ export default function LatihanPage() {
   }
 
   function updateEssayAnswer(questionId: number, text: string) {
+    if (countdownSeconds !== null) return;
     const nextAnswers = { ...answers, [String(questionId)]: text };
     setAnswers(nextAnswers);
     pendingEssaySaveRef.current = { questionId, answers: nextAnswers };
@@ -257,6 +260,14 @@ export default function LatihanPage() {
   }, []);
 
   useEffect(() => {
+    if (!categoryId || loading || result || countdownSeconds === null) return;
+    const timeout = window.setTimeout(() => {
+      setCountdownSeconds((seconds) => seconds === null ? null : seconds === 0 ? null : seconds - 1);
+    }, countdownSeconds === 0 ? 400 : 1000);
+    return () => window.clearTimeout(timeout);
+  }, [categoryId, countdownSeconds, loading, result]);
+
+  useEffect(() => {
     if (attemptId === null || result) return;
     const interval = window.setInterval(() => {
       const seconds = remainingSecondsRef.current;
@@ -275,7 +286,7 @@ export default function LatihanPage() {
   }, [attemptId, remainingSeconds, result]);
 
   function selectAnswer(questionId: number, optionIndex: number) {
-    if (answers[String(questionId)] !== undefined || skippedIds.has(questionId) || answerProcessingRef.current.size > 0) return;
+    if (countdownSeconds !== null || answers[String(questionId)] !== undefined || skippedIds.has(questionId) || answerProcessingRef.current.size > 0) return;
     if (!categoryId) return;
     answerProcessingRef.current.add(questionId);
     const nextAnswers = { ...answers, [String(questionId)]: optionIndex };
@@ -418,7 +429,7 @@ export default function LatihanPage() {
   }
 
   const skipCurrentQuestion = useEffectEvent(() => {
-    if (!currentQuestion || answers[String(currentQuestion.id)] !== undefined || skippedIds.has(currentQuestion.id)) return;
+    if (countdownSeconds !== null || !currentQuestion || answers[String(currentQuestion.id)] !== undefined || skippedIds.has(currentQuestion.id)) return;
     setSkippedIds((previous) => new Set(previous).add(currentQuestion.id));
     const allQuestionsComplete = answeredCount + skippedIds.size + 1 >= questions.length;
     setQuestionSeconds(QUESTION_SECONDS);
@@ -432,7 +443,7 @@ export default function LatihanPage() {
   });
 
   useEffect(() => {
-    if (!categoryId || loading || result || !currentQuestion || currentQuestion.question_type === "essay" || currentAnswer !== undefined || skippedIds.has(currentQuestion.id)) return;
+    if (!categoryId || loading || countdownSeconds !== null || result || !currentQuestion || currentQuestion.question_type === "essay" || currentAnswer !== undefined || skippedIds.has(currentQuestion.id)) return;
     let seconds = QUESTION_SECONDS;
     const interval = window.setInterval(() => {
       seconds -= 1;
@@ -443,9 +454,10 @@ export default function LatihanPage() {
       }
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [categoryId, currentAnswer, currentIndex, currentQuestion, loading, result, skippedIds]);
+  }, [categoryId, countdownSeconds, currentAnswer, currentIndex, currentQuestion, loading, result, skippedIds]);
 
   const handleQuizKeydown = useEffectEvent((event: KeyboardEvent) => {
+    if (countdownSeconds !== null) return;
     const target = event.target;
     if (target instanceof HTMLElement && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
     if (event.key === "ArrowLeft") {
@@ -465,10 +477,10 @@ export default function LatihanPage() {
   });
 
   useEffect(() => {
-    if (!categoryId || loading || result) return;
+    if (!categoryId || loading || countdownSeconds !== null || result) return;
     window.addEventListener("keydown", handleQuizKeydown);
     return () => window.removeEventListener("keydown", handleQuizKeydown);
-  }, [categoryId, loading, result]);
+  }, [categoryId, countdownSeconds, loading, result]);
 
   if (!categoryId) return <div className="quiz-page">
     <header className="page-heading quiz-page-heading"><span className="eyebrow">LATIHAN SOAL</span><h1 className="page-title">Pilih Kategori Latihan</h1><p className="page-intro">Pilih kategori untuk memulai quiz.</p></header>
@@ -508,7 +520,13 @@ export default function LatihanPage() {
           </MotionButton>
         </div>
       </motion.section>
-    </> : <div className="quiz-session">
+    </> : countdownSeconds !== null ? <motion.section className="quiz-result-panel quiz-countdown-panel" aria-labelledby="quiz-countdown-title" role="status" aria-live="polite" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+      <div className="quiz-result-icon" aria-hidden="true"><Clock3 size={24} /></div>
+      <span className="quiz-kicker">PERSIAPAN LATIHAN</span>
+      <h2 id="quiz-countdown-title">Soal akan segera di mulai, Bersiaplah!</h2>
+      <span className="quiz-countdown-number" aria-label={`${countdownSeconds} detik`}>{countdownSeconds}</span>
+      <p className="quiz-result-caption">Siapkan dirimu untuk mengerjakan soal.</p>
+    </motion.section> : <div className="quiz-session">
       <section className="quiz-progress-panel" aria-label="Navigasi quiz">
         <div className="quiz-progress-heading"><div><span className="list-meta">PROGRES QUIZ</span><strong>{answeredCount} dari {questions.length} soal</strong></div><div className="quiz-progress-status">{attemptId !== null && remainingSeconds !== null && <span className="quiz-timer" role="timer" aria-label={`Sisa waktu ${Math.floor(remainingSeconds / 60)} menit ${remainingSeconds % 60} detik`}><Clock3 size={15} />{String(Math.floor(remainingSeconds / 60)).padStart(2, "0")}:{String(remainingSeconds % 60).padStart(2, "0")}</span>}<span className="quiz-progress-percent">{completion}%</span></div></div>
         <div className="quiz-progress-track" role="progressbar" aria-label="Progres jawaban" aria-valuenow={answeredCount} aria-valuemin={0} aria-valuemax={questions.length}><span style={{ width: `${completion}%` }} /></div>
