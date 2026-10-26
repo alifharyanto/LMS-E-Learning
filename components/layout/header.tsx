@@ -24,8 +24,22 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
   useEffect(() => {
     if (!menuOpen) return;
 
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    const previousPosition = body.style.position;
+    const previousTop = body.style.top;
+    const previousLeft = body.style.left;
+    const previousWidth = body.style.width;
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const root = document.documentElement;
+    const previousScrollBehavior = root.style.scrollBehavior;
+
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = `-${scrollX}px`;
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") setMenuOpen(false);
@@ -33,7 +47,14 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      body.style.position = previousPosition;
+      body.style.top = previousTop;
+      body.style.left = previousLeft;
+      body.style.width = previousWidth;
+      body.style.overflow = previousOverflow;
+      root.style.scrollBehavior = "auto";
+      window.scrollTo(scrollX, scrollY);
+      root.style.scrollBehavior = previousScrollBehavior;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [menuOpen]);
