@@ -233,11 +233,7 @@ export default function MyProfilePage() {
                 aria-controls="profileDropdownMenu"
                 className="profile-menu-button"
               >
-                {photoData ? (
-                  <Image src={photoData} alt="" width={36} height={36} unoptimized className="profile-menu-photo" />
-                ) : (
-                  headerInitial
-                )}
+                <ChevronDown aria-hidden="true" size={18} />
               </button>
 
               <div

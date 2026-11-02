@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, FileText, House, LogOut, NotebookText, Play, Search, UserRound } from "lucide-react";
+import { ArrowRight, BookOpenText, FileText, House, LogOut, NotebookText, Play, Search, UserRound } from "lucide-react";
 
 const navItems = [
   { label: "Beranda", href: "/", icon: House, active: false },
@@ -233,7 +233,7 @@ export default function KursusPage() {
               </div>
             </div>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-xs font-bold text-white shadow-sm">
-              N
+              <ArrowRight aria-hidden="true" size={18} />
             </div>
           </div>
 
