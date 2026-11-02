@@ -121,19 +121,17 @@ export default function KursusPage() {
             </div>
           </div>
 
-          <div className="px-4 py-6">
-            <p className="mb-3 px-3 text-[11px] font-bold uppercase tracking-wider text-[#94a3b8]">Menu Utama</p>
-            <nav className="space-y-1.5">
+          <div className="profile-sidebar-navigation">
+            <p>Menu Utama</p>
+            <nav aria-label="Navigasi utama">
               {navItems.map(({ label, href, icon: Icon, active }) => (
                 <a
                   key={label}
                   href={href}
-                  className={[
-                    "flex items-center space-x-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-150",
-                    active ? "bg-[#def3f6] text-[#3b667a] shadow-sm" : "text-[#64748b] hover:bg-[#f8fafc] hover:text-[#334155]",
-                  ].join(" ")}
+                  aria-current={active ? "page" : undefined}
+                  className={`profile-nav-link${active ? " is-active" : ""}`}
                 >
-                  <Icon className={active ? "h-5 w-5 text-[#608da2]" : "h-5 w-5 text-[#94a3b8] transition-colors group-hover:text-[#608da2]"} />
+                  <Icon />
                   <span>{label}</span>
                 </a>
               ))}

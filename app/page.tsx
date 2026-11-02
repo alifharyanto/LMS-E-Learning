@@ -84,32 +84,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1.5 px-4 py-5">
-          <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</div>
-
-          {navItems.map(({ label, active, icon: Icon }) => {
-            const href = label === "Beranda" ? "/" : label === "My Profile" ? "/profile" : label === "Kursus Materi" ? "/kursus" : label === "Latihan Soal" ? "/latihan" : "/code";
-            return (
-            <a
-              key={label}
-              href={href}
-              className={[
-                "flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150",
-                active
-                  ? "bg-[#E8F5E9] font-bold text-[#1B4332]"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-              ].join(" ")}
-              style={active ? { backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)" } : undefined}
-            >
-              <Icon
-                className={active ? "h-5 w-5" : "h-5 w-5 text-slate-400"}
-                style={active ? { color: "rgb(82, 128, 149)" } : undefined}
-              />
-              <span>{label}</span>
-            </a>
-            );
-          })}
-        </nav>
+        <div className="profile-sidebar-navigation">
+          <p>Menu Utama</p>
+          <nav aria-label="Navigasi utama">
+            {navItems.map(({ label, active, icon: Icon }) => {
+              const href = label === "Beranda" ? "/" : label === "My Profile" ? "/profile" : label === "Kursus Materi" ? "/kursus" : label === "Latihan Soal" ? "/latihan" : "/code";
+              return (
+                <a key={label} href={href} aria-current={active ? "page" : undefined} className={`profile-nav-link${active ? " is-active" : ""}`}>
+                  <Icon />
+                  <span>{label}</span>
+                </a>
+              );
+            })}
+          </nav>
+        </div>
 
         <div className="mt-auto border-t border-slate-100 p-4 pb-8">
           <a href="/login" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-rose-50/80" style={{ color: "#ef4444" }}>
