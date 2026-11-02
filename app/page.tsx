@@ -74,7 +74,7 @@ export default function HomePage() {
               <img
                 alt="CourseUp Logo"
                 className="h-11 w-11 object-contain"
-                src="https://lh3.googleusercontent.com/aida/AEtjO1UTF7bx9ROsZXbYs_9Gef8QHkc22v8-UXXbi0dFVU_WAi9rMTWJebs4Zs0_OKkCo3U7HLPfSc5Om--Q8zg0YLWbiOavEtLNT98ollkan9DmlOeir-_af_llGPYtLPe4BZE5tUNJAHc6U9KxQT0HlnzEwDHfgB4UD9qglTJkpuX1OBaE1REOkp3bfRJhpuQVG6_nlAKx2GuWK5OF4aLw8Rx1tkZL-mHh-TfWP6Zn_b0"
+                src="/course-up-logo.png"
               />
             </div>
             <div className="flex select-none items-center tracking-tight leading-none">
@@ -112,8 +112,8 @@ export default function HomePage() {
         </nav>
 
         <div className="mt-auto border-t border-slate-100 p-4 pb-8">
-          <a href="/login" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50/80">
-            <LogOut className="h-5 w-5 text-rose-500" />
+          <a href="/login" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors hover:bg-rose-50/80" style={{ color: "#ef4444" }}>
+            <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </a>
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -31,7 +32,7 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <aside className="auth-brand">
-        <MotionLink href="/" className="brand"><span className="brand-mark">C</span><span className="brand-name" style={{ color: "white" }}>Course<span>Up</span></span></MotionLink>
+        <MotionLink href="/" className="brand"><Image src="/course-up-logo.png" alt="Logo Course Up" className="brand-logo" width={39} height={39} /><span className="brand-name" style={{ color: "white" }}>Course<span>Up</span></span></MotionLink>
         <div className="auth-brand-copy"><h1>Ruang belajar untuk melangkah lebih jauh.</h1><p>Kelola materi, latihan, dan progres belajar dalam satu tempat.</p></div>
         <small>© {new Date().getFullYear()} CourseUp</small>
       </aside>

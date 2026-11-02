@@ -112,7 +112,7 @@ export default function KursusPage() {
               <img
                 alt="CourseUp Icon"
                 className="h-10 w-10 shrink-0 object-contain"
-                src="https://lh3.googleusercontent.com/aida/AEtjO1XGFMju0tupjhPtsV7igmxS524svBao7Ps5Z5W7jvwPhzW5CtN_DVUnBMXpE1qYPUBOTrIWLOz2eC7fe-48t0P209h9ZoNedNIS7jVD4-pU8AXYzin4fb5P9JnYaFaOOqrX3EE1TVvWxOqFIEoVTvQaIyDHiXn2VjcUWefYEzPhKfAZWob2TyrtxuFi3ZK9oGHuhiUBVOUAtymVsGByrVsSJ0FUSkgecw6suAFNaSk"
+                src="/course-up-logo.png"
               />
               <span className="flex select-none items-center text-[26px] font-extrabold leading-none tracking-tight">
                 <span className="text-[#b2d7e6]">Course</span>
@@ -142,7 +142,7 @@ export default function KursusPage() {
         </div>
 
         <div className="border-t border-[#f1f5f9] px-4 pb-6 pt-4">
-          <a href="/login" className="flex w-full items-center space-x-3 rounded-xl px-3.5 py-1 text-sm font-semibold text-[#ef4444] transition-colors duration-150 hover:bg-red-50">
+          <a href="/login" className="flex w-full items-center space-x-3 rounded-xl px-3.5 py-1 text-sm font-semibold transition-colors duration-150 hover:bg-red-50" style={{ color: "#ef4444" }}>
             <LogOut className="h-5 w-5" />
             <span>Logout</span>
           </a>

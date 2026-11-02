@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -61,7 +62,7 @@ export default function SiteHeader({ user, onLogout }: SiteHeaderProps) {
 
   return <header className={`site-header${menuOpen ? " is-mobile-menu-open" : ""}`}>
     <nav className="nav-inner" aria-label="Navigasi utama">
-      <MotionLink href="/" className="brand"><span className="brand-mark">C</span><span className="brand-name"><span>Course</span>Up</span></MotionLink>
+      <MotionLink href="/" className="brand"><Image src="/course-up-logo.png" alt="Logo Course Up" className="brand-logo" width={39} height={39} /><span className="brand-name"><span>Course</span>Up</span></MotionLink>
       <div className="nav-primary-nav">
         <div className="nav-links">{navLinks.map(([label, href]) => <MotionLink key={href} href={href} aria-current={pathname === href ? "page" : undefined}>{label}</MotionLink>)}</div>
       </div>
