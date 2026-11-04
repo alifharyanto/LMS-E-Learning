@@ -3390,18 +3390,6 @@ body { color: var(--ink); background-color: var(--paper); }
 }
 .register-mobile-brand { display: none; }
 .register-heading { margin-bottom: 26px; }
-.register-eyebrow {
-  display: inline-block;
-  margin-bottom: 8px;
-  padding: 3px 10px;
-  border-radius: 5px;
-  color: #437188;
-  background: #4371881a;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
 .register-page .register-heading h2 {
   margin: 0;
   color: #111827;

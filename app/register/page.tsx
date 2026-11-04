@@ -55,7 +55,6 @@ export default function RegisterPage() {
             <span className="brand-name"><span>Course</span><span>Up</span></span>
           </Link>
           <header className="register-heading">
-            <span className="register-eyebrow">Registrasi Akun</span>
             <h2>Buat akun baru</h2>
             <p>Lengkapi data berikut untuk memulai perjalanan belajar Anda.</p>
           </header>
