@@ -3300,6 +3300,7 @@ body { color: var(--ink); background-color: var(--paper); }
   }
   .login-page .login-card-reveal { max-width: 440px; }
   .login-page .login-card { padding: clamp(23px, 6vw, 34px); }
+  .login-page .login-heading { text-align: center; }
   .login-mobile-brand {
     display: flex;
     margin: 0 auto 23px;
