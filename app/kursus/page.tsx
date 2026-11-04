@@ -150,7 +150,7 @@ export default function KursusPage() {
       <main className="flex min-w-0 flex-1 flex-col bg-[#f1f6f9]">
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[#e2e8f0] bg-white/70 px-8 backdrop-blur-md">
           <div className="flex items-center space-x-3 text-sm">
-            <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[#437188]">
+            <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
               Ruang Belajar Anda
             </span>
             <span className="text-[#cbd5e1]">/</span>
@@ -162,26 +162,28 @@ export default function KursusPage() {
               id="profileDropdownBtn"
               type="button"
               onClick={() => setDropdownOpen((value) => !value)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#608da2] text-sm font-bold text-white shadow-sm transition-all hover:ring-2 hover:ring-[#94bfd0] hover:ring-offset-2"
+              aria-label={`Profil ${currentUserName}`}
+              aria-expanded={dropdownOpen}
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#1A3673] focus:outline-none focus:ring-2 focus:ring-[#1A3673]/20"
             >
-              {initial}
+              <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1B4332] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
+                {initial}
+              </span>
             </button>
 
             <div
               id="profileDropdownMenu"
               className={[
-                "absolute right-0 z-50 mt-2 w-48 rounded-xl border border-[#e2e8f0] bg-white py-1 shadow-lg transition-all duration-150",
+                "absolute right-0 z-50 mt-2 w-48 rounded-xl border border-[#e2e8f0] bg-white py-2 shadow-lg transition-all duration-150",
                 dropdownOpen ? "block" : "hidden",
               ].join(" ")}
             >
-              <div className="border-b border-gray-100 px-4 py-2">
-                <p className="truncate text-xs font-semibold text-gray-800">{currentUserName}</p>
-                <p className="text-[10px] text-gray-500">Siswa Aktif</p>
+              <div className="p-1.5">
+                <a href="/login" className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50">
+                  <LogOut className="h-4 w-4 text-rose-500" />
+                  <span>Logout</span>
+                </a>
               </div>
-              <a href="/login" className="flex w-full items-center px-4 py-2.5 text-left text-xs font-medium text-red-600 transition-colors hover:bg-red-50">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </a>
             </div>
           </div>
         </header>

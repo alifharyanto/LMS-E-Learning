@@ -231,9 +231,11 @@ export default function MyProfilePage() {
                 aria-label={`Profil ${form.namaLengkap || "siswa"}`}
                 aria-expanded={dropdownOpen}
                 aria-controls="profileDropdownMenu"
-                className="profile-menu-button"
+                className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#1A3673] focus:outline-none focus:ring-2 focus:ring-[#1A3673]/20"
               >
-                <ChevronDown aria-hidden="true" size={18} />
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1B4332] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
+                  {headerInitial}
+                </span>
               </button>
 
               <div
@@ -244,14 +246,12 @@ export default function MyProfilePage() {
                 ].join(" ")}
                 aria-hidden={!dropdownOpen}
               >
-                <div className="profile-dropdown-user">
-                  <p>{form.namaLengkap || "Nama Pengguna"}</p>
-                  <span>Siswa Aktif</span>
+                <div className="p-1.5">
+                  <Link href="/login" className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50">
+                    <LogOut className="h-4 w-4 text-rose-500" />
+                    <span>Logout</span>
+                  </Link>
                 </div>
-                <button type="button" className="profile-dropdown-logout">
-                  <LogOut />
-                  Logout
-                </button>
               </div>
           </div>
         </header>

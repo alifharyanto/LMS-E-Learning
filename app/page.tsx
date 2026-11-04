@@ -68,20 +68,9 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen bg-[#F4F7FB] text-slate-800 antialiased">
       <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-slate-200/90 bg-white z-30" data-purpose="main-sidebar">
-        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
-          <div className="flex items-center gap-3 bg-transparent">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center bg-transparent">
-              <img
-                alt="CourseUp Logo"
-                className="h-11 w-11 object-contain"
-                src="/course-up-logo.png"
-              />
-            </div>
-            <div className="flex select-none items-center tracking-tight leading-none">
-              <span className="text-2xl font-black" style={{ color: "rgb(178, 215, 230)" }}>Course</span>
-              <span className="text-2xl font-black text-slate-800" style={{ color: "rgb(114, 158, 179)" }}>Up</span>
-            </div>
-          </div>
+        <div className="profile-sidebar-brand" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+          <img src="/course-up-logo.png" alt="CourseUp Logo" />
+          <span><span>Course</span><strong>Up</strong></span>
         </div>
 
         <div className="profile-sidebar-navigation">
@@ -108,13 +97,13 @@ export default function HomePage() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col bg-[#F4F7FB]">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white px-8" data-purpose="top-navbar">
-          <div className="flex items-center gap-3">
-            <span className="rounded-md border border-emerald-200/80 bg-[#E8F5E9] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" }}>
+        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200/90 bg-white px-8" data-purpose="top-navbar">
+          <div className="flex items-center space-x-3 text-sm">
+            <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
               Ruang Belajar Anda
             </span>
-            <span className="text-slate-300">/</span>
-            <span className="text-xs font-medium text-slate-500">Dashboard Siswa</span>
+            <span className="text-[#cbd5e1]">/</span>
+            <span className="font-semibold text-[#64748b]">Dashboard Siswa</span>
           </div>
 
           <div className="relative" data-purpose="profile-menu-container">
