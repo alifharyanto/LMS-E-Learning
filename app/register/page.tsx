@@ -62,11 +62,11 @@ export default function RegisterPage() {
           <form className="register-form" onSubmit={register}>
             <div className="register-field">
               <label htmlFor="register-username">Username</label>
-              <input className="register-input" id="register-username" name="username" autoComplete="username" maxLength={100} placeholder="Contoh: bima_pratama" required />
+              <input className="register-input" id="register-username" name="username" autoComplete="username" maxLength={100} placeholder="Masukan Username" required />
             </div>
             <div className="register-field">
               <label htmlFor="register-email">Email</label>
-              <input className="register-input" id="register-email" name="email" type="email" autoComplete="email" maxLength={150} placeholder="nama@domain.com" required />
+              <input className="register-input" id="register-email" name="email" type="email" autoComplete="email" maxLength={150} placeholder="Masukan Email" required />
             </div>
             <div className="register-field">
               <div className="register-password-label">
