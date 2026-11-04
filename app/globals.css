@@ -3504,6 +3504,7 @@ body { color: var(--ink); background-color: var(--paper); }
     padding: 26px 18px;
   }
   .register-page .register-card { max-width: 500px; padding: clamp(25px, 5vw, 40px); }
+  .register-page .register-heading { text-align: center; }
   .register-mobile-brand {
     display: flex;
     margin: 0 auto 24px;
