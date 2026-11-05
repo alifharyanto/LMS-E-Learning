@@ -111,13 +111,13 @@ export default function HomePage() {
               ref={profileButtonRef}
               aria-expanded={menuOpen}
               aria-haspopup="true"
-              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#1A3673] focus:outline-none focus:ring-2 focus:ring-[#1A3673]/20"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#527F95] focus:outline-none focus:ring-2 focus:ring-[#527F95]/20"
               id="profileButton"
               title="Buka menu profil"
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
             >
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#1B4332] text-xs font-bold tracking-wider text-white" id="userAvatarInitials" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#527F95] text-xs font-bold tracking-wider text-white" id="userAvatarInitials" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
                 {initials}
               </div>
             </button>
@@ -141,7 +141,7 @@ export default function HomePage() {
         </header>
 
         <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col space-y-6 p-8">
-          <section className="relative overflow-hidden rounded-2xl bg-[#1B4332] p-6 text-white shadow-sm sm:p-7" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }} data-purpose="welcome-banner">
+          <section className="relative overflow-hidden rounded-2xl bg-[#527F95] p-6 text-white shadow-sm sm:p-7" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }} data-purpose="welcome-banner">
             <div className="relative z-10 space-y-1">
               <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight sm:text-3xl">
                 Halo, <span id="greeting-username">{greetingName}</span> ! <span className="inline-block">👋</span>
@@ -174,7 +174,7 @@ export default function HomePage() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PERFORMA TERBARU</span>
                     <h3 className="text-lg font-bold text-slate-900">Nilai quiz Anda</h3>
                   </div>
-                  <span className="rounded-full border border-emerald-200/80 bg-[#E8F5E9] px-3 py-1 text-xs font-semibold" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" }}>
+                  <span className="rounded-full border border-[#B2D7E6] bg-[#EBF8FA] px-3 py-1 text-xs font-semibold text-[#437188]" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" }}>
                     Rata-rata 68%
                   </span>
                 </div>
@@ -218,7 +218,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#1B4332] p-6 text-white shadow-sm lg:col-span-4" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }}>
+            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#527F95] p-6 text-white shadow-sm lg:col-span-4" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }}>
               <div className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full bg-white/5" />
               <div className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-emerald-500/10" />
               <div>
@@ -256,7 +256,7 @@ export default function HomePage() {
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700" htmlFor="namaLengkap">Nama lengkap</label>
                     <input
-                      className="w-full rounded-xl border-slate-300 px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#1B4332] focus:ring-[#1B4332]"
+                      className="w-full rounded-xl border-slate-300 px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#527F95] focus:ring-[#527F95]"
                       id="namaLengkap"
                       placeholder="Nama lengkap"
                       type="text"
@@ -267,7 +267,7 @@ export default function HomePage() {
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700" htmlFor="emailInput">Email</label>
                     <input
-                      className="w-full rounded-xl border-slate-300 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 focus:border-[#1B4332] focus:ring-[#1B4332]"
+                      className="w-full rounded-xl border-slate-300 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 focus:border-[#527F95] focus:ring-[#527F95]"
                       id="emailInput"
                       type="email"
                       value="user@courseup.com"
@@ -304,7 +304,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="pt-2">
-                  <button className="rounded-xl bg-[#1B4332] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#143326]" id="btnSimpanProfil" style={{ backgroundColor: "rgb(114, 158, 179)" }} type="submit">
+                  <button className="rounded-xl bg-[#527F95] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#426C82]" id="btnSimpanProfil" style={{ backgroundColor: "rgb(114, 158, 179)" }} type="submit">
                     {saveState}
                   </button>
                 </div>
@@ -328,7 +328,7 @@ export default function HomePage() {
                       <span
                         className={[
                           "inline-block w-16 rounded-md border px-0 py-1 text-center text-xs font-extrabold",
-                          strong ? "border-emerald-200/80 bg-[#E8F5E9] text-[#1B4332]" : "border-slate-200 bg-slate-100 text-slate-600",
+                          strong ? "border-[#B2D7E6] bg-[#EBF8FA] text-[#437188]" : "border-slate-200 bg-slate-100 text-slate-600",
                         ].join(" ")}
                         style={strong ? { backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" } : undefined}
                       >

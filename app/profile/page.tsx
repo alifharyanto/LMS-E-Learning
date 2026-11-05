@@ -231,9 +231,9 @@ export default function MyProfilePage() {
                 aria-label={`Profil ${form.namaLengkap || "siswa"}`}
                 aria-expanded={dropdownOpen}
                 aria-controls="profileDropdownMenu"
-                className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#1A3673] focus:outline-none focus:ring-2 focus:ring-[#1A3673]/20"
+                className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#527F95] focus:outline-none focus:ring-2 focus:ring-[#527F95]/20"
               >
-                <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1B4332] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-[#527F95] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
                   {headerInitial}
                 </span>
               </button>

@@ -104,7 +104,7 @@ export default function KursusPage() {
   const initial = currentUserName.trim().charAt(0).toUpperCase() || "C";
 
   return (
-    <div className="flex min-h-screen bg-[#f1f6f9] text-[#334155] antialiased">
+    <div className="flex min-h-screen bg-[#F4F7FB] text-[#1E293B] antialiased">
       <aside className="sticky top-0 flex h-screen w-64 min-w-[16rem] shrink-0 flex-col justify-between border-r border-[#e2e8f0] bg-white">
         <div className="flex flex-col">
           <div className="flex items-center space-x-3 border-b border-[#f1f5f9] px-6 py-6">
@@ -147,7 +147,7 @@ export default function KursusPage() {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col bg-[#f1f6f9]">
+      <main className="flex min-w-0 flex-1 flex-col bg-[#F4F7FB]">
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[#e2e8f0] bg-white/70 px-8 backdrop-blur-md">
           <div className="flex items-center space-x-3 text-sm">
             <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
@@ -164,9 +164,9 @@ export default function KursusPage() {
               onClick={() => setDropdownOpen((value) => !value)}
               aria-label={`Profil ${currentUserName}`}
               aria-expanded={dropdownOpen}
-              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#1A3673] focus:outline-none focus:ring-2 focus:ring-[#1A3673]/20"
+              className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 p-0.5 shadow-sm transition-all hover:border-[#527F95] focus:outline-none focus:ring-2 focus:ring-[#527F95]/20"
             >
-              <span className="flex h-full w-full items-center justify-center rounded-full bg-[#1B4332] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
+              <span className="flex h-full w-full items-center justify-center rounded-full bg-[#527F95] text-xs font-bold tracking-wider text-white" style={{ backgroundColor: "rgb(114, 158, 179)" }}>
                 {initial}
               </span>
             </button>
