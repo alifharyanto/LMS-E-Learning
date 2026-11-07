@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, BookOpenText, FileText, House, LogOut, NotebookText, Play, Search, UserRound } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
 
 const navItems = [
   { label: "Beranda", href: "/", icon: House, active: false },
@@ -104,15 +107,18 @@ export default function KursusPage() {
   const initial = currentUserName.trim().charAt(0).toUpperCase() || "C";
 
   return (
-    <div className="flex min-h-screen bg-[#F4F7FB] text-[#1E293B] antialiased">
-      <aside className="sticky top-0 flex h-screen w-64 min-w-[16rem] shrink-0 flex-col justify-between border-r border-[#e2e8f0] bg-white">
+    <div className="course-library-page flex min-h-screen bg-[#F4F7FB] text-[#1E293B] antialiased">
+      <MobileStudentNavigation activePage="courses" />
+      <aside className="course-library-sidebar sticky top-0 flex h-screen w-64 min-w-[16rem] shrink-0 flex-col justify-between border-r border-[#e2e8f0] bg-white">
         <div className="flex flex-col">
           <div className="flex items-center space-x-3 border-b border-[#f1f5f9] px-6 py-6">
             <div className="flex items-center gap-3">
-              <img
+              <Image
                 alt="CourseUp Icon"
                 className="h-10 w-10 shrink-0 object-contain"
                 src="/course-up-logo.png"
+                height={40}
+                width={40}
               />
               <span className="flex select-none items-center text-[26px] font-extrabold leading-none tracking-tight">
                 <span className="text-[#b2d7e6]">Course</span>
@@ -148,7 +154,7 @@ export default function KursusPage() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col bg-[#F4F7FB]">
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[#e2e8f0] bg-white/70 px-8 backdrop-blur-md">
+        <header className="course-library-header sticky top-0 z-30 flex h-20 items-center justify-between border-b border-[#e2e8f0] bg-white/70 px-8 backdrop-blur-md">
           <div className="flex items-center space-x-3 text-sm">
             <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
               Ruang Belajar Anda
@@ -268,10 +274,10 @@ export default function KursusPage() {
 
                       <div className="mt-4 flex items-center justify-between border-t border-[#f1f5f9] pt-5 text-xs">
                         <span className="max-w-[150px] truncate font-medium text-[#64748b]">{item.category}</span>
-                        <a href="/kursus" className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
+                        <Link href="/kursus" className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
                           <span>Buka materi</span>
                           <span className="text-sm">→</span>
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   ))}

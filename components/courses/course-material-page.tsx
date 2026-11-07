@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Expand, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { MotionButton, MotionLink, Reveal } from "@/components/ui/motion";
+import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
 import { readCourseProgress, saveCourseProgress, type CourseProgress } from "@/lib/course-progress";
 import { getCourseMaterialSlug, type CourseMaterial } from "@/lib/course-slug";
@@ -113,6 +114,7 @@ export default function CourseMaterialPage({ slug }: { slug: string }) {
 
   return (
     <>
+      <MobileStudentNavigation activePage="courses" />
       <header className="course-detail-top">
         <MotionLink className="course-back-link" href="/kursus"><ArrowLeft size={16} />Kembali ke daftar materi</MotionLink>
         {selected && (
