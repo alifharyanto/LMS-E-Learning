@@ -2638,29 +2638,10 @@ body { color: var(--ink); background-color: var(--paper); }
   .code-route-shell .code-run-button { min-width: 50px; padding: 0 7px; }
 }
 
-.site-app:has(.quiz-page) {
-  --ink: #1E293B;
-  --muted: #64748B;
-  --line: #DDE5ED;
-  --paper: #F4F7FB;
-  --white: #FFFFFF;
-  --teal: #527F95;
-  --gold: #D5E8EF;
-  --surface: #FFFFFF;
-  --surface-secondary: #F8FAFC;
-  --primary-foreground: #FFFFFF;
-}
-.site-app:has(.quiz-page) .site-header,
-.site-app:has(.quiz-page) .site-footer {
-  border-color: var(--line);
-  color: var(--muted);
-  background: var(--white);
-}
-.site-app:has(.quiz-page) .site-header { box-shadow: 0 2px 8px rgb(30 41 59 / 5%); }
-.page-wrap:has(.quiz-page) {
-  background-color: #F4F7FB;
-  background-image: none;
-}
+.practice-route-layout { display: flex; min-height: 100vh; background: #F4F7FB; }
+.practice-desktop-sidebar { position: sticky; top: 0; height: 100vh; }
+.practice-route-main { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.practice-route-content { width: 100%; min-height: 100vh; margin: 0 auto; padding: 42px 28px 64px; background: #F4F7FB; }
 .quiz-page {
   --bg: #F4F7FB;
   --bg-grid: #E7EEF4;
@@ -2848,7 +2829,7 @@ body { color: var(--ink); background-color: var(--paper); }
   .quiz-session { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
-  .page-wrap:has(.quiz-page) { padding-top: 25px; }
+  .practice-route-content { padding-top: 25px; }
   .quiz-page .page-heading { margin-bottom: 18px; padding-left: 14px; }
   .quiz-session { gap: 18px; }
   .quiz-page .page-title { font-size: 28px; }
@@ -3619,9 +3600,8 @@ body, :root[data-theme="dark"] body {
 .faq-row summary::before { border: 1px solid var(--line); border-radius: 8px; color: var(--link); background: var(--accent-soft, #ebf8fa); }
 :root[data-theme="dark"] .faq-row summary::before { border-color: var(--line); color: var(--link); background: var(--surface-secondary); }
 @media (max-width: 767px) {
-  .site-app:has(.quiz-page) > .site-header,
-  .site-app:has(.quiz-page) > .site-footer { display: none; }
-  .site-app:has(.quiz-page) > .student-mobile-header { display: flex; }
+  .practice-route-layout { flex-direction: column; }
+  .practice-route-content { min-height: calc(100vh - 64px); padding: 25px 17px 44px; }
   .profile-page { display: block; }
   .profile-sidebar, .profile-topbar { display: none; }
   .student-mobile-header { position: sticky; top: 0; z-index: 30; display: flex; width: 100%; height: 64px; padding: 0 16px; flex: 0 0 auto; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; background: white; }
