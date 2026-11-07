@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, BookOpenText, House, LogOut, MessageSquareText, NotebookText, UserRound, FileText, BarChart3, Clock3 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { BookOpen, BookOpenText, House, LogOut, MessageSquareText, NotebookText, UserRound, FileText, BarChart3, Clock3, Menu, X } from "lucide-react";
 
 const navItems = [
   { label: "Beranda", active: true, icon: House },
@@ -30,6 +32,7 @@ export default function HomePage() {
   const profileButtonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [fullName, setFullName] = useState("user CourseUp");
   const [fileName, setFileName] = useState("Tidak ada file yang dipilih");
   const [saveState, setSaveState] = useState("Simpan Profil");
@@ -53,6 +56,22 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileNavOpen]);
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = fullName.trim();
@@ -67,9 +86,9 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen bg-[#F4F7FB] text-slate-800 antialiased">
-      <aside className="flex min-h-screen w-64 shrink-0 flex-col border-r border-slate-200/90 bg-white z-30" data-purpose="main-sidebar">
+      <aside className="z-30 hidden min-h-screen w-64 shrink-0 flex-col border-r border-slate-200/90 bg-white lg:flex" data-purpose="main-sidebar">
         <div className="profile-sidebar-brand" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-          <img src="/course-up-logo.png" alt="CourseUp Logo" />
+          <Image src="/course-up-logo.png" alt="CourseUp Logo" width={40} height={40} />
           <span><span>Course</span><strong>Up</strong></span>
         </div>
 
@@ -79,10 +98,10 @@ export default function HomePage() {
             {navItems.map(({ label, active, icon: Icon }) => {
               const href = label === "Beranda" ? "/" : label === "My Profile" ? "/profile" : label === "Kursus Materi" ? "/kursus" : label === "Latihan Soal" ? "/latihan" : "/code";
               return (
-                <a key={label} href={href} aria-current={active ? "page" : undefined} className={`profile-nav-link${active ? " is-active" : ""}`}>
+                <Link key={label} href={href} aria-current={active ? "page" : undefined} className={`profile-nav-link${active ? " is-active" : ""}`}>
                   <Icon />
                   <span>{label}</span>
-                </a>
+                </Link>
               );
             })}
           </nav>
@@ -97,7 +116,82 @@ export default function HomePage() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col bg-[#F4F7FB]">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200/90 bg-white px-8" data-purpose="top-navbar">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white px-4 lg:hidden" data-purpose="mobile-top-navbar">
+          <Link href="/" aria-label="CourseUp Beranda" className="flex items-center gap-2.5">
+            <Image className="h-8 w-8 shrink-0 object-contain" src="/course-up-logo.png" alt="" width={32} height={32} />
+            <span className="text-xl font-black tracking-tight text-[#B2D7E6]">
+              Course<strong className="text-[#729EB3]">Up</strong>
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <a href="/profile" aria-label="Profil" title="Profil" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50">
+              <UserRound className="h-5 w-5" />
+            </a>
+            <button
+              type="button"
+              aria-label={mobileNavOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
+              aria-controls="mobile-navigation-drawer"
+              aria-expanded={mobileNavOpen}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
+              onClick={() => setMobileNavOpen((open) => !open)}
+            >
+              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </header>
+
+        <button
+          type="button"
+          aria-label="Tutup menu navigasi"
+          className={`fixed inset-0 z-40 border-0 bg-slate-900/50 p-0 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden ${mobileNavOpen ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`}
+          tabIndex={mobileNavOpen ? 0 : -1}
+          onClick={() => setMobileNavOpen(false)}
+        />
+        <aside
+          id="mobile-navigation-drawer"
+          role="dialog"
+          aria-label="Menu navigasi"
+          aria-modal={mobileNavOpen}
+          className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${mobileNavOpen ? "translate-x-0" : "invisible translate-x-full"}`}
+          data-purpose="mobile-navigation-drawer"
+        >
+          <div className="flex items-center justify-end border-b border-slate-100 px-5 py-4">
+            <button
+              type="button"
+              aria-label="Tutup menu navigasi"
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              onClick={() => setMobileNavOpen(false)}
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4" aria-label="Navigasi utama">
+            {navItems.map(({ label, active, icon: Icon }) => {
+              const href = label === "Beranda" ? "/" : label === "My Profile" ? "/profile" : label === "Kursus Materi" ? "/kursus" : label === "Latihan Soal" ? "/latihan" : "/code";
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors ${active ? "bg-[#EBF8FA] font-bold text-[#528095]" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
+                  onClick={() => setMobileNavOpen(false)}
+                >
+                  <Icon className={`h-5 w-5 ${active ? "text-[#528095]" : "text-slate-400"}`} />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="border-t border-slate-100 p-4 pb-8">
+            <a href="/login" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50/80">
+              <LogOut className="h-5 w-5 text-rose-500" />
+              <span>Logout</span>
+            </a>
+          </div>
+        </aside>
+
+        <header className="sticky top-0 z-20 hidden h-20 items-center justify-between border-b border-slate-200/90 bg-white px-8 lg:flex" data-purpose="top-navbar">
           <div className="flex items-center space-x-3 text-sm">
             <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
               Ruang Belajar Anda
@@ -140,47 +234,47 @@ export default function HomePage() {
           </div>
         </header>
 
-        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col space-y-6 p-8">
-          <section className="relative overflow-hidden rounded-2xl bg-[#527F95] p-6 text-white shadow-sm sm:p-7" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }} data-purpose="welcome-banner">
+        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col space-y-4 p-4 lg:max-w-7xl lg:space-y-6 lg:p-8">
+          <section className="relative overflow-hidden rounded-2xl bg-[#527F95] p-5 text-white shadow-sm lg:p-6" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }} data-purpose="welcome-banner">
             <div className="relative z-10 space-y-1">
-              <h2 className="flex items-center gap-2.5 text-2xl font-black tracking-tight sm:text-3xl">
+              <h2 className="flex items-center gap-2.5 text-xl font-black tracking-tight lg:text-2xl">
                 Halo, <span id="greeting-username">{greetingName}</span> ! <span className="inline-block">👋</span>
               </h2>
-              <p className="text-sm font-medium" style={{ color: "rgb(235, 248, 250)" }}>Semangat belajar hari ini, raih prestasi terbaikmu!</p>
+              <p className="text-xs font-medium lg:text-sm" style={{ color: "rgb(235, 248, 250)" }}>Semangat belajar hari ini, raih prestasi terbaikmu!</p>
             </div>
             <div className="pointer-events-none absolute -bottom-16 -right-12 h-56 w-56 rounded-full" style={{ backgroundColor: "rgba(235, 248, 250, 0.2)" }} />
             <div className="pointer-events-none absolute -top-12 right-16 h-40 w-40 rounded-full bg-white/5" />
           </section>
 
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" data-purpose="stats-cards">
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" data-purpose="stats-cards">
             {stats.map(({ name, value, icon: Icon }) => (
-              <div key={name} className="flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)" }}>
-                  <Icon className="h-6 w-6" />
+              <div key={name} className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm transition-shadow hover:shadow lg:gap-3.5 lg:p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl lg:h-12 lg:w-12" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)" }}>
+                  <Icon className="h-5 w-5 lg:h-6 lg:w-6" />
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 leading-tight">{name}</span>
-                  <div className="mt-0.5 text-2xl font-black leading-tight text-slate-900">{value}</div>
+                <div className="min-w-0">
+                  <span className="block truncate text-[9px] font-bold uppercase leading-tight tracking-wider text-slate-400 lg:text-[10px]">{name}</span>
+                  <div className="mt-0.5 text-xl font-black leading-tight text-slate-900 lg:text-2xl">{value}</div>
                 </div>
               </div>
             ))}
           </section>
 
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-12" data-purpose="charts-and-action-grid">
-            <div className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm lg:col-span-8">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6" data-purpose="charts-and-action-grid">
+            <div className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm lg:col-span-8 lg:p-6">
               <div>
                 <div className="mb-4 flex items-center justify-between">
                   <div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">PERFORMA TERBARU</span>
                     <h3 className="text-lg font-bold text-slate-900">Nilai quiz Anda</h3>
                   </div>
-                  <span className="rounded-full border border-[#B2D7E6] bg-[#EBF8FA] px-3 py-1 text-xs font-semibold text-[#437188]" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" }}>
+                  <span className="rounded-full border border-[#B2D7E6] bg-[#EBF8FA] px-2.5 py-1 text-[11px] font-semibold text-[#437188] lg:px-3 lg:text-xs" style={{ backgroundColor: "rgb(235, 248, 250)", color: "rgb(82, 128, 149)", borderColor: "rgb(178, 215, 230)" }}>
                     Rata-rata 68%
                   </span>
                 </div>
 
-                <div className="mt-8 rounded-xl border border-slate-200 bg-[#F8FAFC] p-5">
-                  <div className="flex h-48 items-end justify-around gap-2 border-b border-slate-200 px-4 pb-2">
+                <div className="mt-4 rounded-xl border border-slate-200 bg-[#F8FAFC] p-3 lg:mt-8 lg:p-5">
+                  <div className="flex h-40 items-end justify-around gap-1.5 border-b border-slate-200 px-2 pb-2 lg:h-48 lg:gap-2 lg:px-4">
                     {[
                       { percent: 60, label: "22 Okt" },
                       { percent: 85, label: "22 Okt" },
@@ -188,9 +282,9 @@ export default function HomePage() {
                       { percent: 93, label: "25 Okt" },
                       { percent: 100, label: "25 Okt" },
                     ].map((bar, index) => (
-                      <div key={`${bar.label}-${index}`} className="flex h-full max-w-[56px] flex-1 flex-col items-center justify-end group">
-                        <span className="mb-1 text-[11px] font-bold text-slate-600">{bar.percent}%</span>
-                        <div className="relative flex h-36 w-full items-end overflow-hidden rounded border border-slate-200 bg-slate-100">
+                      <div key={`${bar.label}-${index}`} className="group flex h-full max-w-[56px] flex-1 flex-col items-center justify-end">
+                        <span className="mb-1 text-[10px] font-bold text-slate-600 lg:text-[11px]">{bar.percent}%</span>
+                        <div className="relative flex h-28 w-full items-end overflow-hidden rounded border border-slate-200 bg-slate-100 lg:h-36">
                           <div
                             className="w-full rounded-b bg-[#86EFAC] transition-all duration-500"
                             style={{
@@ -199,7 +293,7 @@ export default function HomePage() {
                             }}
                           />
                         </div>
-                        <span className="mt-2 text-[11px] font-medium text-slate-500">{bar.label}</span>
+                        <span className="mt-1.5 text-[9px] font-medium text-slate-500 lg:mt-2 lg:text-[11px]">{bar.label}</span>
                       </div>
                     ))}
                   </div>
@@ -207,45 +301,45 @@ export default function HomePage() {
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs">
-                <div className="flex items-center gap-1.5 font-medium text-slate-600">
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 lg:text-xs">
                   <span className="text-amber-500">✨</span>
-                  <span>Nilai terbaik terakhir: <strong className="text-slate-900">100%</strong></span>
+                  <span><span className="lg:hidden">Terbaik:</span><span className="hidden lg:inline">Nilai terbaik terakhir:</span> <strong className="text-slate-900">100%</strong></span>
                 </div>
-                <a className="flex items-center gap-1 font-bold hover:underline" href="#" style={{ color: "rgb(82, 128, 149)" }}>
+                <a className="flex items-center gap-1 text-xs font-bold hover:underline" href="/latihan" style={{ color: "rgb(82, 128, 149)" }}>
                   <span>Latihan lagi</span>
                   <span>→</span>
                 </a>
               </div>
             </div>
 
-            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#527F95] p-6 text-white shadow-sm lg:col-span-4" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }}>
+            <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-[#527F95] p-5 text-white shadow-sm lg:col-span-4 lg:p-6" style={{ background: "linear-gradient(135deg, rgb(83, 125, 146) 0%, rgb(124, 168, 189) 100%)" }}>
               <div className="pointer-events-none absolute -bottom-8 -right-8 h-40 w-40 rounded-full bg-white/5" />
               <div className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-emerald-500/10" />
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "rgb(235, 248, 250)" }}>LANGKAH BERIKUTNYA</span>
-                <h3 className="mt-2 text-xl font-bold leading-snug">Progres dibangun dari satu langkah kecil.</h3>
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: "rgba(235, 248, 250, 0.9)" }}>
+                <span className="text-[9px] font-bold uppercase tracking-wider lg:text-[10px]" style={{ color: "rgb(235, 248, 250)" }}>LANGKAH BERIKUTNYA</span>
+                <h3 className="mt-1 text-lg font-bold leading-snug lg:mt-2 lg:text-xl">Progres dibangun dari satu langkah kecil.</h3>
+                <p className="mt-2 text-xs leading-relaxed lg:mt-3" style={{ color: "rgba(235, 248, 250, 0.9)" }}>
                   Pilih modul untuk dipelajari atau uji pemahamanmu lewat latihan soal.
                 </p>
               </div>
-              <div className="my-6 space-y-2.5">
-                <a className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/20" href="/kursus">
+              <div className="my-4 grid grid-cols-2 gap-2.5 lg:my-6 lg:flex lg:flex-col lg:space-y-2.5">
+                <Link className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/20" href="/kursus">
                   <span>📖</span>
                   <span>Buka materi</span>
-                </a>
+                </Link>
                 <a className="flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-all" href="/latihan" style={{ backgroundColor: "rgb(61, 96, 112)", borderColor: "rgb(178, 215, 230)" }}>
                   <span>🎯</span>
                   <span>Mulai latihan</span>
                 </a>
               </div>
-              <div className="border-t border-white/10 pt-3 text-[10px] font-mono uppercase tracking-widest" style={{ color: "rgb(235, 248, 250)" }}>
+              <div className="hidden border-t border-white/10 pt-3 text-[10px] font-mono uppercase tracking-widest lg:block" style={{ color: "rgb(235, 248, 250)" }}>
                 COURSEUP / KEEP GOING
               </div>
             </div>
           </section>
 
-          <section className="grid grid-cols-1 gap-6 lg:grid-cols-12" data-purpose="profile-and-history-grid">
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm lg:col-span-6">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6" data-purpose="profile-and-history-grid">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm lg:col-span-6 lg:p-6">
               <div className="mb-5 flex items-center gap-2">
                 <UserRound className="h-4 w-4" style={{ color: "rgb(114, 158, 179)" }} />
                 <h3 className="text-base font-bold text-slate-900">Perbarui Profil</h3>
@@ -311,7 +405,7 @@ export default function HomePage() {
               </form>
             </div>
 
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm lg:col-span-6">
+            <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm lg:col-span-6 lg:p-6">
               <div className="mb-4 flex items-center gap-2">
                 <BookOpen className="h-4 w-4" style={{ color: "rgb(114, 158, 179)" }} />
                 <h3 className="text-base font-bold text-slate-900">Riwayat Quiz</h3>
@@ -319,7 +413,7 @@ export default function HomePage() {
 
               <div className="divide-y divide-slate-100" data-purpose="quiz-history-list">
                 {quizHistory.map(({ title, meta, score, strong }) => (
-                  <div key={`${title}-${score}`} className="flex items-center justify-between px-2 py-3 transition-colors hover:bg-slate-50/50 -mx-2 rounded-lg">
+                  <div key={`${title}-${score}`} className="-mx-1 flex items-center justify-between rounded-lg px-1 py-2.5 transition-colors hover:bg-slate-50/50 lg:-mx-2 lg:px-2 lg:py-3">
                     <div className="space-y-0.5">
                       <p className="text-xs font-bold text-slate-800">{title}</p>
                       <p className="text-[11px] text-slate-400">{meta}</p>
@@ -341,8 +435,8 @@ export default function HomePage() {
             </div>
           </section>
 
-          <footer className="mt-12 flex w-full items-center justify-between border-t border-[#608da2]/15 pt-6 text-xs font-medium text-[#608da2]">
-            <span>© 2026 CourseUp. Ruang belajar untuk melangkah lebih jauh.</span>
+          <footer className="flex w-full flex-col items-center justify-center gap-1.5 border-t border-[#608da2]/15 pt-4 text-center text-[11px] font-medium text-[#608da2] lg:mt-12 lg:flex-row lg:justify-between lg:pt-6 lg:text-left lg:text-xs">
+            <span>© 2026 CourseUp. Ruang belajar siswa.</span>
             <a href="#" className="transition hover:underline">Hubungi kami</a>
           </footer>
         </main>
