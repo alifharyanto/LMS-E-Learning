@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, BookOpenText, House, LogOut, MessageSquareText, NotebookText, UserRound, FileText, BarChart3, Clock3, Menu, X } from "lucide-react";
+import { BookOpen, BookOpenText, House, LogOut, MessageSquareText, NotebookText, UserRound, FileText, BarChart3, Clock3 } from "lucide-react";
+import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
 
 const navItems = [
   { label: "Beranda", active: true, icon: House },
@@ -32,7 +33,6 @@ export default function HomePage() {
   const profileButtonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [fullName, setFullName] = useState("user CourseUp");
   const [fileName, setFileName] = useState("Tidak ada file yang dipilih");
   const [saveState, setSaveState] = useState("Simpan Profil");
@@ -56,22 +56,6 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
-  useEffect(() => {
-    if (!mobileNavOpen) return;
-
-    const previousOverflow = document.body.style.overflow;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileNavOpen(false);
-    };
-
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [mobileNavOpen]);
-
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = fullName.trim();
@@ -85,7 +69,9 @@ export default function HomePage() {
   const initials = greetingName.trim().charAt(0).toUpperCase() || "C";
 
   return (
-    <div className="flex min-h-screen bg-[#F4F7FB] text-slate-800 antialiased">
+    <>
+    <MobileStudentNavigation activePage="home" />
+    <div className="flex min-h-[calc(100vh_-_64px)] bg-[#F4F7FB] text-slate-800 antialiased lg:min-h-screen">
       <aside className="z-30 hidden min-h-screen w-64 shrink-0 flex-col border-r border-slate-200/90 bg-white lg:flex" data-purpose="main-sidebar">
         <div className="profile-sidebar-brand" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
           <Image src="/course-up-logo.png" alt="CourseUp Logo" width={40} height={40} />
@@ -116,81 +102,6 @@ export default function HomePage() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col bg-[#F4F7FB]">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white px-4 lg:hidden" data-purpose="mobile-top-navbar">
-          <Link href="/" aria-label="CourseUp Beranda" className="flex items-center gap-2.5">
-            <Image className="h-8 w-8 shrink-0 object-contain" src="/course-up-logo.png" alt="" width={32} height={32} />
-            <span className="text-xl font-black tracking-tight text-[#B2D7E6]">
-              Course<strong className="text-[#729EB3]">Up</strong>
-            </span>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <a href="/profile" aria-label="Profil" title="Profil" className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50">
-              <UserRound className="h-5 w-5" />
-            </a>
-            <button
-              type="button"
-              aria-label={mobileNavOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
-              aria-controls="mobile-navigation-drawer"
-              aria-expanded={mobileNavOpen}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-              onClick={() => setMobileNavOpen((open) => !open)}
-            >
-              {mobileNavOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-        </header>
-
-        <button
-          type="button"
-          aria-label="Tutup menu navigasi"
-          className={`fixed inset-0 z-40 border-0 bg-slate-900/50 p-0 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden ${mobileNavOpen ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`}
-          tabIndex={mobileNavOpen ? 0 : -1}
-          onClick={() => setMobileNavOpen(false)}
-        />
-        <aside
-          id="mobile-navigation-drawer"
-          role="dialog"
-          aria-label="Menu navigasi"
-          aria-modal={mobileNavOpen}
-          className={`fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out lg:hidden ${mobileNavOpen ? "translate-x-0" : "invisible translate-x-full"}`}
-          data-purpose="mobile-navigation-drawer"
-        >
-          <div className="flex items-center justify-end border-b border-slate-100 px-5 py-4">
-            <button
-              type="button"
-              aria-label="Tutup menu navigasi"
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-              onClick={() => setMobileNavOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-          <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-4" aria-label="Navigasi utama">
-            {navItems.map(({ label, active, icon: Icon }) => {
-              const href = label === "Beranda" ? "/" : label === "My Profile" ? "/profile" : label === "Kursus Materi" ? "/kursus" : label === "Latihan Soal" ? "/latihan" : "/code";
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm transition-colors ${active ? "bg-[#EBF8FA] font-bold text-[#528095]" : "font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}
-                  onClick={() => setMobileNavOpen(false)}
-                >
-                  <Icon className={`h-5 w-5 ${active ? "text-[#528095]" : "text-slate-400"}`} />
-                  <span>{label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="border-t border-slate-100 p-4 pb-8">
-            <a href="/login" className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50/80">
-              <LogOut className="h-5 w-5 text-rose-500" />
-              <span>Logout</span>
-            </a>
-          </div>
-        </aside>
-
         <header className="sticky top-0 z-20 hidden h-20 items-center justify-between border-b border-slate-200/90 bg-white px-8 lg:flex" data-purpose="top-navbar">
           <div className="flex items-center space-x-3 text-sm">
             <span className="rounded-full bg-[#def3f6] px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#437188]" style={{ fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
@@ -442,5 +353,6 @@ export default function HomePage() {
         </main>
       </div>
     </div>
+    </>
   );
 }
