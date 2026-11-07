@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ChevronDown, FileText, House, LogOut, NotebookText, Upload, UserRound } from "lucide-react";
+import { BookOpenText, ChevronDown, FileText, House, LogOut, Menu, NotebookText, Upload, UserRound, X } from "lucide-react";
 import { apiRequest } from "@/lib/browser-api";
 
 type ProfileIdentity = {
@@ -37,6 +37,7 @@ export default function MyProfilePage() {
   const [form, setForm] = useState<ProfileForm>(defaultProfile);
   const [accountName, setAccountName] = useState("user CourseUp");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [photoData, setPhotoData] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState("JPG, PNG, atau WebP (Maks 2MB)");
   const [error, setError] = useState("");
@@ -97,6 +98,22 @@ export default function MyProfilePage() {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileNavOpen]);
 
   const headerInitial = useMemo(() => {
     const name = form.namaLengkap.trim() || accountName.trim();
@@ -214,6 +231,60 @@ export default function MyProfilePage() {
       </aside>
 
       <div className="profile-main">
+        <header className="profile-mobile-header">
+          <Link href="/" aria-label="CourseUp Beranda" className="profile-mobile-brand">
+            <Image src="/course-up-logo.png" alt="" width={32} height={32} />
+            <span>Course<strong>Up</strong></span>
+          </Link>
+          <div className="profile-mobile-actions">
+            <Link href="/profile" aria-label="Profil" title="Profil" className="profile-mobile-action">
+              <UserRound />
+            </Link>
+            <button
+              type="button"
+              aria-label={mobileNavOpen ? "Tutup menu navigasi" : "Buka menu navigasi"}
+              aria-controls="profile-mobile-navigation"
+              aria-expanded={mobileNavOpen}
+              className="profile-mobile-action"
+              onClick={() => setMobileNavOpen((open) => !open)}
+            >
+              {mobileNavOpen ? <X /> : <Menu />}
+            </button>
+          </div>
+        </header>
+
+        <button
+          type="button"
+          aria-label="Tutup menu navigasi"
+          tabIndex={mobileNavOpen ? 0 : -1}
+          className={`profile-mobile-backdrop${mobileNavOpen ? " is-open" : ""}`}
+          onClick={() => setMobileNavOpen(false)}
+        />
+        <aside
+          id="profile-mobile-navigation"
+          role="dialog"
+          aria-label="Menu navigasi"
+          aria-modal={mobileNavOpen}
+          aria-hidden={!mobileNavOpen}
+          className={`profile-mobile-drawer${mobileNavOpen ? " is-open" : ""}`}
+        >
+          <div className="profile-mobile-drawer-header">
+            <button type="button" aria-label="Tutup menu navigasi" onClick={() => setMobileNavOpen(false)}>
+              <X />
+            </button>
+          </div>
+          <nav aria-label="Navigasi utama" className="profile-mobile-drawer-links">
+            <Link href="/" onClick={() => setMobileNavOpen(false)}><House /><span>Beranda</span></Link>
+            <Link href="/profile" aria-current="page" onClick={() => setMobileNavOpen(false)}><UserRound /><span>My Profile</span></Link>
+            <Link href="/kursus" onClick={() => setMobileNavOpen(false)}><BookOpenText /><span>Kursus Materi</span></Link>
+            <Link href="/latihan" onClick={() => setMobileNavOpen(false)}><NotebookText /><span>Latihan Soal</span></Link>
+            <Link href="/code" onClick={() => setMobileNavOpen(false)}><FileText /><span>Code Editor</span></Link>
+          </nav>
+          <div className="profile-mobile-drawer-footer">
+            <Link href="/login" onClick={() => setMobileNavOpen(false)}><LogOut /><span>Logout</span></Link>
+          </div>
+        </aside>
+
         <header className="profile-topbar">
           <div className="profile-breadcrumb">
             <span>
