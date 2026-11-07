@@ -9,12 +9,12 @@ const navigationItems = [
   { label: "Beranda", href: "/", icon: House, activePage: "home" },
   { label: "My Profile", href: "/profile", icon: UserRound, activePage: "profile" },
   { label: "Kursus Materi", href: "/kursus", icon: BookOpenText, activePage: "courses" },
-  { label: "Latihan Soal", href: "/latihan", icon: NotebookText, activePage: null },
+  { label: "Latihan Soal", href: "/latihan", icon: NotebookText, activePage: "practice" },
   { label: "Code Editor", href: "/code", icon: FileText, activePage: null },
 ] as const;
 
 type MobileStudentNavigationProps = {
-  activePage: "home" | "profile" | "courses";
+  activePage: "home" | "profile" | "courses" | "practice";
 };
 
 export default function MobileStudentNavigation({ activePage }: MobileStudentNavigationProps) {

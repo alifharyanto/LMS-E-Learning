@@ -3619,6 +3619,9 @@ body, :root[data-theme="dark"] body {
 .faq-row summary::before { border: 1px solid var(--line); border-radius: 8px; color: var(--link); background: var(--accent-soft, #ebf8fa); }
 :root[data-theme="dark"] .faq-row summary::before { border-color: var(--line); color: var(--link); background: var(--surface-secondary); }
 @media (max-width: 767px) {
+  .site-app:has(.quiz-page) > .site-header,
+  .site-app:has(.quiz-page) > .site-footer { display: none; }
+  .site-app:has(.quiz-page) > .student-mobile-header { display: flex; }
   .profile-page { display: block; }
   .profile-sidebar, .profile-topbar { display: none; }
   .student-mobile-header { position: sticky; top: 0; z-index: 30; display: flex; width: 100%; height: 64px; padding: 0 16px; flex: 0 0 auto; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; background: white; }
