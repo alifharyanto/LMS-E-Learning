@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Activity, BookOpen, Brain, ChartNoAxesColumn, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, UsersRound } from "lucide-react";
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { Activity, BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, Menu, UsersRound, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -16,74 +17,79 @@ const menu = [
   { href: "/admin/akun", label: "Akun", icon: UsersRound },
   { href: "/admin/aktivitas", label: "Aktivitas", icon: History },
 ];
-const adminNavScrollStorageKey = "courseup-admin-nav-scroll-left";
+const adminSidebarStorageKey = "courseup-admin-sidebar-collapsed";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin/dashboard";
-  const adminNavRef = useRef<HTMLElement>(null);
-  const savedNavScrollLeft = useRef(0);
-  const restoringNavScroll = useRef(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useLayoutEffect(() => {
-    const nav = adminNavRef.current;
-    if (!nav) return;
+  useEffect(() => {
+    try { setCollapsed(window.localStorage.getItem(adminSidebarStorageKey) === "true"); } catch {}
+  }, []);
 
-    try {
-      const storedScrollLeft = window.sessionStorage.getItem(adminNavScrollStorageKey);
-      if (storedScrollLeft !== null) savedNavScrollLeft.current = Number(storedScrollLeft) || 0;
-    } catch {}
-
-    restoringNavScroll.current = true;
-    nav.scrollLeft = savedNavScrollLeft.current;
-    let secondFrame = 0;
-    const firstFrame = window.requestAnimationFrame(() => {
-      nav.scrollLeft = savedNavScrollLeft.current;
-      secondFrame = window.requestAnimationFrame(() => {
-        nav.scrollLeft = savedNavScrollLeft.current;
-        restoringNavScroll.current = false;
-      });
-    });
-
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      window.cancelAnimationFrame(secondFrame);
-    };
+  useEffect(() => {
+    setDrawerOpen(false);
   }, [pathname]);
 
-  return <div className="admin-shell">
-    <aside className="admin-sidebar">
-      <Link className="admin-sidebar-brand" href="/admin/dashboard"><span className="admin-brand-mark">C</span><span><strong>CourseUp</strong><small>ADMIN WORKSPACE</small></span></Link>
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawerOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [drawerOpen]);
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      try { window.localStorage.setItem(adminSidebarStorageKey, String(next)); } catch {}
+      return next;
+    });
+  }
+
+  return <div className={`admin-layout${collapsed ? " is-collapsed" : ""}${drawerOpen ? " is-drawer-open" : ""}`}>
+    <button className={`admin-drawer-backdrop${drawerOpen ? " is-open" : ""}`} type="button" aria-label="Tutup navigasi" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
+    <aside className="admin-sidebar" aria-label="Navigasi administrator">
+      <div className="admin-sidebar-header">
+        <Link className="admin-sidebar-brand" href="/admin/dashboard" aria-label="CourseUp Admin">
+          <Image className="admin-brand-logo" src="/course-up-logo.png" alt="" width={42} height={42} priority />
+          <span className="admin-brand-copy"><strong>CourseUp</strong><small>ADMIN WORKSPACE</small></span>
+        </Link>
+        <button className="admin-drawer-close" type="button" aria-label="Tutup navigasi" onClick={() => setDrawerOpen(false)}><X size={20} /></button>
+      </div>
       <span className="admin-sidebar-label">MENU UTAMA</span>
-      <nav
-        className="admin-nav"
-        aria-label="Navigasi admin"
-        ref={adminNavRef}
-        onScroll={(event) => {
-          if (!restoringNavScroll.current) {
-            savedNavScrollLeft.current = event.currentTarget.scrollLeft;
-            try { window.sessionStorage.setItem(adminNavScrollStorageKey, String(savedNavScrollLeft.current)); } catch {}
-          }
-        }}
-      >
+      <nav className="admin-nav" aria-label="Navigasi admin">
         {menu.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href === "/admin/dashboard" && pathname === "/admin");
+          const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(`${href}/`)) || (href === "/admin/dashboard" && pathname === "/admin");
           return <Link
             href={href}
             key={href}
             aria-current={active ? "page" : undefined}
+            aria-label={label}
+            title={collapsed ? label : undefined}
             className={active ? "is-active" : undefined}
-            onClick={() => {
-              if (href !== pathname) {
-                savedNavScrollLeft.current = adminNavRef.current?.scrollLeft ?? savedNavScrollLeft.current;
-                try { window.sessionStorage.setItem(adminNavScrollStorageKey, String(savedNavScrollLeft.current)); } catch {}
-                restoringNavScroll.current = true;
-              }
-            }}
-          ><span className="admin-nav-link"><Icon size={17} />{label}</span></Link>;
+            onClick={() => setDrawerOpen(false)}
+          ><span className="admin-nav-link"><Icon size={18} strokeWidth={1.8} /><span className="admin-nav-text">{label}</span></span></Link>;
         })}
       </nav>
-      <div className="admin-sidebar-foot"><Activity size={15} /><span>Panel administrasi</span></div>
+      <div className="admin-sidebar-foot"><Activity size={16} /><span>Panel administrasi</span></div>
+      <button className="admin-sidebar-collapse" type="button" aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"} aria-expanded={!collapsed} title={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"} onClick={toggleCollapsed}>
+        {collapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
+      </button>
     </aside>
-    <main className="admin-main">{children}</main>
+    <main className="admin-main">
+      <header className="admin-topbar" aria-label="Header admin">
+        <button className="admin-mobile-toggle" type="button" aria-label="Buka navigasi" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><Menu size={21} /></button>
+        <div className="admin-topbar-context"><span>CourseUp</span><span aria-hidden="true">/</span><strong>Administrator</strong></div>
+      </header>
+      <div className="admin-content">{children}</div>
+    </main>
   </div>;
 }

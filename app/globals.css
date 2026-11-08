@@ -3632,3 +3632,98 @@ body, :root[data-theme="dark"] body {
   .course-library-page { flex-direction: column; }
   .course-library-page > main { width: 100%; }
 }
+
+.admin-layout {
+  --admin-sidebar-width: 224px;
+  display: block;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: #f3f6ff;
+  background-image: radial-gradient(ellipse 42rem 24rem at 65% -10%, rgb(213 228 255 / 54%), transparent 76%), radial-gradient(ellipse 25rem 44rem at 104% 13%, rgb(227 237 255 / 48%), transparent 74%), radial-gradient(ellipse 24rem 11rem at -7% 101%, rgb(222 234 255 / 64%), transparent 75%);
+}
+.admin-layout.is-collapsed { --admin-sidebar-width: 78px; }
+.admin-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 80;
+  display: flex;
+  width: var(--admin-sidebar-width);
+  min-width: 0;
+  padding: 20px 13px 18px;
+  flex-direction: column;
+  gap: 20px;
+  overflow: hidden auto;
+  border: 1px solid #e3eafa;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 2px 0 12px rgb(30 41 59 / 3%);
+  transition: width .22s ease, transform .24s ease;
+}
+.admin-sidebar-header { display: flex; min-height: 80px; padding: 4px 5px 20px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #e8eef8; }
+.admin-sidebar-brand { display: flex; min-width: 0; padding: 0; align-items: center; gap: 10px; border: 0; }
+.admin-brand-logo { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; }
+.admin-brand-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; white-space: nowrap; }
+.admin-sidebar-brand strong { color: #11183e; font: 800 15px/1.1 var(--font-display); }
+.admin-sidebar-brand small { color: #7181a4; font-size: 9px; letter-spacing: .02em; }
+.admin-sidebar-label { padding: 0 8px; color: #6d7da2; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+.admin-layout .admin-nav { position: static; display: grid; width: 100%; padding: 0; gap: 5px; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
+.admin-layout .admin-nav a { position: relative; display: flex; width: 100%; min-height: 44px; padding: 0 12px; align-items: center; justify-content: flex-start; border: 0; border-radius: 9px; color: #53658b; text-decoration: none; transition: color .16s ease, background .16s ease; }
+.admin-layout .admin-nav a .admin-nav-link { display: flex; min-width: 0; align-items: center; gap: 12px; color: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; }
+.admin-layout .admin-nav a .admin-nav-link svg { flex: 0 0 auto; }
+.admin-layout .admin-nav a:hover, .admin-layout .admin-nav a:focus-visible { color: #3c6f89; background: #f4f8fb; outline: none; }
+.admin-layout .admin-nav a.is-active { color: #2568ad; background: #e8f3ff; box-shadow: inset 3px 0 #258ef0; }
+.admin-layout .admin-sidebar-foot { display: flex; min-height: 42px; margin-top: auto; padding: 12px 8px 0; align-items: center; gap: 10px; border-top: 1px solid #e8eef8; color: #66779c; font-size: 11px; white-space: nowrap; }
+.admin-sidebar-foot svg { flex: 0 0 auto; }
+.admin-main { min-width: 0; min-height: 100vh; min-height: 100dvh; margin-left: var(--admin-sidebar-width); transition: margin-left .22s ease; }
+.admin-topbar { display: none; }
+.admin-mobile-toggle, .admin-drawer-close, .admin-sidebar-collapse { display: inline-grid; width: 38px; height: 38px; flex: 0 0 auto; padding: 0; place-items: center; border: 1px solid #e0e8f5; border-radius: 50%; color: #314b78; background: #fff; box-shadow: 0 2px 6px rgb(34 68 125 / 10%); }
+.admin-mobile-toggle:hover, .admin-drawer-close:hover, .admin-sidebar-collapse:hover { border-color: #b8d5e4; color: #2874bd; background: #f5f9fc; }
+.admin-sidebar-collapse { align-self: center; margin: 16px 0 4px; }
+.admin-mobile-toggle, .admin-drawer-close, .admin-drawer-backdrop { display: none; }
+.admin-sidebar-collapse { display: inline-grid; }
+.admin-topbar-context { display: inline-flex; align-items: center; gap: 9px; color: #91a0b0; font-size: 12px; }
+.admin-topbar-context strong { color: #526579; font-weight: 600; }
+.admin-content { width: 100%; max-width: 1680px; min-width: 0; margin: 0 auto; padding: 82px 36px 52px 50px; }
+.admin-main .admin-page { min-width: 0; }
+.admin-layout .admin-heading .eyebrow { color: #6376a2; }
+.admin-layout .admin-heading .eyebrow::before { background: #168df1; }
+.admin-layout .admin-page .page-title { margin-top: 10px; color: #101638; font-size: 52px; line-height: 1.04; }
+.admin-layout .admin-heading .page-intro { margin-top: 12px; color: #697ca5; font-size: 16px; }
+.admin-layout.is-collapsed .admin-sidebar { padding-right: 11px; padding-left: 11px; }
+.admin-layout.is-collapsed .admin-sidebar-header { justify-content: center; padding-right: 0; padding-left: 0; }
+.admin-layout.is-collapsed .admin-brand-copy, .admin-layout.is-collapsed .admin-sidebar-label, .admin-layout.is-collapsed .admin-nav-text, .admin-layout.is-collapsed .admin-sidebar-foot span { display: none; }
+.admin-layout.is-collapsed .admin-sidebar-brand { justify-content: center; }
+.admin-layout.is-collapsed .admin-nav a { justify-content: center; padding: 0; }
+.admin-layout.is-collapsed .admin-nav a .admin-nav-link { justify-content: center; }
+.admin-layout.is-collapsed .admin-sidebar-foot { justify-content: center; padding-right: 0; padding-left: 0; }
+
+@media (max-width: 1000px) and (min-width: 701px) {
+  .admin-content { padding-right: 24px; padding-left: 28px; }
+  .admin-layout .admin-page .page-title { font-size: 44px; }
+}
+
+@media (max-width: 700px) {
+  .admin-layout, .admin-layout.is-collapsed { --admin-sidebar-width: 0px; }
+  .admin-sidebar { width: min(292px, calc(100vw - 48px)); padding: max(20px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); gap: 20px; transform: translateX(-102%); visibility: hidden; }
+  .admin-layout.is-drawer-open .admin-sidebar { transform: translateX(0); visibility: visible; }
+  .admin-layout.is-collapsed .admin-sidebar { padding-right: 16px; padding-left: 16px; }
+  .admin-layout.is-collapsed .admin-brand-copy { display: flex; }
+  .admin-layout.is-collapsed .admin-sidebar-label, .admin-layout.is-collapsed .admin-nav-text, .admin-layout.is-collapsed .admin-sidebar-foot span { display: revert; }
+  .admin-layout.is-collapsed .admin-sidebar-header, .admin-layout.is-collapsed .admin-sidebar-brand, .admin-layout.is-collapsed .admin-nav a, .admin-layout.is-collapsed .admin-nav a .admin-nav-link, .admin-layout.is-collapsed .admin-sidebar-foot { justify-content: initial; }
+  .admin-layout.is-collapsed .admin-nav a { padding: 0 12px; }
+  .admin-layout.is-collapsed .admin-sidebar-foot { padding: 12px 10px 0; }
+  .admin-sidebar-header { min-height: 56px; padding: 0 0 15px; }
+  .admin-drawer-close, .admin-mobile-toggle { display: inline-grid; }
+  .admin-sidebar-collapse { display: none; }
+  .admin-drawer-backdrop { position: fixed; inset: 0; z-index: 70; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: rgb(15 23 42 / 42%); opacity: 0; visibility: hidden; transition: opacity .22s ease, visibility .22s ease; }
+  .admin-drawer-backdrop.is-open { opacity: 1; visibility: visible; }
+  .admin-topbar { position: sticky; top: 0; z-index: 30; display: flex; min-height: 60px; padding: 0 17px; align-items: center; gap: 12px; border-bottom: 1px solid #e8eef4; background: rgb(255 255 255 / 94%); backdrop-filter: blur(12px); }
+  .admin-topbar-context { font-size: 13px; }
+  .admin-content { padding: 28px 17px 40px; }
+  .admin-layout .admin-page .page-title { font-size: 33px; }
+  .admin-layout .admin-heading .page-intro { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-sidebar, .admin-main, .admin-drawer-backdrop { transition-duration: .01ms; }
+}
