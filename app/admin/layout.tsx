@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, LogOut, Menu, UsersRound, X } from "lucide-react";
+import { BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, LogOut, Menu, UsersRound, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { apiRequest } from "@/lib/browser-api";
 
@@ -77,7 +77,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         <button className="admin-drawer-close" type="button" aria-label="Tutup navigasi" onClick={() => setDrawerOpen(false)}><X size={20} /></button>
       </div>
-      <span className="admin-sidebar-label">MENU UTAMA</span>
       <nav className="admin-nav" aria-label="Navigasi admin">
         {menu.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(`${href}/`)) || (href === "/admin/dashboard" && pathname === "/admin");
@@ -92,7 +91,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           ><span className="admin-nav-link"><Icon size={18} strokeWidth={1.8} /><span className="admin-nav-text">{label}</span></span></Link>;
         })}
       </nav>
-      <div className="admin-sidebar-foot"><Activity size={16} /><span>Panel administrasi</span></div>
       {logoutError && <p className="admin-logout-error" role="alert">{logoutError}</p>}
       <button className="admin-logout" type="button" aria-label="Logout" title={collapsed ? "Logout" : undefined} onClick={() => void logout()}>
         <LogOut size={18} aria-hidden="true" />
