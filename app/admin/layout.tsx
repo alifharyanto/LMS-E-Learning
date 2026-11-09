@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { Activity, BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, Menu, UsersRound, X } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Activity, BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, LogOut, Menu, UsersRound, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { apiRequest } from "@/lib/browser-api";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,8 +22,10 @@ const adminSidebarStorageKey = "courseup-admin-sidebar-collapsed";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin/dashboard";
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
 
   useEffect(() => {
     try { setCollapsed(window.localStorage.getItem(adminSidebarStorageKey) === "true"); } catch {}
@@ -54,13 +57,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     });
   }
 
+  async function logout() {
+    setLogoutError("");
+    try {
+      await apiRequest("/api/v1/auth/logout", { method: "POST" });
+      router.push("/login");
+    } catch (error) {
+      setLogoutError(error instanceof Error ? error.message : "Gagal keluar. Silakan coba lagi.");
+    }
+  }
+
   return <div className={`admin-layout${collapsed ? " is-collapsed" : ""}${drawerOpen ? " is-drawer-open" : ""}`}>
     <button className={`admin-drawer-backdrop${drawerOpen ? " is-open" : ""}`} type="button" aria-label="Tutup navigasi" tabIndex={drawerOpen ? 0 : -1} onClick={() => setDrawerOpen(false)} />
     <aside className="admin-sidebar" aria-label="Navigasi administrator">
       <div className="admin-sidebar-header">
         <Link className="admin-sidebar-brand" href="/admin/dashboard" aria-label="CourseUp Admin">
-          <Image className="admin-brand-logo" src="/course-up-logo.png" alt="" width={42} height={42} priority />
-          <span className="admin-brand-copy"><strong>CourseUp</strong><small>ADMIN WORKSPACE</small></span>
+          <Image className="brand-logo" src="/course-up-logo.png" alt="" width={39} height={39} priority />
+          <span className="admin-brand-copy"><span className="brand-name"><span>Course</span>Up</span></span>
         </Link>
         <button className="admin-drawer-close" type="button" aria-label="Tutup navigasi" onClick={() => setDrawerOpen(false)}><X size={20} /></button>
       </div>
@@ -80,6 +93,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         })}
       </nav>
       <div className="admin-sidebar-foot"><Activity size={16} /><span>Panel administrasi</span></div>
+      {logoutError && <p className="admin-logout-error" role="alert">{logoutError}</p>}
+      <button className="admin-logout" type="button" aria-label="Logout" title={collapsed ? "Logout" : undefined} onClick={() => void logout()}>
+        <LogOut size={18} aria-hidden="true" />
+        <span>Logout</span>
+      </button>
       <button className="admin-sidebar-collapse" type="button" aria-label={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"} aria-expanded={!collapsed} title={collapsed ? "Perluas sidebar" : "Ciutkan sidebar"} onClick={toggleCollapsed}>
         {collapsed ? <ChevronRight size={19} /> : <ChevronLeft size={19} />}
       </button>

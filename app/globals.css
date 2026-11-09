@@ -3660,10 +3660,10 @@ body, :root[data-theme="dark"] body {
   transition: width .22s ease, transform .24s ease;
 }
 .admin-sidebar-header { display: flex; min-height: 80px; padding: 4px 5px 20px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #e8eef8; }
-.admin-sidebar-brand { display: flex; min-width: 0; padding: 0; align-items: center; gap: 10px; border: 0; }
-.admin-brand-logo { width: 42px; height: 42px; flex: 0 0 42px; object-fit: contain; }
+.admin-sidebar-brand { display: flex; min-width: 0; padding: 0; align-items: center; gap: 11px; border: 0; }
 .admin-brand-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; white-space: nowrap; }
-.admin-sidebar-brand strong { color: #11183e; font: 800 15px/1.1 var(--font-display); }
+.admin-brand-copy .brand-name { color: #729eb3; }
+.admin-brand-copy .brand-name span { color: #b2d7e6; }
 .admin-sidebar-brand small { color: #7181a4; font-size: 9px; letter-spacing: .02em; }
 .admin-sidebar-label { padding: 0 8px; color: #6d7da2; font-size: 11px; font-weight: 600; letter-spacing: 0; }
 .admin-layout .admin-nav { position: static; display: grid; width: 100%; padding: 0; gap: 5px; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
@@ -3674,6 +3674,10 @@ body, :root[data-theme="dark"] body {
 .admin-layout .admin-nav a.is-active { color: #2568ad; background: #e8f3ff; box-shadow: inset 3px 0 #258ef0; }
 .admin-layout .admin-sidebar-foot { display: flex; min-height: 42px; margin-top: auto; padding: 12px 8px 0; align-items: center; gap: 10px; border-top: 1px solid #e8eef8; color: #66779c; font-size: 11px; white-space: nowrap; }
 .admin-sidebar-foot svg { flex: 0 0 auto; }
+.admin-logout { display: flex; width: 100%; min-height: 42px; padding: 0 12px; align-items: center; gap: 12px; border: 0; border-radius: 9px; color: #d94b4b; background: transparent; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
+.admin-logout:hover, .admin-logout:focus-visible { color: #bd3030; background: #fff1f1; outline: none; }
+.admin-logout svg { flex: 0 0 auto; }
+.admin-logout-error { margin: 0; color: #bd3030; font-size: 12px; line-height: 1.4; }
 .admin-main { min-width: 0; min-height: 100vh; min-height: 100dvh; margin-left: var(--admin-sidebar-width); transition: margin-left .22s ease; }
 .admin-topbar { display: none; }
 .admin-mobile-toggle, .admin-drawer-close, .admin-sidebar-collapse { display: inline-grid; width: 38px; height: 38px; flex: 0 0 auto; padding: 0; place-items: center; border: 1px solid #e0e8f5; border-radius: 50%; color: #314b78; background: #fff; box-shadow: 0 2px 6px rgb(34 68 125 / 10%); }
@@ -3696,6 +3700,8 @@ body, :root[data-theme="dark"] body {
 .admin-layout.is-collapsed .admin-nav a { justify-content: center; padding: 0; }
 .admin-layout.is-collapsed .admin-nav a .admin-nav-link { justify-content: center; }
 .admin-layout.is-collapsed .admin-sidebar-foot { justify-content: center; padding-right: 0; padding-left: 0; }
+.admin-layout.is-collapsed .admin-logout { justify-content: center; padding-right: 0; padding-left: 0; }
+.admin-layout.is-collapsed .admin-logout span { display: none; }
 
 @media (max-width: 1000px) and (min-width: 701px) {
   .admin-content { padding-right: 24px; padding-left: 28px; }
@@ -3709,7 +3715,9 @@ body, :root[data-theme="dark"] body {
   .admin-layout.is-collapsed .admin-sidebar { padding-right: 16px; padding-left: 16px; }
   .admin-layout.is-collapsed .admin-brand-copy { display: flex; }
   .admin-layout.is-collapsed .admin-sidebar-label, .admin-layout.is-collapsed .admin-nav-text, .admin-layout.is-collapsed .admin-sidebar-foot span { display: revert; }
+  .admin-layout.is-collapsed .admin-logout span { display: inline; }
   .admin-layout.is-collapsed .admin-sidebar-header, .admin-layout.is-collapsed .admin-sidebar-brand, .admin-layout.is-collapsed .admin-nav a, .admin-layout.is-collapsed .admin-nav a .admin-nav-link, .admin-layout.is-collapsed .admin-sidebar-foot { justify-content: initial; }
+  .admin-layout.is-collapsed .admin-logout { justify-content: initial; padding-right: 12px; padding-left: 12px; }
   .admin-layout.is-collapsed .admin-nav a { padding: 0 12px; }
   .admin-layout.is-collapsed .admin-sidebar-foot { padding: 12px 10px 0; }
   .admin-sidebar-header { min-height: 56px; padding: 0 0 15px; }
