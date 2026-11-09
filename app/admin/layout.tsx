@@ -102,8 +102,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </aside>
     <main className="admin-main">
       <header className="admin-topbar" aria-label="Header admin">
-        <button className="admin-mobile-toggle" type="button" aria-label="Buka navigasi" aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}><Menu size={21} /></button>
-        <div className="admin-topbar-context"><span>CourseUp</span><span aria-hidden="true">/</span><strong>Administrator</strong></div>
+        <Link className="admin-mobile-brand" href="/admin/dashboard" aria-label="CourseUp Admin">
+          <Image src="/course-up-logo.png" alt="" width={36} height={36} />
+          <span className="brand-name"><span>Course</span>Up</span>
+        </Link>
+        <button className="admin-mobile-toggle" type="button" aria-label={drawerOpen ? "Tutup navigasi" : "Buka navigasi"} aria-expanded={drawerOpen} onClick={() => setDrawerOpen((open) => !open)}>{drawerOpen ? <X size={20} /> : <Menu size={20} />}</button>
       </header>
       <div className="admin-content">{children}</div>
     </main>
