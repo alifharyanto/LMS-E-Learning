@@ -72,7 +72,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <aside className="admin-sidebar" aria-label="Navigasi administrator">
       <div className="admin-sidebar-header">
         <Link className="admin-sidebar-brand" href="/admin/dashboard" aria-label="CourseUp Admin">
-          <Image className="brand-logo" src="/course-up-logo.png" alt="" width={39} height={39} priority />
+          <Image className="brand-logo" src="/course-up-logo.png" alt="" width={40} height={40} priority />
           <span className="admin-brand-copy"><span className="brand-name"><span>Course</span>Up</span></span>
         </Link>
         <button className="admin-drawer-close" type="button" aria-label="Tutup navigasi" onClick={() => setDrawerOpen(false)}><X size={20} /></button>

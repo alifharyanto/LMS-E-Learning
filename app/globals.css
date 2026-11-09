@@ -3660,15 +3660,17 @@ body, :root[data-theme="dark"] body {
   transition: width .22s ease, transform .24s ease;
 }
 .admin-sidebar-header { display: flex; min-height: 80px; padding: 4px 5px 20px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #e8eef8; }
-.admin-sidebar-brand { display: flex; min-width: 0; padding: 0; align-items: center; gap: 11px; border: 0; }
+.admin-sidebar-brand { display: flex; min-width: 0; padding: 0; align-items: center; gap: 12px; border: 0; }
+.admin-sidebar-brand .brand-logo { width: 40px; height: 40px; }
 .admin-brand-copy { display: flex; min-width: 0; flex-direction: column; gap: 3px; white-space: nowrap; }
-.admin-brand-copy .brand-name { color: #729eb3; }
+.admin-brand-copy .brand-name { color: #437188; font-size: 26px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
 .admin-brand-copy .brand-name span { color: #b2d7e6; }
 .admin-sidebar-brand small { color: #7181a4; font-size: 9px; letter-spacing: .02em; }
-.admin-sidebar-label { padding: 0 8px; color: #6d7da2; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+.admin-sidebar-label { padding: 0 8px; color: #94a3b8; font-size: 11px; font-weight: 700; letter-spacing: .08em; }
 .admin-layout .admin-nav { position: static; display: grid; width: 100%; padding: 0; gap: 5px; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; }
-.admin-layout .admin-nav a { position: relative; display: flex; width: 100%; min-height: 44px; padding: 0 12px; align-items: center; justify-content: flex-start; border: 0; border-radius: 9px; color: #53658b; text-decoration: none; transition: color .16s ease, background .16s ease; }
-.admin-layout .admin-nav a .admin-nav-link { display: flex; min-width: 0; align-items: center; gap: 12px; color: inherit; font-size: 13px; font-weight: 500; line-height: 1.3; }
+.admin-layout .admin-nav a { position: relative; display: flex; width: 100%; min-height: 40px; padding: 0 14px; align-items: center; justify-content: flex-start; border: 0; border-radius: 12px; color: #53658b; text-decoration: none; transition: color .16s ease, background .16s ease; }
+.admin-layout .admin-nav a .admin-nav-link { display: flex; min-width: 0; align-items: center; gap: 12px; color: inherit; font-size: 14px; font-weight: 600; line-height: 1.3; }
+.admin-layout .admin-nav a .admin-nav-link svg { width: 20px; height: 20px; }
 .admin-layout .admin-nav a .admin-nav-link svg { flex: 0 0 auto; }
 .admin-layout .admin-nav a:hover, .admin-layout .admin-nav a:focus-visible { color: #3c6f89; background: #f4f8fb; outline: none; }
 .admin-layout .admin-nav a.is-active { color: #2568ad; background: #e8f3ff; box-shadow: inset 3px 0 #258ef0; }
