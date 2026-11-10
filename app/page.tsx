@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, BookOpenText, House, LogOut, MessageSquareText, NotebookText, UserRound, FileText, BarChart3, Clock3 } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, BookOpenText, CheckCircle2, Clock3, FileText, House, LogOut, MessageSquareText, NotebookText, PlayCircle, UserRound } from "lucide-react";
 import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
+import { apiRequest, type ApiError } from "@/lib/browser-api";
+import { readCourseProgress, type CourseProgress } from "@/lib/course-progress";
+import { getCourseMaterialSlug, type CourseMaterial } from "@/lib/course-slug";
 
 const navItems = [
   { label: "Beranda", active: true, icon: House },
@@ -34,14 +37,45 @@ export default function HomePage() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [fullName, setFullName] = useState("user CourseUp");
-  const [fileName, setFileName] = useState("Tidak ada file yang dipilih");
-  const [saveState, setSaveState] = useState("Simpan Profil");
+  const [courseMaterials, setCourseMaterials] = useState<CourseMaterial[] | null>(null);
+  const [courseProgress, setCourseProgress] = useState<CourseProgress>({ completedIds: [], lastOpenedId: null });
+  const [courseProgressReady, setCourseProgressReady] = useState(false);
+  const [courseError, setCourseError] = useState("");
+  const [courseRequiresLogin, setCourseRequiresLogin] = useState(false);
 
   useEffect(() => {
     const storedName = window.localStorage.getItem("courseup_username");
     if (storedName) {
       setFullName(storedName);
     }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    try {
+      setCourseProgress(readCourseProgress());
+    } catch {
+      setCourseError("Progress kursus tidak dapat dibaca di perangkat ini.");
+    } finally {
+      setCourseProgressReady(true);
+    }
+
+    apiRequest<{ materials: CourseMaterial[] }>("/api/v1/courses")
+      .then(({ materials }) => {
+        if (active) setCourseMaterials(materials);
+      })
+      .catch((requestError: ApiError) => {
+        if (!active) return;
+        setCourseMaterials([]);
+        if (requestError.status === 401) {
+          setCourseRequiresLogin(true);
+          setCourseError("Masuk untuk melihat riwayat kursus.");
+        } else {
+          setCourseError(requestError.message);
+        }
+      });
+
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -56,17 +90,12 @@ export default function HomePage() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = fullName.trim();
-    if (!trimmed) return;
-    window.localStorage.setItem("courseup_username", trimmed);
-    setSaveState("✓ Tersimpan!");
-    window.setTimeout(() => setSaveState("Simpan Profil"), 1500);
-  };
-
   const greetingName = fullName || "user CourseUp";
   const initials = greetingName.trim().charAt(0).toUpperCase() || "C";
+  const recentCourseMaterials = (courseMaterials ?? [])
+    .filter((material) => material.id === courseProgress.lastOpenedId || courseProgress.completedIds.includes(material.id))
+    .sort((first, second) => Number(second.id === courseProgress.lastOpenedId) - Number(first.id === courseProgress.lastOpenedId))
+    .slice(0, 5);
 
   return (
     <>
@@ -249,71 +278,62 @@ export default function HomePage() {
             </div>
           </section>
 
-          <section className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6" data-purpose="profile-and-history-grid">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-6" data-purpose="course-and-quiz-history-grid">
             <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm lg:col-span-6 lg:p-6">
-              <div className="mb-5 flex items-center gap-2">
-                <UserRound className="h-4 w-4" style={{ color: "rgb(114, 158, 179)" }} />
-                <h3 className="text-base font-bold text-slate-900">Perbarui Profil</h3>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <BookOpenText className="h-4 w-4 shrink-0" style={{ color: "rgb(114, 158, 179)" }} />
+                  <h3 className="text-base font-bold text-slate-900">Riwayat Kursus</h3>
+                </div>
+                <Link className="inline-flex items-center gap-1 text-xs font-bold hover:underline" href="/kursus" style={{ color: "rgb(82, 128, 149)" }}>
+                  Semua materi <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
 
-              <form className="space-y-4" id="profileForm" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700" htmlFor="namaLengkap">Nama lengkap</label>
-                    <input
-                      className="w-full rounded-xl border-slate-300 px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-[#527F95] focus:ring-[#527F95]"
-                      id="namaLengkap"
-                      placeholder="Nama lengkap"
-                      type="text"
-                      value={fullName}
-                      onChange={(event) => setFullName(event.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700" htmlFor="emailInput">Email</label>
-                    <input
-                      className="w-full rounded-xl border-slate-300 bg-slate-50/50 px-3 py-2 text-xs text-slate-800 focus:border-[#527F95] focus:ring-[#527F95]"
-                      id="emailInput"
-                      type="email"
-                      value="user@courseup.com"
-                      readOnly
-                    />
-                  </div>
-                </div>
+              {!courseRequiresLogin && <p className="mb-2 text-[11px] text-slate-500">
+                {courseProgress.completedIds.length} materi selesai
+                {courseProgress.lastOpenedId !== null ? " · terakhir dibuka" : ""}
+              </p>}
 
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">Foto profil • JPG, PNG, WebP • maks. 2 MB</label>
-                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-2.5">
-                    <label className="shrink-0 cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50" htmlFor="avatarFile">
-                      Pilih File
-                    </label>
-                    <span className={[
-                      "truncate text-xs",
-                      fileName === "Tidak ada file yang dipilih" ? "text-slate-500" : "text-slate-800 font-medium",
-                    ].join(" ")}
-                      id="fileNameLabel"
-                    >
-                      {fileName}
-                    </span>
-                    <input
-                      accept="image/png, image/jpeg, image/webp"
-                      className="hidden"
-                      id="avatarFile"
-                      type="file"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        setFileName(file ? file.name : "Tidak ada file yang dipilih");
-                      }}
-                    />
-                  </div>
+              {courseMaterials === null || !courseProgressReady ? (
+                <p className="py-8 text-center text-xs text-slate-500" role="status">{courseError || "Memuat riwayat kursus..."}</p>
+              ) : recentCourseMaterials.length ? (
+                <div className="divide-y divide-slate-100" data-purpose="course-history-list">
+                  {recentCourseMaterials.map((material) => {
+                    const isLastOpened = material.id === courseProgress.lastOpenedId;
+                    const isCompleted = courseProgress.completedIds.includes(material.id);
+                    return (
+                      <Link
+                        key={material.id}
+                        className="-mx-1 flex min-w-0 items-center justify-between gap-3 rounded-lg px-1 py-3 transition-colors hover:bg-slate-50/70 sm:-mx-2 sm:px-2"
+                        href={`/kursus/${getCourseMaterialSlug(material)}`}
+                      >
+                        <span className="flex min-w-0 items-start gap-3">
+                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#EBF8FA] text-[#527F95]">
+                            {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-xs font-bold text-slate-800">{material.title}</span>
+                            <span className="mt-1 block truncate text-[11px] text-slate-400">{material.category}</span>
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right text-[10px] font-semibold text-[#527F95]">
+                          {isLastOpened ? "Terakhir dibuka" : "Selesai"}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
-
-                <div className="pt-2">
-                  <button className="rounded-xl bg-[#527F95] px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#426C82]" id="btnSimpanProfil" style={{ backgroundColor: "rgb(114, 158, 179)" }} type="submit">
-                    {saveState}
-                  </button>
+              ) : (
+                <div className="py-7 text-center">
+                  <p className="text-xs font-semibold text-slate-700">{courseRequiresLogin ? "Masuk untuk melihat riwayat kursus" : "Belum ada kursus di riwayat"}</p>
+                  {!courseRequiresLogin && <p className="mt-1 text-[11px] text-slate-500">Materi yang dibuka atau diselesaikan akan muncul di sini.</p>}
+                  {courseError && !courseRequiresLogin && <p className="mt-2 text-[11px] text-rose-600">{courseError}</p>}
+                  <Link className="mt-3 inline-flex items-center gap-1 text-xs font-bold hover:underline" href={courseRequiresLogin ? "/login" : "/kursus"} style={{ color: "rgb(82, 128, 149)" }}>
+                    {courseRequiresLogin ? "Masuk" : "Jelajahi materi"} <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-              </form>
+              )}
             </div>
 
             <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm lg:col-span-6 lg:p-6">
