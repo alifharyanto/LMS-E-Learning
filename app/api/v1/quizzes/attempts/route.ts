@@ -120,7 +120,7 @@ async function completeAttempt(attemptId: number, userId: number, submittedAnswe
     const [categoryRows] = await connection.execute<(RowDataPacket & { question_type: string | null })[]>(
       "SELECT question_type FROM quiz_categories WHERE id = ? LIMIT 1",
       [attempt.category_id],
-    );
+    ); 
     const fallbackType = categoryRows[0]?.question_type === "essay" ? "essay" : "pilihan";
     const snapshot = normalizeSnapshot(rawSnapshot, fallbackType);
     if (!snapshot.length) {
@@ -399,3 +399,5 @@ export async function POST(request: Request) {
     return json({ error: "Permintaan gagal diproses." }, 500);
   }
 }
+
+console.log("Quiz attempts API route loaded.");

@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpenText, FileText, House, LogOut, NotebookText, Play, Search, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
+import { apiRequest, type ApiError } from "@/lib/browser-api";
+import { readCourseProgress, type CourseProgress } from "@/lib/course-progress";
+import { getCourseMaterialSlug, type CourseMaterial } from "@/lib/course-slug";
 
 const navItems = [
   { label: "Beranda", href: "/", icon: House, active: false },
@@ -14,59 +18,56 @@ const navItems = [
   { label: "Code Editor", href: "/code", icon: FileText, active: false },
 ];
 
-const materials = [
-  {
-    title: "Langkah-Langkah React Native Expo",
-    category: "Pemrograman Perangkat Bergerak",
-    description: "Panduan dasar memulai pengembangan aplikasi mobile dengan React Native dan Expo.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Belajar dasar database",
-    category: "Basis Data",
-    description: "Siswa/i dapat mempelajari materi tentang database menggunakan MySQL.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Pemrograman Multimedia",
-    category: "Pemrograman multimedia",
-    description: "Siswa/i dapat memahami pembelajaran pemrograman multimedia termasuk UI/UX.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Belajar dasar IoT",
-    category: "Internet of Things (IoT)",
-    description: "Siswa/i dapat belajar memahami dasar IoT sebagai standar industri.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Belajar dasar mobile development",
-    category: "Mobile Development",
-    description: "Siswa/i dapat memahami cara pengembangan perangkat bergerak menggunakan React Native.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Belajar dasar backend Web",
-    category: "Backend",
-    description: "Siswa/i dapat memahami bagaimana cara kerja backend PHP.",
-    fileType: "Markdown",
-  },
-  {
-    title: "Belajar dasar web",
-    category: "Web Development",
-    description: "Siswa dapat memahami dasar web fundamental.",
-    fileType: "Markdown",
-  },
-];
-
 export default function KursusPage() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentUserName, setCurrentUserName] = useState("user CourseUp");
+  const [materials, setMaterials] = useState<CourseMaterial[] | null>(null);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState<CourseProgress>({ completedIds: [], lastOpenedId: null });
+  const [progressError, setProgressError] = useState("");
 
   useEffect(() => {
-    const savedName = window.localStorage.getItem("courseup_user_name");
-    if (savedName) setCurrentUserName(savedName);
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      try {
+        const savedName = window.localStorage.getItem("courseup_user_name");
+        if (savedName) setCurrentUserName(savedName);
+      } catch {
+        setProgressError("Pengaturan profil tidak dapat dibaca di perangkat ini.");
+      }
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    apiRequest<{ materials: CourseMaterial[] }>("/api/v1/courses")
+      .then(({ materials: items }) => {
+        if (active) setMaterials(items);
+      })
+      .catch((requestError: ApiError) => {
+        if (!active) return;
+        if (requestError.status === 401) router.replace("/login");
+        else setError(requestError.message);
+      });
+
+    return () => { active = false; };
+  }, [router]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      try {
+        setProgress(readCourseProgress());
+      } catch {
+        setProgressError("Progress belajar tidak dapat dibaca di perangkat ini.");
+      }
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -85,15 +86,15 @@ export default function KursusPage() {
 
   const filteredMaterials = useMemo(() => {
     const value = query.trim().toLowerCase();
-    if (!value) return materials;
+    if (!value) return materials ?? [];
 
-    return materials.filter((item) => {
-      return [item.title, item.category, item.description].some((field) => field.toLowerCase().includes(value));
+    return (materials ?? []).filter((item) => {
+      return [item.title, item.category, item.description ?? ""].some((field) => field.toLowerCase().includes(value));
     });
-  }, [query]);
+  }, [materials, query]);
 
   const groups = useMemo(() => {
-    const map = new Map<string, typeof materials>();
+    const map = new Map<string, CourseMaterial[]>();
     for (const item of filteredMaterials) {
       const current = map.get(item.category) ?? [];
       current.push(item);
@@ -102,8 +103,9 @@ export default function KursusPage() {
     return Array.from(map.entries());
   }, [filteredMaterials]);
 
-  const completedCount = 0;
-  const progressPercent = 0;
+  const completedCount = materials?.filter((material) => progress.completedIds.includes(material.id)).length ?? 0;
+  const progressPercent = materials?.length ? completedCount / materials.length * 100 : 0;
+  const continueMaterial = materials?.find((material) => material.id === progress.lastOpenedId) ?? materials?.[0];
   const initial = currentUserName.trim().charAt(0).toUpperCase() || "C";
 
   return (
@@ -211,13 +213,14 @@ export default function KursusPage() {
                 <BookOpenText className="h-6 w-6 text-[#1e293b]" />
                 <h2 className="text-xl font-bold text-[#1e293b]">Semua materi</h2>
               </div>
-              <span className="rounded-full bg-[#e2e8f0] px-3.5 py-1 text-xs font-semibold text-[#334155]">{filteredMaterials.length} dari {materials.length}</span>
+              <span className="rounded-full bg-[#e2e8f0] px-3.5 py-1 text-xs font-semibold text-[#334155]">{filteredMaterials.length} dari {materials?.length ?? 0}</span>
             </div>
-            <p className="text-xs text-[#64748b]">{completedCount} dari {materials.length} materi selesai</p>
+            <p className="text-xs text-[#64748b]">{completedCount} dari {materials?.length ?? 0} materi selesai</p>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#e2e8f0]">
               <div className="h-full rounded-full bg-[#608da2]" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
+          {progressError && <p className="status status-error" role="alert">{progressError}</p>}
 
           <div className="relative w-full pt-1">
             <Search className="absolute left-3.5 top-1/2 mt-0.5 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" />
@@ -230,24 +233,37 @@ export default function KursusPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm transition-all hover:border-[#cbd5e1]">
-            <div className="flex items-center gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#3b667a] text-white shadow-sm">
-                <Play className="ml-0.5 h-5 w-5 fill-current" />
+          {continueMaterial && (
+            <Link
+              href={`/kursus/${getCourseMaterialSlug(continueMaterial)}`}
+              className="flex items-center justify-between rounded-2xl border border-[#e2e8f0] bg-white p-4 shadow-sm transition-all hover:border-[#cbd5e1]"
+            >
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#3b667a] text-white shadow-sm">
+                  <Play className="ml-0.5 h-5 w-5 fill-current" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-medium text-[#64748b]">Lanjutkan belajar</p>
+                  <h4 className="text-sm font-bold text-[#1e293b]">{continueMaterial.title}</h4>
+                </div>
               </div>
-              <div>
-                <p className="text-[11px] font-medium text-[#64748b]">Lanjutkan belajar</p>
-                <h4 className="text-sm font-bold text-[#1e293b]">Belajar dasar web</h4>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-xs font-bold text-white shadow-sm">
+                <ArrowRight aria-hidden="true" size={18} />
               </div>
-            </div>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1e293b] text-xs font-bold text-white shadow-sm">
-              <ArrowRight aria-hidden="true" size={18} />
-            </div>
-          </div>
+            </Link>
+          )}
 
-          {filteredMaterials.length === 0 ? (
+          {materials === null ? (
+            <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white p-8 text-center text-sm text-[#64748b]" role="status">
+              {error || "Memuat materi..."}
+            </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white p-8 text-center text-sm text-[#64748b]" role="alert">
+              Materi tidak dapat dimuat: {error}
+            </div>
+          ) : filteredMaterials.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#cbd5e1] bg-white p-8 text-center text-sm text-[#64748b]">
-              Tidak ada materi yang cocok dengan pencarian ini.
+              {materials?.length ? "Tidak ada materi yang cocok dengan pencarian ini." : "Belum ada materi yang tersedia."}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -259,13 +275,13 @@ export default function KursusPage() {
                   </div>
 
                   {items.map((item, index) => (
-                    <div key={`${category}-${item.title}`} className="flex h-[280px] flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                    <div key={item.id} className="flex h-[280px] flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all hover:shadow-md">
                       <div className="flex flex-1 flex-col">
                         <div className="mb-4 flex items-center justify-between">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#def3f6] text-[#437188]">
                             <FileText className="h-5 w-5" />
                           </div>
-                          <span className="text-xs font-semibold text-[#64748b]">{item.fileType}</span>
+                          <span className="text-xs font-semibold text-[#64748b]">{item.file_type === "text/markdown" ? "Markdown" : "PDF"}</span>
                         </div>
                         <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">MATERI {String(index + 1).padStart(2, "0")}</p>
                         <h4 className="line-clamp-1 text-lg font-bold leading-snug text-[#1e293b] transition-colors hover:text-[#437188]">{item.title}</h4>
@@ -274,7 +290,7 @@ export default function KursusPage() {
 
                       <div className="mt-4 flex items-center justify-between border-t border-[#f1f5f9] pt-5 text-xs">
                         <span className="max-w-[150px] truncate font-medium text-[#64748b]">{item.category}</span>
-                        <Link href="/kursus" className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
+                        <Link href={`/kursus/${getCourseMaterialSlug(item)}`} className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
                           <span>Buka materi</span>
                           <span className="text-sm">→</span>
                         </Link>
