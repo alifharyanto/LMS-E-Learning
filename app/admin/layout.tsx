@@ -78,6 +78,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <button className="admin-drawer-close" type="button" aria-label="Tutup navigasi" onClick={() => setDrawerOpen(false)}><X size={20} /></button>
       </div>
       <nav className="admin-nav" aria-label="Navigasi admin">
+        <p className="admin-sidebar-label">MENU UTAMA</p>
         {menu.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(`${href}/`)) || (href === "/admin/dashboard" && pathname === "/admin");
           return <Link
