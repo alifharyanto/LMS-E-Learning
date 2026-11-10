@@ -24,14 +24,17 @@ export default function MobileStudentNavigation({ activePage }: MobileStudentNav
     if (!menuOpen) return;
 
     const previousOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setMenuOpen(false);
     };
 
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     document.addEventListener("keydown", closeOnEscape);
     return () => {
       document.body.style.overflow = previousOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [menuOpen]);
