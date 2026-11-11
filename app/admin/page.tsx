@@ -4,12 +4,14 @@ import { upload as uploadBlob } from "@vercel/blob/client";
 import { Activity, CalendarDays, ChartNoAxesColumn, Check, CheckCircle2, Clock3, Eye, FileSpreadsheet, Pencil, Save, Trash2, UsersRound, X, XCircle } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import MarkdownEditor from "@/components/admin/markdown-editor";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 import { apiRequest } from "@/lib/browser-api";
 
-type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
-type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; youtube_embed_url: string | null };
-type Question = { id: number; question: string; answer_index: number; explanation: string | null; question_type?: "pilihan" | "essay" };
+type Category = { id: number; name: string; material_category: string | null; description: string | null; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
+type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; content?: string | null; is_editor_content?: boolean | number; youtube_embed_url: string | null };
+type MaterialFormat = "application/pdf" | "text/markdown" | "markdown-editor";
+type Question = { id: number; question: string; answer_index: number | null; explanation: string | null; question_type?: "pilihan" | "essay"; category_id: number; quiz_title: string; material_category: string | null };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
 type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; selected_text?: string | null; is_correct: boolean; question_type?: "pilihan" | "essay"; teacher_check?: boolean | null };
 type Result = {
@@ -40,6 +42,11 @@ type User = { id: number };
 type ImportError = { rowNumber: number; message: string };
 type ImportRow = { rowNumber: number; category: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; explanation: string };
 type ImportPreview = { totalRows: number; validRows: number; errors: ImportError[]; rows: ImportRow[] };
+
+function getMaterialFormat(value: string): MaterialFormat {
+  if (value === "text/markdown" || value === "markdown-editor") return value;
+  return "application/pdf";
+}
 
 function formatDuration(seconds: number) {
   const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -79,7 +86,7 @@ export default function AdminPage() {
   const headings = {
     dashboard: { title: "Dashboard", eyebrow: "ANALISIS ADMIN", description: "Pantau pendaftaran, aktivitas belajar, dan hasil quiz." },
     materi: { title: "Materi", eyebrow: "KONTEN BELAJAR", description: "Kelola materi yang tersedia untuk siswa." },
-    quiz: { title: "Kategori Quiz", eyebrow: "PENGELOMPOKAN", description: "Kelola kategori untuk latihan quiz." },
+    quiz: { title: "Kelola Quiz", eyebrow: "PENGELOMPOKAN", description: "Kelola quiz di dalam kategori Materi Belajar." },
     soal: { title: "Quiz", eyebrow: "LATIHAN SOAL", description: "Buat, import, dan kelola soal quiz." },
     hasilbelajar: { title: "Hasil Belajar", eyebrow: "AKTIVITAS BELAJAR", description: "Tinjau hasil quiz siswa." },
     kontak: { title: "Kontak", eyebrow: "KOMUNIKASI", description: "Kelola pesan yang masuk." },
@@ -90,8 +97,13 @@ export default function AdminPage() {
   const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [editingExplanationId, setEditingExplanationId] = useState<number | null>(null);
-  const [materialFormat, setMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
-  const [editingMaterialFormat, setEditingMaterialFormat] = useState<"application/pdf" | "text/markdown">("application/pdf");
+  const [questionSearch, setQuestionSearch] = useState("");
+  const [selectedQuestionCategory, setSelectedQuestionCategory] = useState<string | null>(null);
+  const [selectedQuestionQuiz, setSelectedQuestionQuiz] = useState<string | null>(null);
+  const [materialFormat, setMaterialFormat] = useState<MaterialFormat>("markdown-editor");
+  const [materialContent, setMaterialContent] = useState("");
+  const [editingMaterialFormat, setEditingMaterialFormat] = useState<MaterialFormat>("application/pdf");
+  const [editingMaterialContent, setEditingMaterialContent] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -110,6 +122,25 @@ export default function AdminPage() {
   async function refresh() {
     setData(await apiRequest<AdminData>("/api/v1/admin"));
     setSelectedResultIds(new Set());
+  }
+
+  async function editMaterial(item: Material) {
+    if (editingMaterialId === item.id) {
+      setEditingMaterialId(null);
+      return;
+    }
+
+    setError("");
+    try {
+      const { material } = await apiRequest<{ material: Material }>(`/api/v1/admin/materials/${item.id}`);
+      setEditingMaterialId(item.id);
+      setEditingMaterialFormat(material.content !== null && material.content !== undefined
+        ? "markdown-editor"
+        : material.file_type === "text/markdown" ? "text/markdown" : "application/pdf");
+      setEditingMaterialContent(material.content ?? "");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Materi gagal dimuat untuk diedit.");
+    }
   }
 
   async function openResultDetail(result: Result) {
@@ -190,21 +221,36 @@ export default function AdminPage() {
         const file = fields.get("material_file");
         const hasReplacementFile = file instanceof File && file.size > 0;
         const isCreate = endpoint === "/api/v1/admin/materials";
-        const fileType = fields.get("material_format") === "text/markdown" ? "text/markdown" : "application/pdf";
+        const format = fields.get("material_format");
+        const isEditor = format === "markdown-editor";
+        const fileType = format === "text/markdown" || isEditor ? "text/markdown" : "application/pdf";
         const maximumSize = fileType === "application/pdf" ? 25 * 1024 * 1024 : 5 * 1024 * 1024;
-        if (!hasReplacementFile && isCreate) throw new Error("Pilih file materi terlebih dahulu.");
-        if (!hasReplacementFile && !isCreate && fileType !== editingMaterialFormat) throw new Error("Pilih file baru saat mengganti format materi.");
-        body = { title: fields.get("title"), category: fields.get("category"), description: fields.get("description"), youtube_url: fields.get("youtube_url"), file_type: fileType };
-        if (hasReplacementFile) {
-          const validFile = fileType === "application/pdf"
-            ? file.type === "application/pdf" && file.name.toLowerCase().endsWith(".pdf")
-            : file.name.toLowerCase().endsWith(".md");
-          if (!validFile || file.size > maximumSize) throw new Error(fileType === "application/pdf" ? "Pilih PDF valid dengan ukuran maksimal 25 MB." : "Pilih file Markdown .md dengan ukuran maksimal 5 MB.");
-          const name = file.name.replace(/[^a-zA-Z0-9._-]/g, "").slice(-100) || (fileType === "application/pdf" ? "material.pdf" : "material.md");
-          if (!userId) throw new Error("Sesi admin tidak ditemukan. Silakan masuk kembali.");
-          const uploadFile = fileType === "text/markdown" ? new File([file], name, { type: "text/markdown" }) : file;
-          const blob = await uploadBlob(`materials/${userId}/${Date.now()}-${name}`, uploadFile, { access: "public", handleUploadUrl: "/api/v1/blob-upload", clientPayload: JSON.stringify({ purpose: "material" }), multipart: fileType === "application/pdf" && file.size > 10 * 1024 * 1024 });
-          body = { ...body, file_path: blob.url, file_size: file.size };
+        body = {
+          title: fields.get("title"),
+          category: fields.get("category"),
+          description: fields.get("description"),
+          youtube_url: fields.get("youtube_url"),
+          file_type: fileType,
+          material_source: isEditor ? "editor" : "file",
+        };
+        if (isEditor) {
+          const content = fields.get("material_content");
+          if (typeof content !== "string" || !content.trim()) throw new Error("Isi materi Markdown wajib diisi.");
+          if (new TextEncoder().encode(content).byteLength > maximumSize) throw new Error("Isi materi Markdown maksimal 5 MB.");
+          body = { ...body, content };
+        } else {
+          if (!hasReplacementFile && isCreate) throw new Error("Pilih file materi terlebih dahulu.");
+          if (hasReplacementFile) {
+            const validFile = fileType === "application/pdf"
+              ? file.type === "application/pdf" && file.name.toLowerCase().endsWith(".pdf")
+              : file.name.toLowerCase().endsWith(".md");
+            if (!validFile || file.size > maximumSize) throw new Error(fileType === "application/pdf" ? "Pilih PDF valid dengan ukuran maksimal 25 MB." : "Pilih file Markdown .md dengan ukuran maksimal 5 MB.");
+            const name = file.name.replace(/[^a-zA-Z0-9._-]/g, "").slice(-100) || (fileType === "application/pdf" ? "material.pdf" : "material.md");
+            if (!userId) throw new Error("Sesi admin tidak ditemukan. Silakan masuk kembali.");
+            const uploadFile = fileType === "text/markdown" ? new File([file], name, { type: "text/markdown" }) : file;
+            const blob = await uploadBlob(`materials/${userId}/${Date.now()}-${name}`, uploadFile, { access: "public", handleUploadUrl: "/api/v1/blob-upload", clientPayload: JSON.stringify({ purpose: "material" }), multipart: fileType === "application/pdf" && file.size > 10 * 1024 * 1024 });
+            body = { ...body, file_path: blob.url, file_size: file.size };
+          }
         }
       }
       await apiRequest(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -212,8 +258,8 @@ export default function AdminPage() {
       form.reset();
       if (endpoint.startsWith("/api/v1/admin/categories/")) setEditingCategoryId(null);
       if (endpoint.startsWith("/api/v1/admin/questions/")) setEditingExplanationId(null);
-      if (endpoint === "/api/v1/admin/materials") setMaterialFormat("application/pdf");
-      if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); }
+      if (endpoint === "/api/v1/admin/materials") { setMaterialFormat("markdown-editor"); setMaterialContent(""); }
+      if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); setEditingMaterialContent(""); }
       await refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Perubahan gagal disimpan.");
@@ -318,6 +364,14 @@ export default function AdminPage() {
     const date = resultDate(result);
     return date ? [{ result, date }] : [];
   });
+  const materialCategories = [...new Set(data.materials.map((material) => material.category.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "id"));
+  const quizGroups = [...new Set(data.categories.map((category) => category.material_category || category.name))];
+  const slugify = (value: string) => value.toLocaleLowerCase("id-ID").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "");
+  const quizSlug = (category: Category) => `${slugify(category.material_category || category.name)}/${slugify(category.name)}`;
+  const selectedQuiz = selectedQuestionQuiz === null ? null : data.categories.find((category) => quizSlug(category) === selectedQuestionQuiz) ?? null;
+  const filteredQuestions = data.questions.filter((question) =>
+    question.question.toLocaleLowerCase("id-ID").includes(questionSearch.trim().toLocaleLowerCase("id-ID")),
+  );
   const filteredResults = datedResults
     .filter(({ date }) => (!resultPeriod || dateKey(date).startsWith(resultPeriod))
       && (!resultExactDate || dateKey(date) === resultExactDate))
@@ -361,21 +415,29 @@ export default function AdminPage() {
           <form className="form-grid admin-form" onSubmit={(event) => void submit(event, "/api/v1/admin/materials")}>
             <label className="field"><span>Judul</span><input className="input" name="title" required /></label>
             <label className="field"><span>Kategori</span><input className="input" name="category" required /></label>
+            <label className="field form-span"><span>Format materi</span><select className="select" name="material_format" value={materialFormat} onChange={(event) => setMaterialFormat(getMaterialFormat(event.target.value))}><option value="markdown-editor">Editor teks</option><option value="application/pdf">Unggah PDF</option><option value="text/markdown">Unggah Markdown (.md)</option></select></label>
             <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" /></label>
+            {materialFormat === "markdown-editor" ? (
+              <div className="field form-span"><span>Isi materi</span><MarkdownEditor name="material_content" value={materialContent} onChange={setMaterialContent} /></div>
+            ) : (
+              <label className="field form-span"><span>File materi · {materialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={materialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} required /></label>
+            )}
             <label className="field form-span"><span>URL video YouTube · opsional</span><input className="input" name="youtube_url" type="url" placeholder="https://youtu.be/..." /></label>
-            <label className="field"><span>Format materi</span><select className="select" name="material_format" value={materialFormat} onChange={(event) => setMaterialFormat(event.target.value === "text/markdown" ? "text/markdown" : "application/pdf")}><option value="application/pdf">PDF</option><option value="text/markdown">Markdown (.md)</option></select></label>
-            <label className="field"><span>File materi · {materialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={materialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} required /></label>
             <div className="admin-form-action"><MotionButton className="button button-primary" disabled={busy}>Tambah Materi</MotionButton></div>
           </form>
           {data.materials.length ? <div className="admin-material-list">{data.materials.map((item) => <article className="admin-material-item" key={item.id}>
-            <div className="admin-material-summary"><div className="admin-material-info"><div className="list-title">{item.title}</div><div className="list-meta">{item.category} · {item.file_type === "text/markdown" ? "Markdown" : "PDF"} · {item.file_size ? `${(item.file_size / (1024 * 1024)).toFixed(1)} MB` : "-"}{item.youtube_embed_url ? " · Video YouTube" : ""}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingMaterialId === item.id} onClick={() => { if (editingMaterialId === item.id) setEditingMaterialId(null); else { setEditingMaterialId(item.id); setEditingMaterialFormat(item.file_type === "text/markdown" ? "text/markdown" : "application/pdf"); } }}><Pencil size={14} />Edit</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/materials/${item.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+            <div className="admin-material-summary"><div className="admin-material-info"><div className="list-title">{item.title}</div><div className="list-meta">{item.category} · {item.is_editor_content ? "Editor teks" : item.file_type === "text/markdown" ? "Markdown (.md)" : "PDF"} · {item.file_size ? `${(item.file_size / (1024 * 1024)).toFixed(1)} MB` : "-"}{item.youtube_embed_url ? " · Video YouTube" : ""}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingMaterialId === item.id} onClick={() => void editMaterial(item)}><Pencil size={14} />Edit</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/materials/${item.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
             {editingMaterialId === item.id && <form className="admin-material-editor" onSubmit={(event) => void submit(event, `/api/v1/admin/materials/${item.id}`, "PUT")}>
               <label className="field"><span>Judul materi</span><input className="input" name="title" defaultValue={item.title} required maxLength={255} /></label>
               <label className="field"><span>Kategori</span><input className="input" name="category" defaultValue={item.category} required maxLength={100} /></label>
+              <label className="field form-span"><span>Format materi</span><select className="select" name="material_format" value={editingMaterialFormat} onChange={(event) => setEditingMaterialFormat(getMaterialFormat(event.target.value))}><option value="markdown-editor">Editor teks</option><option value="application/pdf">Unggah PDF</option><option value="text/markdown">Unggah Markdown (.md)</option></select></label>
               <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" defaultValue={item.description ?? ""} maxLength={10000} /></label>
+              {editingMaterialFormat === "markdown-editor" ? (
+                <div className="field form-span"><span>Isi materi</span><MarkdownEditor name="material_content" value={editingMaterialContent} onChange={setEditingMaterialContent} /></div>
+              ) : (
+                <label className="field form-span"><span>Ganti file · opsional · {editingMaterialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={editingMaterialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} /></label>
+              )}
               <label className="field form-span"><span>URL video YouTube · opsional</span><input className="input" name="youtube_url" type="url" defaultValue={item.youtube_embed_url ?? ""} placeholder="https://youtu.be/..." /></label>
-              <label className="field"><span>Format materi</span><select className="select" name="material_format" value={editingMaterialFormat} onChange={(event) => setEditingMaterialFormat(event.target.value === "text/markdown" ? "text/markdown" : "application/pdf")}><option value="application/pdf">PDF</option><option value="text/markdown">Markdown (.md)</option></select></label>
-              <label className="field form-span"><span>Ganti file · opsional · {editingMaterialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={editingMaterialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} /></label>
               <div className="admin-material-editor-actions"><MotionButton className="button button-primary" disabled={busy}><Save size={14} />Simpan perubahan</MotionButton><MotionButton type="button" className="button button-secondary" onClick={() => setEditingMaterialId(null)}><X size={14} />Batal</MotionButton></div>
             </form>}
           </article>)}</div> : <p className="empty-state">Belum ada materi yang ditambahkan.</p>}
@@ -383,22 +445,35 @@ export default function AdminPage() {
 
         <div className={`grid-two admin-grid ${section === "quiz" || section === "soal" ? "admin-grid-single" : ""}`} id="quiz" hidden={section !== "quiz" && section !== "soal"}>
           <section className="surface surface-pad admin-section" hidden={section !== "quiz"}>
-            <div className="admin-section-heading"><div><span className="list-meta">PENGELOMPOKAN</span><h2 className="surface-title">Kategori quiz</h2></div><span className="admin-count">{data.categories.length} kategori</span></div>
+            <div className="admin-section-heading"><div><span className="list-meta">PENGELOMPOKAN</span><h2 className="surface-title">Quiz berdasarkan kategori materi</h2></div><span className="admin-count">{data.categories.length} quiz</span></div>
             <form className="admin-category-form admin-inline-form" onSubmit={(event) => void submit(event, "/api/v1/admin/categories")}>
-              <label className="field"><span>Nama kategori</span><input className="input" name="category_name" placeholder="Nama kategori" required /></label>
+              <label className="field"><span>Kategori Materi Belajar</span><select className="select" name="material_category" required defaultValue=""><option value="" disabled>Pilih kategori materi</option>{materialCategories.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
+              <label className="field"><span>Judul quiz</span><input className="input" name="category_name" placeholder="Contoh: Web Frontend" maxLength={150} required /></label>
+              <label className="field form-span"><span>Deskripsi quiz</span><textarea className="textarea" name="description" maxLength={10000} placeholder="Jelaskan materi yang akan dilatih." /></label>
               <label className="field"><span>Menit</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue="30" required /></label>
               <label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue="pilihan"><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
-              <MotionButton className="button button-primary button-small">Tambah</MotionButton>
+              <MotionButton className="button button-primary button-small" disabled={busy || materialCategories.length === 0}>Tambah quiz</MotionButton>
             </form>
-            {data.categories.length ? data.categories.map((category) => <div key={category.id}>
-              <div className="list-row"><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal · {category.question_type === "essay" ? "Essay" : "Pilihan ganda"} · {category.time_limit_minutes ? `${category.time_limit_minutes} menit` : "Timer belum diatur"}</div></div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingCategoryId === category.id} onClick={() => setEditingCategoryId(editingCategoryId === category.id ? null : category.id)}><Pencil size={14} />Waktu</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
-              {editingCategoryId === category.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/categories/${category.id}`, "PUT")}><label className="field"><span>Durasi dalam menit · kosongkan untuk tanpa timer</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={category.time_limit_minutes ?? ""} /></label><label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue={category.question_type ?? "pilihan"}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan</MotionButton></form>}
-            </div>) : <p className="empty-state">Belum ada kategori quiz.</p>}
+            {!materialCategories.length && <p className="empty-state">Tambahkan kategori pada Materi Belajar terlebih dahulu untuk membuat quiz.</p>}
+            {data.categories.length ? quizGroups.map((group) => <div className="admin-quiz-group" key={group}>
+              <h3 className="surface-title">{group}</h3>
+              {data.categories.filter((category) => (category.material_category || category.name) === group).map((category) => <article className="admin-question-item" key={category.id}>
+                <div className="list-row"><div><div className="list-title">{category.name}</div><div className="list-meta">{category.questions_count} soal · {category.question_type === "essay" ? "Essay" : "Pilihan ganda"} · {category.time_limit_minutes ? `${category.time_limit_minutes} menit` : "Tanpa timer"}</div>{category.description && <p className="page-intro">{category.description}</p>}</div><div className="admin-row-actions"><MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingCategoryId === category.id} onClick={() => setEditingCategoryId(editingCategoryId === category.id ? null : category.id)}><Pencil size={14} />Edit quiz</MotionButton><MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/categories/${category.id}`)}><Trash2 size={14} />Hapus</MotionButton></div></div>
+                {editingCategoryId === category.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/categories/${category.id}`, "PUT")}>
+                  <label className="field"><span>Kategori Materi Belajar</span><select className="select" name="material_category" defaultValue={category.material_category ?? ""}><option value="">Quiz lama · belum dikelompokkan</option>{materialCategories.map((materialCategory) => <option key={materialCategory} value={materialCategory}>{materialCategory}</option>)}</select></label>
+                  <label className="field"><span>Judul quiz</span><input className="input" name="category_name" defaultValue={category.name} maxLength={150} required /></label>
+                  <label className="field form-span"><span>Deskripsi quiz</span><textarea className="textarea" name="description" defaultValue={category.description ?? ""} maxLength={10000} /></label>
+                  <label className="field"><span>Durasi dalam menit · kosongkan untuk tanpa timer</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={category.time_limit_minutes ?? ""} /></label>
+                  <label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue={category.question_type ?? "pilihan"}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
+                  <MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan</MotionButton>
+                </form>}
+              </article>)}
+            </div>) : <p className="empty-state">Belum ada quiz. Buat quiz di atas, lalu tambahkan soal melalui halaman Quiz.</p>}
           </section>
           <section className="surface surface-pad admin-section" hidden={section !== "soal"}>
             <div className="admin-section-heading"><div><span className="list-meta">KONTEN BARU</span><h2 className="surface-title">Buat soal</h2></div></div>
             <form className="stack admin-form" onSubmit={(event) => void submit(event, "/api/v1/admin/questions")}>
-              <label className="field"><span>Kategori</span><select className="select" name="category_id" required defaultValue=""><option value="" disabled>Pilih kategori</option>{data.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+              <label className="field"><span>Quiz</span><select className="select" name="category_id" required defaultValue=""><option value="" disabled>Pilih quiz</option>{data.categories.map((category) => <option key={category.id} value={category.id}>{category.material_category ? `${category.material_category} — ` : "Quiz lama — "}{category.name}</option>)}</select></label>
               <label className="field"><span>Jenis soal</span><select className="select" name="question_type" value={essayQuestionType} onChange={(event) => setEssayQuestionType(event.target.value === "essay" ? "essay" : "pilihan")}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
               <label className="field"><span>Pertanyaan</span><textarea className="textarea" name="question" required /></label>
               {essayQuestionType === "pilihan" ? <>
@@ -413,7 +488,7 @@ export default function AdminPage() {
 
         <section className="surface surface-pad admin-section" id="quiz-import" hidden={section !== "soal"}>
           <div className="admin-section-heading"><div><span className="list-meta">IMPORT MASSAL</span><h2 className="surface-title"><FileSpreadsheet size={16} /> Import soal dari file</h2></div><span className="admin-count">CSV · JSON · XLSX</span></div>
-          <p className="page-intro">Untuk JSON, isi kategori dan durasi pada objek pertama (category dan time); kategori akan dibuat atau diperbarui otomatis dan dipakai untuk semua soal berikutnya. Soal tidak perlu memiliki category. CSV/XLSX tetap memakai kolom category per soal. Jawaban dapat ditulis A-D atau 0-3. Maksimal 1.000 soal.</p>
+          <p className="page-intro">Kolom category pada CSV/XLSX berisi judul quiz, bukan kategori materi. Tambahkan kolom material_category bila ada judul quiz yang sama di beberapa kategori. Untuk JSON, objek pertama dapat berisi category (judul quiz), material_category, description, time, dan jenis-soal; quiz dibuat atau diperbarui untuk semua soal berikutnya. Jawaban dapat ditulis A-D atau 0-3. Maksimal 1.000 soal.</p>
           <form className="admin-import-form" onSubmit={(event) => void previewImport(event)}>
             <label className="field"><span>File bank soal</span><input className="input" name="quiz_file" type="file" accept=".csv,.json,.xlsx,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required /></label>
             <MotionButton className="button button-secondary" disabled={importBusy}><FileSpreadsheet size={14} />{importBusy ? "Membaca file..." : "Preview file"}</MotionButton>
@@ -427,17 +502,26 @@ export default function AdminPage() {
         </section>
 
         <section className="surface surface-pad admin-section" id="questions" hidden={section !== "soal"}>
-          <div className="admin-section-heading"><div><span className="list-meta">BANK KONTEN</span><h2 className="surface-title">Soal quiz</h2></div><span className="admin-count">{data.questions.length} soal</span></div>
-          {data.questions.length ? data.questions.map((question) => <article className="admin-question-item" key={question.id}>
-            <div className="list-row"><span className="list-title">{question.question}</span><div className="admin-row-actions">
+          <div className="admin-section-heading"><div><span className="list-meta">BANK KONTEN</span><h2 className="surface-title">Soal quiz</h2></div><span className="admin-count">{filteredQuestions.length} dari {data.questions.length} soal</span></div>
+          <div className="quiz-question-filters"><label className="field"><span>Cari judul soal</span><input className="input" value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Ketik kata pada pertanyaan..." /></label></div>
+          {selectedQuestionCategory === null ? <div className="admin-quiz-card-grid">{quizGroups.map((group) => {
+            const groupQuizzes = data.categories.filter((category) => (category.material_category || category.name) === group);
+            return <button className="admin-quiz-category-card admin-quiz-category-button" type="button" key={group} onClick={() => { setSelectedQuestionCategory(group); setSelectedQuestionQuiz(null); }}><span className="list-meta">KATEGORI</span><strong>{group}</strong><span>{groupQuizzes.length} quiz <span aria-hidden="true">→</span></span></button>;
+          })}</div> : (() => {
+            const groupQuizzes = data.categories.filter((category) => (category.material_category || category.name) === selectedQuestionCategory);
+            return <div className="admin-quiz-question-panel"><div className="admin-quiz-question-toolbar"><div><button className="admin-quiz-back" type="button" onClick={() => { setSelectedQuestionCategory(null); setSelectedQuestionQuiz(null); }}>← Semua kategori</button><div className="list-meta">KATEGORI · {selectedQuestionCategory}</div></div>{selectedQuestionQuiz !== null && <label className="field"><span>Quiz</span><select className="select" value={selectedQuestionQuiz} onChange={(event) => setSelectedQuestionQuiz(event.target.value || null)}><option value="">Semua quiz kategori ini</option>{groupQuizzes.map((category) => <option key={category.id} value={quizSlug(category)}>{quizSlug(category)} · {category.name}</option>)}</select></label>}</div>
+            {selectedQuestionQuiz === null ? <div className="admin-quiz-card-grid">{groupQuizzes.map((category) => <button className="admin-quiz-card" type="button" key={category.id} onClick={() => router.push(`/admin/soal/${quizSlug(category)}/edit`)}><span><strong>{category.name}</strong><small>{category.description || "Atur konfigurasi dan soal quiz"}</small></span><span className="admin-quiz-card-count">{data.questions.filter((question) => question.category_id === category.id).length} soal · Edit →</span></button>)}</div> : <><div className="list-meta admin-selected-quiz-title">{selectedQuiz?.material_category || selectedQuestionCategory} · {selectedQuiz?.name}</div>
+          {filteredQuestions.filter((question) => question.category_id === selectedQuiz?.id).map((question) => <article className="admin-question-item" key={question.id}>
+            <div className="list-row"><div className="admin-question-copy"><div className="list-meta">{question.material_category || "Quiz lama"} · {question.quiz_title}</div><span className="list-title">{question.question}</span></div><div className="admin-row-actions">
               <MotionButton type="button" className="button button-secondary button-small" aria-expanded={editingExplanationId === question.id} onClick={() => setEditingExplanationId(editingExplanationId === question.id ? null : question.id)}><Pencil size={14} />{question.explanation ? "Edit alasan" : "Tambah alasan"}</MotionButton>
               <MotionButton type="button" className="button button-danger button-small" onClick={() => void remove(`/api/v1/admin/questions/${question.id}`)}><Trash2 size={14} />Hapus</MotionButton>
             </div></div>
             {editingExplanationId === question.id && <form className="admin-inline-form" onSubmit={(event) => void submit(event, `/api/v1/admin/questions/${question.id}`, "PATCH")}>
-              <label className="field"><span>Alasan jawaban {String.fromCharCode(65 + question.answer_index)} yang benar</span><textarea className="textarea" name="explanation" defaultValue={question.explanation ?? ""} maxLength={10000} /></label>
+              <label className="field"><span>Alasan jawaban{question.answer_index === null ? "" : ` ${String.fromCharCode(65 + question.answer_index)}`} yang benar</span><textarea className="textarea" name="explanation" defaultValue={question.explanation ?? ""} maxLength={10000} /></label>
               <div className="admin-row-actions"><MotionButton className="button button-primary button-small" disabled={busy}><Save size={14} />Simpan alasan</MotionButton><MotionButton type="button" className="button button-secondary button-small" onClick={() => setEditingExplanationId(null)}>Batal</MotionButton></div>
             </form>}
-          </article>) : <p className="empty-state">Belum ada soal quiz.</p>}
+          </article>)}{!filteredQuestions.some((question) => question.category_id === selectedQuiz?.id) && <p className="empty-state">Belum ada soal pada quiz ini.</p>}</>}</div>;
+          })()}
         </section>
 
         <section className="surface surface-pad admin-section" id="results" hidden={section !== "hasilbelajar"}>

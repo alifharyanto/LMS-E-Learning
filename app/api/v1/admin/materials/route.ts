@@ -26,8 +26,23 @@ export async function POST(request: Request) {
     const youtubeUrl = safeString(body?.youtube_url, 2000);
     const youtubeEmbedUrl = youtubeUrl ? toYouTubeEmbedUrl(youtubeUrl) : null;
     const fileType = body?.file_type;
+    const materialSource = body?.material_source;
+    const content = body?.content;
     const fileSize = Number(body?.file_size);
     const maximumSize = fileType === "text/markdown" ? 5 * 1024 * 1024 : 25 * 1024 * 1024;
+
+    if (materialSource === "editor") {
+      if (fileType !== "text/markdown" || typeof content !== "string" || !content.trim()) {
+        return json({ error: "Isi materi Markdown wajib diisi." }, 422);
+      }
+      const contentSize = Buffer.byteLength(content, "utf8");
+      if (contentSize > 5 * 1024 * 1024) return json({ error: "Isi materi Markdown maksimal 5 MB." }, 422);
+      if (!title || !category) return json({ error: "Judul dan kategori wajib diisi." }, 422);
+      if (youtubeUrl && !youtubeEmbedUrl) return json({ error: "Masukkan URL video YouTube yang valid." }, 422);
+
+      const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type, content, youtube_embed_url) VALUES (?, ?, ?, '', ?, 'text/markdown', ?, ?)", [title, description, category, contentSize, content, youtubeEmbedUrl]);
+      return json({ success: true, id: result.insertId }, 201);
+    }
 
     let uploadedFile: URL;
     try {
@@ -44,7 +59,7 @@ export async function POST(request: Request) {
       return json({ error: "Judul, kategori, file PDF/Markdown valid, dan ukuran sesuai batas wajib diisi." }, 422);
     }
 
-    const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type, youtube_embed_url) VALUES (?, ?, ?, ?, ?, ?, ?)", [title, description, category, uploadedFile.toString(), fileSize, fileType, youtubeEmbedUrl]);
+    const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type, content, youtube_embed_url) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)", [title, description, category, uploadedFile.toString(), fileSize, fileType, youtubeEmbedUrl]);
     return json({ success: true, id: result.insertId }, 201);
   } catch (error) {
     console.error("Admin material create error:", error);

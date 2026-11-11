@@ -3,11 +3,12 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowDown, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, Brain, Check, Clock3, Flag, RotateCcw, Trophy, X } from "lucide-react";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
 import { MotionButton, StaggerGroup, StaggerItem } from "@/components/ui/motion";
 
-type Category = { id: number; name: string; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
+type Category = { name: string; quizzes_count: number; questions_count: number };
+type QuizCard = { id: number; name: string; description: string | null; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
 type Question = { id: number; question: string; option_a: string | null; option_b: string | null; option_c: string | null; option_d: string | null; question_type?: "pilihan" | "essay" };
 type QuizResult = { id: number; score: number; total: number; percent: number; correct_answers?: number; incorrect_answers?: number; unanswered_answers?: number; explanations: { id: number; text: string | null; answer_index: number | null }[] };
 type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number | string>; remaining_seconds: number; result: QuizResult | null };
@@ -28,7 +29,9 @@ export default function LatihanPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryId = searchParams.get("category_id");
+  const materialCategory = searchParams.get("category");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizCard[]>([]);
   const [categoryName, setCategoryName] = useState("");
   const [questionType, setQuestionType] = useState<"pilihan" | "essay">("pilihan");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -56,8 +59,9 @@ export default function LatihanPage() {
   const answerAdvanceTimeoutRef = useRef<number | null>(null);
   const essaySaveTimeoutRef = useRef<number | null>(null);
   const pendingEssaySaveRef = useRef<{ questionId: number; answers: Record<string, number | string> } | null>(null);
-  const [loadedCategoryId, setLoadedCategoryId] = useState<string | null | undefined>(undefined);
-  const loading = loadedCategoryId !== categoryId;
+  const routeKey = categoryId ? `quiz:${categoryId}` : materialCategory !== null ? `category:${materialCategory}` : "categories";
+  const [loadedRouteKey, setLoadedRouteKey] = useState<string | null>(null);
+  const loading = loadedRouteKey !== routeKey;
   const answeredCount = questions.filter((question) => {
     const answer = answers[String(question.id)];
     return typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
@@ -90,14 +94,19 @@ export default function LatihanPage() {
 
   useEffect(() => {
     let active = true;
-    const endpoint = categoryId ? `/api/v1/quizzes?category_id=${encodeURIComponent(categoryId)}` : "/api/v1/quizzes";
+    const endpoint = categoryId
+      ? `/api/v1/quizzes?category_id=${encodeURIComponent(categoryId)}`
+      : materialCategory !== null
+        ? `/api/v1/quizzes?category=${encodeURIComponent(materialCategory)}`
+        : "/api/v1/quizzes";
     if (essaySaveTimeoutRef.current !== null) window.clearTimeout(essaySaveTimeoutRef.current);
     essaySaveTimeoutRef.current = null;
     pendingEssaySaveRef.current = null;
-    apiRequest<{ categories?: Category[]; category?: { name: string; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" }; questions?: Question[] }>(endpoint)
+    apiRequest<{ categories?: Category[]; quizzes?: QuizCard[]; category?: { name: string; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" }; questions?: Question[] }>(endpoint)
       .then(async (data) => {
         if (!active) return;
         setCategories(data.categories ?? []);
+        setQuizzes(data.quizzes ?? []);
         setCategoryName(data.category?.name ?? "");
         setQuestionType(data.category?.question_type ?? "pilihan");
         setResult(null);
@@ -142,16 +151,16 @@ export default function LatihanPage() {
           submittingAttemptRef.current = false;
           saveQueueRef.current = Promise.resolve();
         }
-        prepareQuestions(nextQuestions);
-        setLoadedCategoryId(categoryId);
+        prepareQuestions(categoryId ? nextQuestions : []);
+        setLoadedRouteKey(routeKey);
       })
       .catch((requestError: ApiError) => {
         if (requestError.status === 401) router.replace("/login");
         else if (active) setError(requestError.message);
-        if (active) setLoadedCategoryId(categoryId);
+        if (active) setLoadedRouteKey(routeKey);
       });
     return () => { active = false; };
-  }, [categoryId, router]);
+  }, [categoryId, materialCategory, routeKey, router]);
 
   function flushEssaySave() {
     if (essaySaveTimeoutRef.current !== null) {
@@ -482,11 +491,19 @@ export default function LatihanPage() {
     return () => window.removeEventListener("keydown", handleQuizKeydown);
   }, [categoryId, countdownSeconds, loading, result]);
 
-  if (!categoryId) return <div className="quiz-page">
+  if (!categoryId && materialCategory === null) return <div className="quiz-page">
     <header className="page-heading quiz-page-heading"><span className="eyebrow">LATIHAN SOAL</span><h1 className="page-title">Pilih Kategori Latihan</h1><p className="page-intro">Pilih kategori untuk memulai quiz.</p></header>
     {error && <p className="status status-error" role="alert">{error}</p>}
     {loading && <div className="empty-state" role="status">Sedang memuat data latihan...</div>}
-    {!loading && (categories.length ? <StaggerGroup className="grid-three quiz-categories" aria-label="Pilih kategori quiz">{categories.map((category) => <StaggerItem className="quiz-category-item" key={category.id}><MotionButton type="button" className="surface surface-pad quiz-category" onClick={() => router.push(`/latihan?category_id=${category.id}`)}><span className="list-meta"><Brain size={14} /> KATEGORI</span><h2 className="surface-title">{category.name}</h2><p className="page-intro">Total soal: <strong>{category.questions_count}</strong></p><span className="link-inline">Mulai latihan <ArrowRight className="quiz-arrow" size={15} /></span></MotionButton></StaggerItem>)}</StaggerGroup> : <div className="empty-state">{error || "Belum ada kategori quiz. Silakan hubungi admin."}</div>)}
+    {!loading && (categories.length ? <StaggerGroup className="grid-three quiz-categories" aria-label="Pilih kategori quiz">{categories.map((category) => <StaggerItem className="quiz-category-item" key={category.name}><MotionButton type="button" className="surface surface-pad quiz-category" onClick={() => router.push(`/latihan?category=${encodeURIComponent(category.name)}`)}><span className="list-meta"><Brain size={14} /> KATEGORI</span><h2 className="surface-title">{category.name}</h2><p className="page-intro">{category.quizzes_count} quiz · {category.questions_count} soal</p><span className="link-inline">Lihat quiz <ArrowRight className="quiz-arrow" size={15} /></span></MotionButton></StaggerItem>)}</StaggerGroup> : <div className="empty-state">{error || "Belum ada quiz yang tersedia. Silakan hubungi admin."}</div>)}
+  </div>;
+
+  if (!categoryId && materialCategory !== null) return <div className="quiz-page">
+    <header className="page-heading quiz-page-heading"><span className="eyebrow">KATEGORI LATIHAN</span><h1 className="page-title">{materialCategory}</h1><p className="page-intro">Pilih quiz yang ingin Anda kerjakan.</p></header>
+    <MotionButton type="button" className="button button-secondary quiz-back-button" onClick={() => router.push("/latihan")}><ArrowLeft className="quiz-back-icon" size={15} />Kembali ke kategori</MotionButton>
+    {error && <p className="status status-error" role="alert">{error}</p>}
+    {loading && <div className="empty-state" role="status">Sedang memuat quiz...</div>}
+    {!loading && (quizzes.length ? <StaggerGroup className="grid-three quiz-categories" aria-label={`Quiz kategori ${materialCategory}`}>{quizzes.map((quiz) => <StaggerItem className="quiz-category-item" key={quiz.id}><article className="surface surface-pad quiz-category quiz-card"><span className="list-meta"><Brain size={14} /> QUIZ</span><h2 className="surface-title">{quiz.name}</h2><p className="page-intro">{quiz.description || "Latihan soal untuk memperdalam materi."}</p><p className="quiz-card-count">Total soal: <strong>{quiz.questions_count}</strong>{quiz.time_limit_minutes ? ` · ${quiz.time_limit_minutes} menit` : ""}</p><MotionButton type="button" className="button button-primary quiz-start-button" onClick={() => router.push(`/latihan?category_id=${quiz.id}`)}>Mulai latihan <ArrowRight size={15} /></MotionButton></article></StaggerItem>)}</StaggerGroup> : <div className="empty-state">{error || "Belum ada quiz pada kategori ini."}</div>)}
   </div>;
 
   const correctCount = result?.correct_answers ?? result?.score ?? 0;

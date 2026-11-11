@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import type { RowDataPacket } from "mysql2/promise";
 import { getRequestUser } from "@/lib/auth";
 import { queryRows } from "@/lib/db";
 import { json, parseId } from "@/lib/http";
@@ -34,12 +35,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const materialId = parseId(id);
     if (!materialId) return json({ error: "Materi tidak ditemukan." }, 404);
 
-    const materials = await queryRows<any[]>("SELECT title, file_path, file_type FROM materials WHERE id = ? LIMIT 1", [materialId]);
+    const materials = await queryRows<(RowDataPacket & { title: string; file_path: string | null; file_type: string | null; content: string | null })[]>("SELECT title, file_path, file_type, content FROM materials WHERE id = ? LIMIT 1", [materialId]);
     const material = materials[0];
     const filePath = String(material?.file_path ?? "");
-    if (!material || !filePath) return json({ error: "File materi tidak tersedia." }, 404);
+    if (!material) return json({ error: "Materi tidak ditemukan." }, 404);
 
     if (material.file_type === "text/markdown") {
+      if (typeof material.content === "string") {
+        if (Buffer.byteLength(material.content, "utf8") > 5 * 1024 * 1024) return json({ error: "Ukuran Markdown melebihi batas 5 MB." }, 422);
+        if (!material.content.trim()) return json({ error: "Materi Markdown kosong." }, 422);
+        return json({ markdown: material.content, pages: 1 });
+      }
+      if (!filePath) return json({ error: "File materi tidak tersedia." }, 404);
       const markdown = await readMaterialMarkdown(filePath);
       if (!markdown.trim()) return json({ error: "File Markdown kosong." }, 422);
       return json({ markdown, pages: 1 });

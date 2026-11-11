@@ -1,5 +1,6 @@
 import { getRequestUser } from "@/lib/auth";
-import { execute } from "@/lib/db";
+import type { RowDataPacket } from "mysql2/promise";
+import { execute, queryRows } from "@/lib/db";
 import { json, parseId, readJson, safeString } from "@/lib/http";
 
 export const runtime = "nodejs";
@@ -10,6 +11,23 @@ async function roleGuard(request: Request) {
   if (!user) return { response: json({ error: "Silakan masuk terlebih dahulu." }, 401) };
   if (user.role !== "admin") return { response: json({ error: "Akses tidak diizinkan." }, 403) };
   return { user };
+}
+
+export async function GET(request: Request) {
+  try {
+    const guard = await roleGuard(request);
+    if (guard.response) return guard.response;
+    const categoryId = parseId(new URL(request.url).searchParams.get("category_id") ?? "");
+    if (!categoryId) return json({ error: "Quiz tidak valid." }, 422);
+    const questions = await queryRows<RowDataPacket[]>(
+      "SELECT id, category_id, question_type, question, option_a, option_b, option_c, option_d, answer_index, explanation FROM quiz_questions WHERE category_id = ? ORDER BY id",
+      [categoryId],
+    );
+    return json({ questions });
+  } catch (error) {
+    console.error("Admin questions list error:", error);
+    return json({ error: "Permintaan gagal diproses." }, 500);
+  }
 }
 
 export async function POST(request: Request) {

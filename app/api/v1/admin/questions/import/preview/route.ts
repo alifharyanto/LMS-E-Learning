@@ -1,13 +1,13 @@
 import { getRequestUser } from "@/lib/auth";
 import { queryRows } from "@/lib/db";
 import { json } from "@/lib/http";
-import { parseQuizImport, type QuizImportError } from "@/lib/quiz-import";
+import { findQuizImportCategory, parseQuizImport, type QuizImportError } from "@/lib/quiz-import";
 import type { RowDataPacket } from "mysql2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CategoryRow = RowDataPacket & { id: number; name: string; question_type: string | null };
+type CategoryRow = RowDataPacket & { id: number; name: string; material_category: string | null; question_type: string | null };
 
 export async function POST(request: Request) {
   const user = await getRequestUser(request);
@@ -20,17 +20,23 @@ export async function POST(request: Request) {
 
   try {
     const parsed = await parseQuizImport(file);
-    const categories = await queryRows<CategoryRow[]>("SELECT id, name, question_type FROM quiz_categories");
-    const categoryMap = new Map(categories.map((category) => [category.name.trim().toLocaleLowerCase("id-ID"), { id: category.id, questionType: category.question_type ?? "pilihan" }]));
+    const categories = await queryRows<CategoryRow[]>("SELECT id, name, material_category, question_type FROM quiz_categories");
+    const materialCategories = await queryRows<(RowDataPacket & { category: string })[]>("SELECT DISTINCT category FROM materials WHERE TRIM(category) <> ''");
     const errors: QuizImportError[] = [...parsed.errors];
+    if (parsed.category?.materialCategory && !materialCategories.some((category) => category.category.toLocaleLowerCase("id-ID") === parsed.category?.materialCategory.toLocaleLowerCase("id-ID"))) {
+      errors.push({ rowNumber: 1, message: `Kategori Materi Belajar "${parsed.category.materialCategory}" tidak ditemukan.` });
+    }
+    if (parsed.category && !parsed.category.materialCategory && categories.filter((category) => category.name.trim().toLocaleLowerCase("id-ID") === parsed.category?.name.toLocaleLowerCase("id-ID")).length > 1) {
+      errors.push({ rowNumber: 1, message: `Judul quiz "${parsed.category.name}" ada di beberapa kategori. Isi material_category pada konfigurasi JSON.` });
+    }
     const rows = parsed.rows.filter((row) => {
-      const categoryLookup = parsed.category ? { id: 0, questionType: parsed.category.questionType } : categoryMap.get(row.category.toLocaleLowerCase("id-ID"));
+      const categoryLookup = parsed.category ? { id: 0, question_type: parsed.category.questionType } : findQuizImportCategory(categories, row.category, row.material_category);
       if (!categoryLookup) {
-        errors.push({ rowNumber: row.rowNumber, message: `Kategori \"${row.category}\" tidak ditemukan.` });
+        errors.push({ rowNumber: row.rowNumber, message: `Quiz \"${row.category}\" tidak ditemukan atau memiliki judul yang sama pada beberapa kategori. Isi kolom material_category bila diperlukan.` });
         return false;
       }
-      if (categoryLookup.questionType === "essay" && row.question_type !== "essay") {
-        errors.push({ rowNumber: row.rowNumber, message: `Kategori \"${row.category}\" diatur sebagai essay, tetapi soal ini bukan jenis essay.` });
+      if (categoryLookup.question_type === "essay" && row.question_type !== "essay") {
+        errors.push({ rowNumber: row.rowNumber, message: `Quiz \"${row.category}\" diatur sebagai essay, tetapi soal ini bukan jenis essay.` });
         return false;
       }
       return true;

@@ -11,6 +11,7 @@ export type QuizQuestionType = "pilihan" | "essay";
 export type QuizImportRow = {
   rowNumber: number;
   category: string;
+  material_category: string;
   question: string;
   option_a: string;
   option_b: string;
@@ -28,6 +29,8 @@ export type QuizImportError = {
 
 export type QuizImportCategory = {
   name: string;
+  materialCategory: string;
+  description: string;
   timeLimitMinutes: number | null;
   questionType: QuizQuestionType;
 };
@@ -39,7 +42,7 @@ export type ParsedQuizImport = {
   category: QuizImportCategory | null;
 };
 
-const requiredColumns = ["category", "question", "option_a", "option_b", "option_c", "option_d", "answer_index"] as const;
+const requiredColumns = ["category", "namasoal", "option_a", "option_b", "option_c", "option_d", "answer_index"] as const;
 
 type QuizImportSource = {
   rows: Record<string, unknown>[];
@@ -78,11 +81,15 @@ async function rowsFromFile(file: File): Promise<QuizImportSource> {
       return row as Record<string, unknown>;
     });
     const first = records[0];
-    const hasCategoryConfig = first && "category" in first && !("question" in first) && !("soal" in first);
+    const hasCategoryConfig = first && ("namasoal" in first || "nama_soal" in first) && !("question" in first) && !("soal" in first);
     if (!hasCategoryConfig) return { rows: records, category: null, firstRowNumber: 2 };
 
-    const name = stringValue(first.category);
-    if (!name || name.length > 150) throw new Error("Nama kategori pada konfigurasi JSON wajib diisi dan maksimal 150 karakter.");
+    const name = stringValue(first.NamaSoal ?? first.namasoal ?? first.nama_soal);
+    if (!name || name.length > 150) throw new Error("Judul quiz pada konfigurasi JSON wajib diisi dan maksimal 150 karakter.");
+    const materialCategory = stringValue(first.Kategori ?? first.kategori ?? first.material_category ?? first.category);
+    if (materialCategory.length > 100) throw new Error("Kategori Materi Belajar maksimal 100 karakter.");
+    const description = stringValue(first.description);
+    if (description.length > 10_000) throw new Error("Deskripsi quiz maksimal 10.000 karakter.");
     const rawTime = stringValue(first.time);
     const timeLimitMinutes = rawTime ? Number(rawTime) : null;
     if (timeLimitMinutes !== null && (!Number.isInteger(timeLimitMinutes) || timeLimitMinutes < 1 || timeLimitMinutes > 1440)) {
@@ -91,8 +98,8 @@ async function rowsFromFile(file: File): Promise<QuizImportSource> {
     const questionTypeValue = questionType(first["jenis-soal"] ?? first.jenis_soal ?? first.question_type ?? "pilihan");
 
     return {
-      rows: records.slice(1).map((row) => ({ ...row, category: name, question_type: questionTypeValue })),
-      category: { name, timeLimitMinutes, questionType: questionTypeValue },
+      rows: records.slice(1).map((row) => ({ ...row, category: name, namasoal: row.namasoal ?? row.nama_soal ?? row.question ?? row.soal, material_category: materialCategory, question_type: questionTypeValue })),
+      category: { name, materialCategory, description, timeLimitMinutes, questionType: questionTypeValue },
       firstRowNumber: 3,
     };
   }
@@ -153,10 +160,10 @@ export async function parseQuizImport(file: File): Promise<ParsedQuizImport> {
     const normalized = Object.fromEntries(Object.entries(sourceRow).map(([key, value]) => [normalizeColumn(key), value]));
     const rowNumber = source.firstRowNumber + index;
     const rowQuestionType = questionType(normalized["jenis-soal"] ?? normalized.jenis_soal ?? normalized.question_type ?? source.category?.questionType ?? "pilihan");
-    const questionText = stringValue(normalized.question ?? normalized.soal);
+    const questionText = stringValue(normalized.namasoal ?? normalized.nama_soal ?? normalized.question ?? normalized.soal);
     const missing = rowQuestionType === "essay"
       ? ["soal"].filter(() => !questionText)
-      : requiredColumns.filter((column) => !stringValue(normalized[column]));
+      : requiredColumns.filter((column) => !stringValue(normalized[column] ?? (column === "category" ? normalized.kategori : column === "namasoal" ? normalized.nama_soal ?? normalized.question ?? normalized.soal : undefined)));
     const answer = rowQuestionType === "essay" ? null : answerIndex(normalized.answer_index);
     if (missing.length || (rowQuestionType === "pilihan" && answer === null)) {
       errors.push({ rowNumber, message: [missing.length ? `Kolom kosong: ${missing.join(", ")}.` : "", rowQuestionType === "pilihan" && answer === null ? "answer_index harus A-D atau 0-3." : ""].filter(Boolean).join(" ") });
@@ -165,7 +172,8 @@ export async function parseQuizImport(file: File): Promise<ParsedQuizImport> {
 
     rows.push({
       rowNumber,
-      category: stringValue(normalized.category ?? source.category?.name ?? ""),
+      category: stringValue(normalized.category ?? normalized.kategori ?? source.category?.materialCategory ?? ""),
+      material_category: stringValue(normalized.material_category ?? normalized.kategori ?? source.category?.materialCategory ?? ""),
       question: questionText,
       option_a: stringValue(normalized.option_a),
       option_b: stringValue(normalized.option_b),
@@ -178,4 +186,18 @@ export async function parseQuizImport(file: File): Promise<ParsedQuizImport> {
   }
 
   return { rows, errors, totalRows: sourceRows.length, category: source.category };
+}
+
+export function findQuizImportCategory<T extends { name: string; material_category: string | null }>(
+  categories: T[],
+  name: string,
+  materialCategory: string,
+) {
+  const normalizedName = name.trim().toLocaleLowerCase("id-ID");
+  const matches = categories.filter((category) => category.name.trim().toLocaleLowerCase("id-ID") === normalizedName);
+  if (materialCategory) {
+    const normalizedMaterialCategory = materialCategory.trim().toLocaleLowerCase("id-ID");
+    return matches.find((category) => category.material_category?.trim().toLocaleLowerCase("id-ID") === normalizedMaterialCategory) ?? null;
+  }
+  return matches.length === 1 ? matches[0] : null;
 }

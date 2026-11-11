@@ -20,12 +20,23 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const categoryId = parseId(url.searchParams.get("category_id") ?? "");
+    const materialCategory = url.searchParams.get("category");
     if (!categoryId) {
-      const categories = await queryRows<RowDataPacket[]>("SELECT c.id, c.name, c.time_limit_minutes, c.question_type, COUNT(q.id) AS questions_count FROM quiz_categories c LEFT JOIN quiz_questions q ON q.category_id = c.id WHERE c.parent_id IS NULL GROUP BY c.id, c.name, c.time_limit_minutes, c.question_type ORDER BY c.name");
+      if (materialCategory !== null) {
+        if (!materialCategory.trim() || materialCategory.length > 100) return json({ error: "Kategori materi tidak valid." }, 422);
+        const quizzes = await queryRows<RowDataPacket[]>(
+          "SELECT c.id, c.name, c.description, c.time_limit_minutes, c.question_type, COUNT(q.id) AS questions_count FROM quiz_categories c INNER JOIN quiz_questions q ON q.category_id = c.id WHERE c.material_category = ? OR (c.material_category IS NULL AND c.name = ?) GROUP BY c.id, c.name, c.description, c.time_limit_minutes, c.question_type HAVING COUNT(q.id) > 0 ORDER BY c.name",
+          [materialCategory, materialCategory],
+        );
+        return json({ category: { name: materialCategory }, quizzes, student: { username: guard.user.username, full_name: guard.user.full_name } });
+      }
+      const categories = await queryRows<RowDataPacket[]>(
+        "SELECT category_groups.category AS name, SUM(category_groups.quizzes_count) AS quizzes_count, SUM(category_groups.questions_count) AS questions_count FROM (SELECT DISTINCT category AS category, 0 AS quizzes_count, 0 AS questions_count FROM materials WHERE TRIM(category) <> '' UNION ALL SELECT COALESCE(c.material_category, c.name) AS category, COUNT(DISTINCT c.id) AS quizzes_count, COUNT(q.id) AS questions_count FROM quiz_categories c INNER JOIN quiz_questions q ON q.category_id = c.id WHERE c.material_category IS NOT NULL OR c.parent_id IS NULL GROUP BY c.material_category, c.name HAVING COUNT(q.id) > 0) category_groups GROUP BY category_groups.category ORDER BY category_groups.category",
+      );
       return json({ categories, student: { username: guard.user.username, full_name: guard.user.full_name } });
     }
 
-    const categories = await queryRows<RowDataPacket[]>("SELECT id, name, time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    const categories = await queryRows<RowDataPacket[]>("SELECT id, name, description, material_category, time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
     if (!categories[0]) return json({ error: "Kategori quiz tidak ditemukan." }, 404);
 
     const questions = await queryRows<RowDataPacket[]>("SELECT id, question, option_a, option_b, option_c, option_d FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);

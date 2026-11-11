@@ -1,13 +1,13 @@
 import { getRequestUser } from "@/lib/auth";
 import { queryRows, transaction } from "@/lib/db";
 import { json } from "@/lib/http";
-import { parseQuizImport } from "@/lib/quiz-import";
+import { findQuizImportCategory, parseQuizImport } from "@/lib/quiz-import";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type CategoryRow = RowDataPacket & { id: number; name: string; question_type: string | null };
+type CategoryRow = RowDataPacket & { id: number; name: string; material_category: string | null; question_type: string | null };
 
 export async function POST(request: Request) {
   const user = await getRequestUser(request);
@@ -20,13 +20,19 @@ export async function POST(request: Request) {
 
   try {
     const parsed = await parseQuizImport(file);
-    const categories = await queryRows<CategoryRow[]>("SELECT id, name, question_type FROM quiz_categories");
-    const categoryMap = new Map(categories.map((category) => [category.name.trim().toLocaleLowerCase("id-ID"), { id: category.id, questionType: category.question_type ?? "pilihan" }]));
+    const categories = await queryRows<CategoryRow[]>("SELECT id, name, material_category, question_type FROM quiz_categories");
+    const materialCategories = await queryRows<(RowDataPacket & { category: string })[]>("SELECT DISTINCT category FROM materials WHERE TRIM(category) <> ''");
+    if (parsed.category?.materialCategory && !materialCategories.some((category) => category.category.toLocaleLowerCase("id-ID") === parsed.category?.materialCategory.toLocaleLowerCase("id-ID"))) {
+      return json({ error: `Kategori Materi Belajar "${parsed.category.materialCategory}" tidak ditemukan.` }, 422);
+    }
+    if (parsed.category && !parsed.category.materialCategory && categories.filter((category) => category.name.trim().toLocaleLowerCase("id-ID") === parsed.category?.name.toLocaleLowerCase("id-ID")).length > 1) {
+      return json({ error: `Judul quiz "${parsed.category.name}" ada di beberapa kategori. Isi material_category pada konfigurasi JSON.` }, 422);
+    }
     const categoryErrors = parsed.category
       ? []
       : parsed.rows.flatMap((row) => {
-        const categoryLookup = categoryMap.get(row.category.toLocaleLowerCase("id-ID"));
-        return categoryLookup ? [] : [{ rowNumber: row.rowNumber, message: `Kategori \"${row.category}\" tidak ditemukan.` }];
+        const categoryLookup = findQuizImportCategory(categories, row.category, row.material_category);
+        return categoryLookup ? [] : [{ rowNumber: row.rowNumber, message: `Quiz \"${row.category}\" tidak ditemukan atau memiliki judul yang sama pada beberapa kategori. Isi kolom material_category bila diperlukan.` }];
       });
     const errors = [...parsed.errors, ...categoryErrors];
     if (errors.length) return json({ error: "Import dibatalkan karena ada data yang tidak valid.", totalRows: parsed.totalRows, validRows: parsed.rows.length - categoryErrors.length, errors }, 422);
@@ -34,22 +40,22 @@ export async function POST(request: Request) {
     await transaction(async (connection) => {
       let importedCategoryId: number | null = null;
       if (parsed.category) {
-        const existingCategory = categoryMap.get(parsed.category.name.toLocaleLowerCase("id-ID"));
+        const existingCategory = findQuizImportCategory(categories, parsed.category.name, parsed.category.materialCategory);
         importedCategoryId = existingCategory?.id ?? null;
         if (importedCategoryId) {
-          await connection.execute("UPDATE quiz_categories SET time_limit_minutes = ?, question_type = ? WHERE id = ?", [parsed.category.timeLimitMinutes, parsed.category.questionType, importedCategoryId]);
+          await connection.execute("UPDATE quiz_categories SET material_category = ?, description = ?, time_limit_minutes = ?, question_type = ? WHERE id = ?", [parsed.category.materialCategory || null, parsed.category.description || null, parsed.category.timeLimitMinutes, parsed.category.questionType, importedCategoryId]);
         } else {
           const [result] = await connection.execute<ResultSetHeader>(
-            "INSERT INTO quiz_categories (name, parent_id, time_limit_minutes, question_type) VALUES (?, NULL, ?, ?)",
-            [parsed.category.name, parsed.category.timeLimitMinutes, parsed.category.questionType],
+            "INSERT INTO quiz_categories (name, parent_id, material_category, description, time_limit_minutes, question_type) VALUES (?, NULL, ?, ?, ?, ?)",
+            [parsed.category.name, parsed.category.materialCategory || null, parsed.category.description || null, parsed.category.timeLimitMinutes, parsed.category.questionType],
           );
           importedCategoryId = result.insertId;
         }
       }
 
       for (const row of parsed.rows) {
-        const categoryId = importedCategoryId ?? categoryMap.get(row.category.toLocaleLowerCase("id-ID"))?.id;
-        if (!categoryId) throw new Error(`Kategori "${row.category}" tidak ditemukan.`);
+        const categoryId = importedCategoryId ?? findQuizImportCategory(categories, row.category, row.material_category)?.id;
+        if (!categoryId) throw new Error(`Quiz "${row.category}" tidak ditemukan.`);
         const questionType = row.question_type ?? "pilihan";
         await connection.execute(
           "INSERT INTO quiz_questions (category_id, question_type, question, option_a, option_b, option_c, option_d, answer_index, explanation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",

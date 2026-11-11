@@ -10,8 +10,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CourseUp | Ruang Belajar Modern",
+  title: "CourseUp | Solusi Belajar Modern",
   description: "Materi, latihan soal, forum diskusi, dan progres belajar CourseUp.",
+  icons: {
+    icon: "/course-up-logo.png",
+    shortcut: "/course-up-logo.png",
+    apple: "/course-up-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -24,6 +24,8 @@ Run `npm run dev` and open `http://localhost:3000`.
 ## Database and Vercel
 
 - Keep the existing database and tables; this app does not run migrations or modify the Laravel database schema.
+- Before deploying quiz grouping changes, apply [`db/migrations/20261110_quiz_material_categories.sql`](./db/migrations/20261110_quiz_material_categories.sql) manually to add quiz material-category and description columns.
+- Before deploying editor-based Markdown materials, apply [`db/migrations/20261111_material_markdown_content.sql`](./db/migrations/20261111_material_markdown_content.sql) manually to add the `materials.content` column.
 - In cPanel, enable Remote MySQL and grant the database user access to the existing database. The host must permit connections from Vercel; confirm any firewall, outbound IP, and TLS requirements with the hosting provider.
 - Add `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL`, and `APP_SESSION_SECRET` in the Vercel project's Environment Variables for each environment.
 - Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in each production environment. Login and registration fail closed when this distributed rate-limit service is missing or unavailable. Local development can run without these values, but authentication rate limiting will be disabled.
@@ -40,7 +42,7 @@ Run `npm run dev` and open `http://localhost:3000`.
 
 Each resource has its own Route Handler under `app/api/v1/`, for example `faq/route.ts`, `profile/route.ts`, and `auth/login/route.ts`. IDs use resource-specific dynamic segments. Session cookies are HTTP-only and role checks happen on the server. Authentication inputs use Zod schemas and bounded request bodies; login and registration use Upstash's distributed sliding-window rate limiter.
 
-Course materials keep the original PDF and expose an authenticated Markdown-reading endpoint at `/api/v1/courses/[id]/markdown`. Text is extracted when requested, so no database migration is needed. Scanned/image-only or invalid PDFs fall back to the original PDF viewer with an explanation.
+Course materials support uploaded PDF/Markdown files and Markdown content written in the admin editor. Editor content is stored in `materials.content` and exposed through the authenticated Markdown-reading endpoint at `/api/v1/courses/[id]/markdown`.
 
 ## Checks
 
