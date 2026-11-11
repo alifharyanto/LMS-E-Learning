@@ -42,7 +42,7 @@ Run `npm run dev` and open `http://localhost:3000`.
 
 Each resource has its own Route Handler under `app/api/v1/`, for example `faq/route.ts`, `profile/route.ts`, and `auth/login/route.ts`. IDs use resource-specific dynamic segments. Session cookies are HTTP-only and role checks happen on the server. Authentication inputs use Zod schemas and bounded request bodies; login and registration use Upstash's distributed sliding-window rate limiter.
 
-Course materials support uploaded PDF/Markdown files and Markdown content written in the admin editor. Editor content is stored in `materials.content` and exposed through the authenticated Markdown-reading endpoint at `/api/v1/courses/[id]/markdown`.
+Course materials support uploaded PDF/Markdown files and rich-text content written in the admin editor. Editor HTML is stored in `materials.content` and filtered through an allowlist when rendered by the authenticated course-content endpoint at `/api/v1/courses/[id]/markdown`.
 
 ## Checks
 

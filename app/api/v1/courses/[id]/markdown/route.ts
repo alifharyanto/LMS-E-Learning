@@ -4,6 +4,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getRequestUser } from "@/lib/auth";
 import { queryRows } from "@/lib/db";
 import { json, parseId } from "@/lib/http";
+import { getMaterialRichHtml, isMaterialRichHtml } from "@/lib/material-rich-content";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,6 +45,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       if (typeof material.content === "string") {
         if (Buffer.byteLength(material.content, "utf8") > 5 * 1024 * 1024) return json({ error: "Ukuran Markdown melebihi batas 5 MB." }, 422);
         if (!material.content.trim()) return json({ error: "Materi Markdown kosong." }, 422);
+        if (isMaterialRichHtml(material.content)) {
+          return json({ html: getMaterialRichHtml(material.content), pages: 1 });
+        }
         return json({ markdown: material.content, pages: 1 });
       }
       if (!filePath) return json({ error: "File materi tidak tersedia." }, 404);

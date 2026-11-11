@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Circle, Expand, FileText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { MarkdownCodeBlock, RichHtmlContent } from "@/components/courses/rich-html";
 import { MotionButton, MotionLink, Reveal } from "@/components/ui/motion";
 import MobileStudentNavigation from "@/components/layout/mobile-student-navigation";
 import { apiRequest, type ApiError } from "@/lib/browser-api";
@@ -13,7 +14,7 @@ import { getCourseMaterialSlug, type CourseMaterial } from "@/lib/course-slug";
 export default function CourseMaterialPage({ slug }: { slug: string }) {
   const router = useRouter();
   const [materials, setMaterials] = useState<CourseMaterial[] | null>(null);
-  const [markdown, setMarkdown] = useState<{ materialId: number; text: string } | null>(null);
+  const [markdown, setMarkdown] = useState<{ materialId: number; text: string; html?: string } | null>(null);
   const [markdownError, setMarkdownError] = useState<{ materialId: number; message: string } | null>(null);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<CourseProgress>({ completedIds: [], lastOpenedId: null });
@@ -94,10 +95,11 @@ export default function CourseMaterialPage({ slug }: { slug: string }) {
   useEffect(() => {
     if (!selected || !selectedIsMarkdown) return;
     let active = true;
-    apiRequest<{ markdown: string }>(`/api/v1/courses/${selected.id}/markdown`)
+    apiRequest<{ markdown?: string; html?: string }>(`/api/v1/courses/${selected.id}/markdown`)
       .then((result) => {
         if (!active) return;
-        setMarkdown({ materialId: selected.id, text: result.markdown });
+        if (result.markdown === undefined && result.html === undefined) throw new Error("Isi materi tidak tersedia.");
+        setMarkdown({ materialId: selected.id, text: result.markdown ?? "", html: result.html });
         setMarkdownError(null);
       })
       .catch((requestError: ApiError) => {
@@ -143,6 +145,9 @@ export default function CourseMaterialPage({ slug }: { slug: string }) {
       ) : (
         <div className="course-learning-layout">
           <aside className="course-learning-sidebar" aria-label="Navigasi materi">
+            <MotionLink className="course-back-link course-learning-back-link" href="/kursus">
+              <ArrowLeft size={16} />Kembali ke daftar materi
+            </MotionLink>
             <div className="course-learning-progress">
               <div><strong>Progress belajar</strong><span>{completedCount} / {materials?.length ?? 0} selesai</span></div>
               <div className="course-progress-track" role="progressbar" aria-label="Progress belajar" aria-valuemin={0} aria-valuemax={materials?.length ?? 0} aria-valuenow={completedCount}>
@@ -215,8 +220,10 @@ export default function CourseMaterialPage({ slug }: { slug: string }) {
                   <div className="markdown-status" role="status">Memuat materi Markdown...</div>
                 ) : (
                   <section className="markdown-document" aria-label={`Isi materi ${selected.title}`}>
-                    <div className="markdown-document-meta"><span><FileText size={14} />Materi Markdown</span></div>
-                    <ReactMarkdown>{selectedMarkdown}</ReactMarkdown>
+                    <div className="markdown-document-meta"><span><FileText size={14} />Materi</span></div>
+                    {markdown?.materialId === selected.id && markdown.html !== undefined
+                      ? <RichHtmlContent html={markdown.html} />
+                      : <ReactMarkdown components={{ pre: MarkdownCodeBlock }}>{selectedMarkdown}</ReactMarkdown>}
                   </section>
                 ) : (
                   <iframe id="materialViewer" className="material-frame" src={`/api/v1/courses/${selected.id}/file`} title={`PDF ${selected.title}`} />

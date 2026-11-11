@@ -266,38 +266,40 @@ export default function KursusPage() {
               {materials?.length ? "Tidak ada materi yang cocok dengan pencarian ini." : "Belum ada materi yang tersedia."}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-8">
               {groups.map(([category, items]) => (
-                <div key={category} className="flex h-full flex-col space-y-3">
+                <section key={category} className="space-y-3">
                   <div className="flex items-center justify-between px-0.5">
                     <h3 className="truncate text-base font-bold text-[#1e293b]">{category}</h3>
                     <span className="shrink-0 text-xs text-[#64748b]">{items.length} materi</span>
                   </div>
 
-                  {items.map((item, index) => (
-                    <div key={item.id} className="flex h-[280px] flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all hover:shadow-md">
-                      <div className="flex flex-1 flex-col">
-                        <div className="mb-4 flex items-center justify-between">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#def3f6] text-[#437188]">
-                            <FileText className="h-5 w-5" />
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {items.map((item, index) => (
+                      <div key={item.id} className="flex min-h-[250px] flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+                        <div>
+                          <div className="mb-4 flex items-center justify-between">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#def3f6] text-[#437188]">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <span className="text-xs font-semibold text-[#64748b]">{item.file_type === "text/markdown" ? "Markdown" : "PDF"}</span>
                           </div>
-                          <span className="text-xs font-semibold text-[#64748b]">{item.file_type === "text/markdown" ? "Markdown" : "PDF"}</span>
+                          <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">MATERI {String(index + 1).padStart(2, "0")}</p>
+                          <h4 className="line-clamp-2 text-lg font-bold leading-snug text-[#1e293b] transition-colors hover:text-[#437188]">{item.title}</h4>
+                          {item.description && <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-[#64748b]">{item.description}</p>}
                         </div>
-                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#94a3b8]">MATERI {String(index + 1).padStart(2, "0")}</p>
-                        <h4 className="line-clamp-1 text-lg font-bold leading-snug text-[#1e293b] transition-colors hover:text-[#437188]">{item.title}</h4>
-                        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-[#64748b]">{item.description}</p>
-                      </div>
 
-                      <div className="mt-4 flex items-center justify-between border-t border-[#f1f5f9] pt-5 text-xs">
-                        <span className="max-w-[150px] truncate font-medium text-[#64748b]">{item.category}</span>
-                        <Link href={`/kursus/${getCourseMaterialSlug(item)}`} className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
-                          <span>Buka materi</span>
-                          <span className="text-sm">→</span>
-                        </Link>
+                        <div className="mt-5 flex items-center justify-between border-t border-[#f1f5f9] pt-4 text-xs">
+                          <span className="max-w-[150px] truncate font-medium text-[#64748b]">{item.category}</span>
+                          <Link href={`/kursus/${getCourseMaterialSlug(item)}`} className="inline-flex shrink-0 items-center gap-1 font-bold text-[#437188] transition-colors hover:text-[#335364]">
+                            <span>Buka materi</span>
+                            <span className="text-sm">→</span>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}

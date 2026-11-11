@@ -1,6 +1,7 @@
 import { getRequestUser } from "@/lib/auth";
 import { execute } from "@/lib/db";
 import { json, readJson, safeString } from "@/lib/http";
+import { storeMaterialRichHtml } from "@/lib/material-rich-content";
 import { toYouTubeEmbedUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
@@ -33,14 +34,16 @@ export async function POST(request: Request) {
 
     if (materialSource === "editor") {
       if (fileType !== "text/markdown" || typeof content !== "string" || !content.trim()) {
-        return json({ error: "Isi materi Markdown wajib diisi." }, 422);
+        return json({ error: "Isi materi wajib diisi." }, 422);
       }
-      const contentSize = Buffer.byteLength(content, "utf8");
-      if (contentSize > 5 * 1024 * 1024) return json({ error: "Isi materi Markdown maksimal 5 MB." }, 422);
+      if (!content.replace(/<[^>]*>/g, "").replace(/&nbsp;|&#160;/g, " ").trim()) return json({ error: "Isi materi wajib diisi." }, 422);
       if (!title || !category) return json({ error: "Judul dan kategori wajib diisi." }, 422);
       if (youtubeUrl && !youtubeEmbedUrl) return json({ error: "Masukkan URL video YouTube yang valid." }, 422);
 
-      const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type, content, youtube_embed_url) VALUES (?, ?, ?, '', ?, 'text/markdown', ?, ?)", [title, description, category, contentSize, content, youtubeEmbedUrl]);
+      const storedContent = storeMaterialRichHtml(content);
+      const contentSize = Buffer.byteLength(storedContent, "utf8");
+      if (contentSize > 5 * 1024 * 1024) return json({ error: "Isi materi maksimal 5 MB." }, 422);
+      const result = await execute("INSERT INTO materials (title, description, category, file_path, file_size, file_type, content, youtube_embed_url) VALUES (?, ?, ?, '', ?, 'text/markdown', ?, ?)", [title, description, category, contentSize, storedContent, youtubeEmbedUrl]);
       return json({ success: true, id: result.insertId }, 201);
     }
 

@@ -482,9 +482,24 @@ body, :root[data-theme="dark"] body {
 .admin-markdown-tool:hover, .admin-markdown-tool:focus-visible { outline: none; color: var(--link); background: var(--surface); }
 .admin-markdown-divider { width: 1px; height: 23px; margin: 0 4px; background: var(--line); }
 .admin-markdown-code-block { font-size: 12px; font-weight: 800; letter-spacing: -1px; }
-.admin-markdown-source { min-height: 320px; margin-top: -10px; border-radius: 0 0 9px 9px; font-family: Consolas, "Courier New", monospace; line-height: 1.65; }
+.admin-markdown-paragraph { font-size: 13px; font-weight: 800; }
+.admin-markdown-color { display: inline-flex; width: 34px; height: 32px; align-items: center; justify-content: center; cursor: pointer; }
+.admin-markdown-color input { width: 20px; height: 20px; padding: 1px; border: 1px solid var(--line); border-radius: 4px; background: transparent; cursor: pointer; }
+.admin-rich-editor { max-width: none; max-height: none; min-height: 320px; margin-top: -10px; padding: 18px; overflow-y: auto; border-radius: 0 0 9px 9px; outline: none; white-space: pre-wrap; }
+.admin-rich-editor:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 18%, transparent); }
+.admin-rich-editor:empty::before { color: var(--muted); content: attr(data-placeholder); pointer-events: none; }
+.admin-rich-editor h1 { margin: 0 0 18px; font-size: 26px; }
+.admin-rich-editor h2 { margin: 20px 0 12px; font-size: 22px; }
+.admin-rich-editor h3 { margin: 16px 0 10px; font-size: 18px; }
+.admin-rich-editor blockquote { margin: 12px 0; padding: 9px 15px; border-left: 4px solid var(--gold); color: var(--muted); background: var(--surface-secondary); }
+.admin-rich-editor pre { margin: 16px 0; padding: 14px 18px; overflow-x: auto; border: 1px solid #334155; border-radius: 10px; color: #e2e8f0; background: #111827; box-shadow: 0 8px 20px rgb(15 23 42 / 12%); font: 13px/1.7 Consolas, "Courier New", monospace; white-space: pre; }
+.admin-rich-editor pre::before { display: block; margin: -14px -18px 12px; padding: 9px 18px; border-bottom: 1px solid #334155; color: #94a3b8; background: #1b2635; content: "CODE"; font: 700 10px/1.2 var(--font-body); letter-spacing: .12em; }
+.admin-rich-editor code { padding: 2px 5px; border-radius: 4px; background: var(--surface-secondary); font: .9em Consolas, "Courier New", monospace; }
+.admin-rich-editor pre code { display: block; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; }
+.admin-markdown-unlink { font-size: 18px; font-weight: 700; }
 .admin-markdown-hint { margin: -3px 0 0; color: var(--muted); font-size: 11px; }
 :root[data-theme="dark"] .admin-markdown-toolbar { border-color: var(--line); background: var(--surface-secondary); }
+:root[data-theme="dark"] .admin-rich-editor blockquote, :root[data-theme="dark"] .admin-rich-editor :not(pre) > code { background: var(--surface-secondary); }
 .page-wrap .split-layout:not(.forum-layout) { grid-template-columns: minmax(250px, 290px) minmax(0, 1fr); gap: 18px; }
 .course-library { display: flex; min-width: 0; flex-direction: column; }
 .course-library .material-list { flex: 1; align-content: start; }
@@ -510,6 +525,19 @@ body, :root[data-theme="dark"] body {
 .markdown-document li { margin: 7px 0; padding-left: 4px; color: #334c52; font-size: 14px; line-height: 1.7; }
 .markdown-document blockquote { margin: 20px 0; padding: 12px 18px; border-left: 4px solid var(--gold); color: var(--muted); background: #f3f8f5; }
 .markdown-document code { padding: 2px 5px; border: 1px solid var(--line); color: var(--teal); background: #f3f8f5; font-size: .9em; }
+.markdown-document pre { margin: 20px 0; padding: 14px 18px; overflow-x: auto; border: 1px solid #334155; border-radius: 12px; color: #e2e8f0; background: #111827; box-shadow: 0 10px 24px rgb(15 23 42 / 12%); font: 13px/1.75 Consolas, "Courier New", monospace; white-space: pre; }
+.markdown-document pre::before { display: block; margin: -14px -18px 12px; padding: 10px 18px; border-bottom: 1px solid #334155; color: #cbd5e1; background: #1b2635; content: "CODE"; font: 700 11px/1.2 var(--font-body); letter-spacing: .04em; }
+.markdown-document .rich-code-block { margin: 20px 0; overflow: hidden; border: 1px solid #334155; border-radius: 12px; background: #111827; box-shadow: 0 10px 24px rgb(15 23 42 / 12%); }
+.rich-code-block-toolbar { display: flex; min-height: 40px; padding: 0 12px 0 16px; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #334155; color: #cbd5e1; background: #1b2635; }
+.rich-code-block-language { color: #cbd5e1; font: 700 11px/1.2 var(--font-body); letter-spacing: .04em; }
+.rich-code-block-copy { display: inline-flex; min-height: 30px; padding: 0 8px; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 6px; color: #cbd5e1; background: transparent; font: 600 11px/1 var(--font-body); cursor: pointer; }
+.rich-code-block-copy:hover, .rich-code-block-copy:focus-visible { outline: none; border-color: #475569; color: #fff; background: #293548; }
+.markdown-document .rich-code-block pre { margin: 0; padding: 16px 20px; overflow-x: auto; border: 0; border-radius: 0; color: #e2e8f0; background: transparent; box-shadow: none; font: 13px/1.75 Consolas, "Courier New", monospace; white-space: pre; overflow-wrap: normal; }
+.markdown-document .rich-code-block pre::before { display: none; }
+.markdown-document pre code { display: block; padding: 0; border: 0; color: inherit; background: transparent; font: inherit; white-space: inherit; }
+.markdown-document table { width: 100%; margin: 16px 0; border-collapse: collapse; }
+.markdown-document th, .markdown-document td { padding: 8px 10px; border: 1px solid var(--line); text-align: left; }
+.markdown-document img { max-width: 100%; height: auto; }
 :root[data-theme="dark"] .admin-material-item { border-color: var(--glass-stroke); background: var(--glass-surface); }
 :root[data-theme="dark"] .admin-material-editor { border-color: var(--glass-stroke); }
 :root[data-theme="dark"] .reader-tab { color: var(--muted); }
@@ -517,7 +545,7 @@ body, :root[data-theme="dark"] body {
 :root[data-theme="dark"] .markdown-document { border-color: var(--glass-stroke); color: var(--ink); background: #14282d; }
 :root[data-theme="dark"] .markdown-document p, :root[data-theme="dark"] .markdown-document li { color: #d0dfdc; }
 :root[data-theme="dark"] .markdown-document h1 { border-color: var(--glass-stroke); }
-:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document code { border-color: var(--glass-stroke); background: #0f2025; }
+:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document :not(pre) > code { border-color: var(--glass-stroke); background: #0f2025; }
 @media (max-width: 900px) {
   .page-wrap .split-layout:not(.forum-layout) { grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); }
   .forum-feed-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
@@ -1705,7 +1733,7 @@ body { color: var(--ink); background-color: var(--paper); }
 :root[data-theme="dark"] .auth-brand { background: var(--paper); }
 :root[data-theme="dark"] .auth-brand .brand-mark { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
 :root[data-theme="dark"] .markdown-document { background: var(--surface); }
-:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document code { background: var(--surface-secondary); }
+:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document :not(pre) > code { background: var(--surface-secondary); }
 :root[data-theme="dark"] .status { border-color: var(--success); color: var(--success); background: var(--success-surface); }
 :root[data-theme="dark"] .status-error { border-color: var(--destructive); color: var(--destructive); background: var(--destructive-surface); }
 :root[data-theme="dark"] .faq-reveal { border-color: var(--line); background: var(--surface); }
@@ -1723,7 +1751,7 @@ body { color: var(--ink); background-color: var(--paper); }
 :root[data-theme="dark"] .surface, :root[data-theme="dark"] .thread-card, :root[data-theme="dark"] .metric, :root[data-theme="dark"] .faq-row, :root[data-theme="dark"] .auth-card, :root[data-theme="dark"] .material-item, :root[data-theme="dark"] .quiz-category { border-color: var(--line); color: var(--ink); background: var(--surface); }
 :root[data-theme="dark"] .faq-row p, :root[data-theme="dark"] .markdown-document p, :root[data-theme="dark"] .markdown-document li { color: var(--ink); }
 :root[data-theme="dark"] .markdown-document { border-color: var(--line); color: var(--ink); background: var(--surface); }
-:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document code { border-color: var(--line); background: var(--surface-secondary); }
+:root[data-theme="dark"] .markdown-document blockquote, :root[data-theme="dark"] .markdown-document :not(pre) > code { border-color: var(--line); background: var(--surface-secondary); }
 :root[data-theme="dark"] .reader-tab.is-active { border-color: var(--gold); color: var(--accent-foreground); background: var(--gold); }
 :root[data-theme="dark"] .home-path:nth-child(2) .home-path-number, :root[data-theme="dark"] .home-path:nth-child(2) .home-path-copy small { color: var(--accent-foreground); }
 :root[data-theme="dark"] .quiz-category:hover, :root[data-theme="dark"] .quiz-option:hover, :root[data-theme="dark"] .material-item[aria-current="true"], :root[data-theme="dark"] .comment, :root[data-theme="dark"] .admin-nav a:hover, :root[data-theme="dark"] .admin-nav a:focus-visible { border-color: var(--focus); background: var(--surface-secondary); }
@@ -2454,6 +2482,7 @@ body { color: var(--ink); background-color: var(--paper); }
 .course-card-format.is-complete { display: inline-flex; align-items: center; gap: 5px; color: var(--success); }
 .course-learning-layout { display: grid; min-width: 0; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr); align-items: start; gap: 20px; }
 .course-learning-sidebar { position: sticky; top: 92px; min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.course-learning-back-link { width: calc(100% - 20px); margin: 10px 10px 0; justify-content: center; }
 .course-learning-progress { display: grid; padding: 16px; gap: 12px; border-bottom: 1px solid var(--line); }
 .course-learning-progress > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .course-learning-progress strong { font-size: 12px; }

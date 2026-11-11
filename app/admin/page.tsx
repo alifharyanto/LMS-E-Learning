@@ -9,7 +9,7 @@ import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui
 import { apiRequest } from "@/lib/browser-api";
 
 type Category = { id: number; name: string; material_category: string | null; description: string | null; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
-type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; content?: string | null; is_editor_content?: boolean | number; youtube_embed_url: string | null };
+type Material = { id: number; title: string; description: string | null; category: string; file_path: string | null; file_size: number | null; file_type: string | null; content?: string | null; content_format?: "html" | "markdown"; is_editor_content?: boolean | number; youtube_embed_url: string | null };
 type MaterialFormat = "application/pdf" | "text/markdown" | "markdown-editor";
 type Question = { id: number; question: string; answer_index: number | null; explanation: string | null; question_type?: "pilihan" | "essay"; category_id: number; quiz_title: string; material_category: string | null };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
@@ -104,6 +104,7 @@ export default function AdminPage() {
   const [materialContent, setMaterialContent] = useState("");
   const [editingMaterialFormat, setEditingMaterialFormat] = useState<MaterialFormat>("application/pdf");
   const [editingMaterialContent, setEditingMaterialContent] = useState("");
+  const [editingContentFormat, setEditingContentFormat] = useState<"html" | "markdown">("html");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -138,6 +139,7 @@ export default function AdminPage() {
         ? "markdown-editor"
         : material.file_type === "text/markdown" ? "text/markdown" : "application/pdf");
       setEditingMaterialContent(material.content ?? "");
+      setEditingContentFormat(material.content_format ?? "markdown");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Materi gagal dimuat untuk diedit.");
     }
@@ -259,7 +261,7 @@ export default function AdminPage() {
       if (endpoint.startsWith("/api/v1/admin/categories/")) setEditingCategoryId(null);
       if (endpoint.startsWith("/api/v1/admin/questions/")) setEditingExplanationId(null);
       if (endpoint === "/api/v1/admin/materials") { setMaterialFormat("markdown-editor"); setMaterialContent(""); }
-      if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); setEditingMaterialContent(""); }
+      if (endpoint.startsWith("/api/v1/admin/materials/")) { setEditingMaterialId(null); setEditingMaterialFormat("application/pdf"); setEditingMaterialContent(""); setEditingContentFormat("html"); }
       await refresh();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Perubahan gagal disimpan.");
@@ -433,7 +435,7 @@ export default function AdminPage() {
               <label className="field form-span"><span>Format materi</span><select className="select" name="material_format" value={editingMaterialFormat} onChange={(event) => setEditingMaterialFormat(getMaterialFormat(event.target.value))}><option value="markdown-editor">Editor teks</option><option value="application/pdf">Unggah PDF</option><option value="text/markdown">Unggah Markdown (.md)</option></select></label>
               <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" defaultValue={item.description ?? ""} maxLength={10000} /></label>
               {editingMaterialFormat === "markdown-editor" ? (
-                <div className="field form-span"><span>Isi materi</span><MarkdownEditor name="material_content" value={editingMaterialContent} onChange={setEditingMaterialContent} /></div>
+                <div className="field form-span"><span>Isi materi</span><MarkdownEditor name="material_content" value={editingMaterialContent} contentFormat={editingContentFormat} onChange={setEditingMaterialContent} /></div>
               ) : (
                 <label className="field form-span"><span>Ganti file · opsional · {editingMaterialFormat === "application/pdf" ? "maksimal 25 MB" : "maksimal 5 MB"}</span><input className="input" name="material_file" type="file" accept={editingMaterialFormat === "application/pdf" ? ".pdf,application/pdf" : ".md,text/markdown,text/plain"} /></label>
               )}
