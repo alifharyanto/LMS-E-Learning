@@ -36,10 +36,16 @@ export async function GET(request: Request) {
       return json({ categories, student: { username: guard.user.username, full_name: guard.user.full_name } });
     }
 
-    const categories = await queryRows<RowDataPacket[]>("SELECT id, name, description, material_category, time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    const categories = await queryRows<RowDataPacket[]>(
+      "SELECT id, name, description, material_category, time_limit_minutes, question_type, quiz_starts_at, (quiz_starts_at IS NOT NULL AND quiz_starts_at <= UTC_TIMESTAMP()) AS quiz_started, CASE WHEN quiz_starts_at IS NULL THEN NULL ELSE GREATEST(CEIL(TIMESTAMPDIFF(MICROSECOND, UTC_TIMESTAMP(3), quiz_starts_at) / 1000000), 0) END AS starts_in_seconds FROM quiz_categories WHERE id = ? LIMIT 1",
+      [categoryId],
+    );
     if (!categories[0]) return json({ error: "Kategori quiz tidak ditemukan." }, 404);
 
-    const questions = await queryRows<RowDataPacket[]>("SELECT id, question, option_a, option_b, option_c, option_d FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId]);
+    const started = Boolean(categories[0].quiz_started);
+    const questions = started
+      ? await queryRows<RowDataPacket[]>("SELECT id, question, option_a, option_b, option_c, option_d FROM quiz_questions WHERE category_id = ? ORDER BY id", [categoryId])
+      : [];
     const questionType = categories[0].question_type === "essay" ? "essay" : "pilihan";
     const typedQuestions = questions.map((question) => ({ ...question, question_type: questionType }));
     return json({ category: categories[0], questions: typedQuestions, student: { username: guard.user.username, full_name: guard.user.full_name } });
@@ -62,6 +68,12 @@ export async function POST(request: Request) {
       if (!categoryId || !questionId || !Number.isInteger(answerIndex) || Number(answerIndex) < 0 || Number(answerIndex) > 3) {
         return json({ error: "Jawaban quiz tidak valid." }, 422);
       }
+      const categories = await queryRows<(RowDataPacket & { started: number })[]>(
+        "SELECT quiz_starts_at IS NOT NULL AND quiz_starts_at <= UTC_TIMESTAMP() AS started FROM quiz_categories WHERE id = ? LIMIT 1",
+        [categoryId],
+      );
+      if (!categories[0]) return json({ error: "Kategori quiz tidak ditemukan." }, 404);
+      if (!categories[0].started) return json({ error: "Quiz belum dimulai oleh guru." }, 409);
       const questions = await queryRows<(RowDataPacket & { answer_index: number })[]>(
         "SELECT answer_index FROM quiz_questions WHERE id = ? AND category_id = ? LIMIT 1",
         [questionId, categoryId],
@@ -76,8 +88,13 @@ export async function POST(request: Request) {
       return json({ error: "Jawaban quiz tidak valid." }, 422);
     }
 
-    const categories = await queryRows<RowDataPacket[]>("SELECT time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    const categories = await queryRows<(RowDataPacket & { time_limit_minutes: number | null; question_type: string | null; started: number })[]>(
+      "SELECT time_limit_minutes, question_type, (quiz_starts_at IS NOT NULL AND quiz_starts_at <= UTC_TIMESTAMP()) AS started FROM quiz_categories WHERE id = ? LIMIT 1",
+      [categoryId],
+    );
     const category = categories[0];
+    if (!category) return json({ error: "Kategori quiz tidak ditemukan." }, 404);
+    if (!category.started) return json({ error: "Quiz belum dimulai oleh guru." }, 409);
     if (Number(category?.time_limit_minutes) > 0) {
       return json({ error: "Quiz bertimer harus dikirim melalui attempt quiz." }, 409);
     }

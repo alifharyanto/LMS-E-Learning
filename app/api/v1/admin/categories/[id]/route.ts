@@ -25,6 +25,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await readJson(request);
     const rawTimeLimit = body?.time_limit_minutes;
     const timeLimit = rawTimeLimit === "" || rawTimeLimit === null || rawTimeLimit === undefined ? null : Number(rawTimeLimit);
+    const rawCountdownEnabled = body?.countdown_enabled;
+    const rawCountdownSeconds = body?.countdown_seconds;
     const questionType = String(body?.question_type ?? "pilihan").toLowerCase() === "essay" ? "essay" : "pilihan";
     const name = body?.category_name === undefined ? null : safeString(body.category_name, 150);
     const materialCategory = body?.material_category === undefined ? undefined : safeString(body.material_category, 100);
@@ -35,9 +37,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (name !== null && !name) return json({ error: "Judul quiz wajib diisi." }, 422);
     if (body?.material_category && !materialCategory) return json({ error: "Kategori materi tidak valid." }, 422);
 
-    const categories = await queryRows<(RowDataPacket & { id: number; name: string; material_category: string | null; description: string | null; time_limit_minutes: number | null })[]>("SELECT id, name, material_category, description, time_limit_minutes FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
+    const categories = await queryRows<(RowDataPacket & { id: number; name: string; material_category: string | null; description: string | null; time_limit_minutes: number | null; countdown_enabled: number; countdown_seconds: number })[]>("SELECT id, name, material_category, description, time_limit_minutes, countdown_enabled, countdown_seconds FROM quiz_categories WHERE id = ? LIMIT 1", [categoryId]);
     const category = categories[0];
     if (!category) return json({ error: "Quiz tidak ditemukan." }, 404);
+    const countdownEnabled = rawCountdownEnabled === undefined
+      ? Boolean(Number(category.countdown_enabled))
+      : rawCountdownEnabled === true || rawCountdownEnabled === "true" || rawCountdownEnabled === "1";
+    const countdownSeconds = rawCountdownSeconds === undefined ? Number(category.countdown_seconds) : Number(rawCountdownSeconds);
+    if (!Number.isInteger(countdownSeconds) || countdownSeconds < 1 || countdownSeconds > 300) {
+      return json({ error: "Countdown kustom harus antara 1-300 detik." }, 422);
+    }
     const nextMaterialCategory = materialCategory === undefined ? category.material_category : materialCategory || null;
     const normalizeCategory = (value: string | null | undefined) => value?.trim().toLocaleLowerCase("id-ID") ?? "";
     const isExistingCategory = normalizeCategory(nextMaterialCategory) === normalizeCategory(category.material_category)
@@ -47,8 +56,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       if (!materialCategories.length) return json({ error: "Pilih kategori yang tersedia pada Materi Belajar." }, 422);
     }
     await execute(
-      "UPDATE quiz_categories SET name = ?, material_category = ?, description = ?, time_limit_minutes = ?, question_type = ? WHERE id = ?",
-      [name ?? category.name, nextMaterialCategory, description === undefined ? category.description : description || null, timeLimit, questionType, categoryId],
+      "UPDATE quiz_categories SET name = ?, material_category = ?, description = ?, time_limit_minutes = ?, question_type = ?, countdown_enabled = ?, countdown_seconds = ? WHERE id = ?",
+      [name ?? category.name, nextMaterialCategory, description === undefined ? category.description : description || null, timeLimit, questionType, countdownEnabled ? 1 : 0, countdownSeconds, categoryId],
     );
     return json({ success: true });
   } catch (error) {

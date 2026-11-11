@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Download, Save } from "lucide-react";
+import { ArrowLeft, Download, Play, Save } from "lucide-react";
 import { MotionButton } from "@/components/ui/motion";
 import { apiRequest } from "@/lib/browser-api";
 
-type Quiz = { id: number; name: string; material_category: string | null; description: string | null; time_limit_minutes: number | null; question_type: "pilihan" | "essay" };
+type Quiz = { id: number; name: string; material_category: string | null; description: string | null; time_limit_minutes: number | null; question_type: "pilihan" | "essay"; countdown_enabled: number | boolean; countdown_seconds: number };
 type AdminData = { categories: Quiz[] };
 type Question = { id: number; question_type: "pilihan" | "essay"; question: string; option_a: string | null; option_b: string | null; option_c: string | null; option_d: string | null; answer_index: number | null; explanation: string | null };
 
@@ -24,6 +24,10 @@ export default function EditQuizPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [questionBusy, setQuestionBusy] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [startNotice, setStartNotice] = useState("");
+  const [customCountdownEnabled, setCustomCountdownEnabled] = useState(false);
+  const configFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -33,6 +37,7 @@ export default function EditQuizPage() {
       const { questions: quizQuestions } = await apiRequest<{ questions: Question[] }>(`/api/v1/admin/questions?category_id=${match.id}`);
       if (!active) return;
       setQuiz(match);
+      setCustomCountdownEnabled(Boolean(Number(match.countdown_enabled)));
       setQuestions(quizQuestions);
     }).catch((loadError: unknown) => { if (active) setError(loadError instanceof Error ? loadError.message : "Quiz gagal dimuat."); });
     return () => { active = false; };
@@ -106,6 +111,29 @@ export default function EditQuizPage() {
     }
   }
 
+  async function startQuiz() {
+    if (!quiz) return;
+    const form = configFormRef.current;
+    if (!form?.reportValidity()) return;
+    setStarting(true);
+    setError("");
+    setStartNotice("");
+    try {
+      const values = Object.fromEntries(new FormData(form).entries());
+      await apiRequest(`/api/v1/admin/categories/${quiz.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const response = await apiRequest<{ starts_in_seconds: number }>("/api/v1/admin/categories/" + quiz.id + "/start", { method: "POST" });
+      setStartNotice(`Quiz dimulai untuk semua siswa dalam ${response.starts_in_seconds} detik.`);
+    } catch (startError) {
+      setError(startError instanceof Error ? startError.message : "Quiz gagal dimulai.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
   if (!quiz) return <main className="page-shell"><div className="surface surface-pad">{error || "Memuat konfigurasi quiz..."}</div></main>;
   return <main className="page-shell">
     <section className="surface surface-pad admin-section">
@@ -113,15 +141,24 @@ export default function EditQuizPage() {
       <div className="admin-section-heading"><div><span className="list-meta">{quiz.material_category || quiz.name}</span><h1 className="surface-title">Edit quiz · {quiz.name}</h1></div></div>
       {error && <p className="status status-error" role="alert">{error}</p>}
       {notice && <p className="status status-success" role="status">{notice}</p>}
-      <form className="form-grid admin-form" onSubmit={(event) => void save(event)}>
+      <form ref={configFormRef} className="form-grid admin-form" onSubmit={(event) => void save(event)}>
         <label className="field"><span>Kategori</span><input className="input" name="material_category" defaultValue={quiz.material_category ?? quiz.name} required /></label>
         <label className="field"><span>NamaSoal</span><input className="input" name="category_name" defaultValue={quiz.name} maxLength={150} required /></label>
         <label className="field form-span"><span>Deskripsi</span><textarea className="textarea" name="description" defaultValue={quiz.description ?? ""} maxLength={10000} /></label>
         <label className="field"><span>Durasi menit</span><input className="input" name="time_limit_minutes" type="number" min="1" max="1440" defaultValue={quiz.time_limit_minutes ?? ""} /></label>
         <label className="field"><span>Jenis soal</span><select className="select" name="question_type" defaultValue={quiz.question_type}><option value="pilihan">Pilihan ganda</option><option value="essay">Essay</option></select></label>
+        <label className="field"><span>Countdown kustom</span><select className="select" name="countdown_enabled" value={String(customCountdownEnabled)} onChange={(event) => setCustomCountdownEnabled(event.target.value === "true")}><option value="false">Nonaktif · gunakan default 5 detik</option><option value="true">Aktif · atur durasi</option></select></label>
+        <label className="field"><span>Durasi countdown (detik)</span><input className="input" name="countdown_seconds" type="number" min="1" max="300" defaultValue={quiz.countdown_seconds || 5} disabled={!customCountdownEnabled} /></label>
         <MotionButton className="button button-primary" disabled={busy}><Save size={15} />{busy ? "Menyimpan..." : "Simpan konfigurasi"}</MotionButton>
         <MotionButton type="button" className="button button-secondary" onClick={downloadQuestions}><Download size={15} />Download soal (.json)</MotionButton>
       </form>
+      <div className="quiz-admin-start">
+        <div><strong>Mulai quiz untuk semua siswa</strong><p>Countdown dimulai serentak setelah tombol ini ditekan. Perubahan konfigurasi akan disimpan otomatis.</p></div>
+        <MotionButton type="button" className="button button-primary" onClick={() => void startQuiz()} disabled={starting || !questions.length}>
+          <Play size={15} />{starting ? "Menjadwalkan..." : "Mulai quiz sekarang"}
+        </MotionButton>
+      </div>
+      {startNotice && <p className="status status-success" role="status">{startNotice}</p>}
     </section>
     <section className="surface surface-pad admin-section">
       <div className="admin-section-heading"><div><span className="list-meta">BANK SOAL</span><h2 className="surface-title">Daftar soal · {quiz.name}</h2></div><span className="admin-count">{questions.length} soal</span></div>

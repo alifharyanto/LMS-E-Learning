@@ -25,6 +25,7 @@ Run `npm run dev` and open `http://localhost:3000`.
 
 - Keep the existing database and tables; this app does not run migrations or modify the Laravel database schema.
 - Before deploying quiz grouping changes, apply [`db/migrations/20261110_quiz_material_categories.sql`](./db/migrations/20261110_quiz_material_categories.sql) manually to add quiz material-category and description columns.
+- Before deploying synchronized quiz starts, apply [`db/migrations/20261111_quiz_synchronized_start.sql`](./db/migrations/20261111_quiz_synchronized_start.sql) manually after [`db/migrations/20261005_quiz_timers.sql`](./db/migrations/20261005_quiz_timers.sql) to add countdown settings and shared start times.
 - Before deploying editor-based Markdown materials, apply [`db/migrations/20261111_material_markdown_content.sql`](./db/migrations/20261111_material_markdown_content.sql) manually to add the `materials.content` column.
 - In cPanel, enable Remote MySQL and grant the database user access to the existing database. The host must permit connections from Vercel; confirm any firewall, outbound IP, and TLS requirements with the hosting provider.
 - Add `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL`, and `APP_SESSION_SECRET` in the Vercel project's Environment Variables for each environment.

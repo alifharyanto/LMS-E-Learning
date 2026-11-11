@@ -215,7 +215,7 @@ async function findAttempt(userId: number, categoryId: number) {
     );
     if (Number(categories[0]?.time_limit_minutes) > 0) {
       rows = await queryRows<AttemptRow[]>(
-        "SELECT id, user_id, category_id, time_limit_minutes, questions_snapshot, answers, status, result_id, 0 AS remaining_seconds FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status <> 'in_progress' ORDER BY id DESC LIMIT 1",
+        "SELECT a.id, a.user_id, a.category_id, a.time_limit_minutes, a.questions_snapshot, a.answers, a.status, a.result_id, 0 AS remaining_seconds FROM quiz_attempts a INNER JOIN quiz_categories c ON c.id = a.category_id WHERE a.user_id = ? AND a.category_id = ? AND a.status <> 'in_progress' AND a.started_at >= c.quiz_starts_at ORDER BY a.id DESC LIMIT 1",
         [userId, categoryId],
       );
       attempt = rows[0];
@@ -306,11 +306,14 @@ export async function POST(request: Request) {
       if (existing?.status === "in_progress") return json({ attempt: existing });
 
       const started = await transaction(async (connection) => {
-        const [categories] = await connection.execute<(RowDataPacket & { id: number; time_limit_minutes: number | null; question_type: string | null })[]>(
-          "SELECT id, time_limit_minutes, question_type FROM quiz_categories WHERE id = ? LIMIT 1 FOR UPDATE",
+        const [categories] = await connection.execute<(RowDataPacket & { id: number; time_limit_minutes: number | null; question_type: string | null; quiz_starts_at: Date | string | null; started: number })[]>(
+          "SELECT id, time_limit_minutes, question_type, quiz_starts_at, (quiz_starts_at IS NOT NULL AND quiz_starts_at <= UTC_TIMESTAMP()) AS started FROM quiz_categories WHERE id = ? LIMIT 1 FOR UPDATE",
           [categoryId],
         );
         if (!categories[0]) return { error: "Kategori quiz tidak ditemukan.", status: 404 as const };
+        if (!categories[0].started || !categories[0].quiz_starts_at) {
+          return { error: "Quiz belum dimulai oleh guru.", status: 409 as const };
+        }
 
         const [activeRows] = await connection.execute<(RowDataPacket & { id: number })[]>(
           "SELECT id FROM quiz_attempts WHERE user_id = ? AND category_id = ? AND status = 'in_progress' AND expires_at > UTC_TIMESTAMP() ORDER BY id DESC LIMIT 1 FOR UPDATE",
@@ -336,10 +339,15 @@ export async function POST(request: Request) {
           explanation: question.explanation,
           question_type: categories[0].question_type === "essay" ? "essay" : "pilihan",
         }));
-        const [insertResult] = await connection.execute(
-          "INSERT INTO quiz_attempts (user_id, category_id, time_limit_minutes, questions_snapshot, answers, expires_at) VALUES (?, ?, ?, ?, ?, TIMESTAMPADD(MINUTE, ?, UTC_TIMESTAMP()))",
-          [guard.user.id, categoryId, timeLimit, JSON.stringify(snapshot), "{}", timeLimit],
-        );
+        const [insertResult] = body.restart === true
+          ? await connection.execute(
+            "INSERT INTO quiz_attempts (user_id, category_id, time_limit_minutes, questions_snapshot, answers, expires_at) VALUES (?, ?, ?, ?, ?, TIMESTAMPADD(MINUTE, ?, UTC_TIMESTAMP()))",
+            [guard.user.id, categoryId, timeLimit, JSON.stringify(snapshot), "{}", timeLimit],
+          )
+          : await connection.execute(
+            "INSERT INTO quiz_attempts (user_id, category_id, time_limit_minutes, questions_snapshot, answers, expires_at) VALUES (?, ?, ?, ?, ?, TIMESTAMPADD(MINUTE, ?, (SELECT quiz_starts_at FROM quiz_categories WHERE id = ?)))",
+            [guard.user.id, categoryId, timeLimit, JSON.stringify(snapshot), "{}", timeLimit, categoryId],
+          );
         return { id: Number((insertResult as { insertId: number }).insertId), created: true };
       });
       if ("error" in started) return json({ error: started.error }, started.status);

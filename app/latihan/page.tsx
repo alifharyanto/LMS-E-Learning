@@ -9,6 +9,7 @@ import { MotionButton, StaggerGroup, StaggerItem } from "@/components/ui/motion"
 
 type Category = { name: string; quizzes_count: number; questions_count: number };
 type QuizCard = { id: number; name: string; description: string | null; questions_count: number; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" };
+type QuizStartStatus = { scheduled: boolean; started: boolean; starts_in_seconds: number | null };
 type Question = { id: number; question: string; option_a: string | null; option_b: string | null; option_c: string | null; option_d: string | null; question_type?: "pilihan" | "essay" };
 type QuizResult = { id: number; score: number; total: number; percent: number; correct_answers?: number; incorrect_answers?: number; unanswered_answers?: number; explanations: { id: number; text: string | null; answer_index: number | null }[] };
 type QuizAttempt = { id: number; status: "in_progress" | "submitted" | "expired"; questions: Question[]; answers: Record<string, number | string>; remaining_seconds: number; result: QuizResult | null };
@@ -48,6 +49,8 @@ export default function LatihanPage() {
   const [showUnansweredOnly, setShowUnansweredOnly] = useState(false);
   const [questionSeconds, setQuestionSeconds] = useState(QUESTION_SECONDS);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [quizStartStatus, setQuizStartStatus] = useState<QuizStartStatus | null>(null);
+  const [quizStartRefresh, setQuizStartRefresh] = useState(0);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
@@ -89,7 +92,7 @@ export default function LatihanPage() {
     setFlaggedIds(new Set());
     setSkippedIds(new Set());
     setQuestionSeconds(QUESTION_SECONDS);
-    setCountdownSeconds(shuffledQuestions.length ? 5 : null);
+    setCountdownSeconds(null);
   }
 
   useEffect(() => {
@@ -102,7 +105,7 @@ export default function LatihanPage() {
     if (essaySaveTimeoutRef.current !== null) window.clearTimeout(essaySaveTimeoutRef.current);
     essaySaveTimeoutRef.current = null;
     pendingEssaySaveRef.current = null;
-    apiRequest<{ categories?: Category[]; quizzes?: QuizCard[]; category?: { name: string; time_limit_minutes: number | null; question_type?: "pilihan" | "essay" }; questions?: Question[] }>(endpoint)
+    apiRequest<{ categories?: Category[]; quizzes?: QuizCard[]; category?: { name: string; time_limit_minutes: number | null; question_type?: "pilihan" | "essay"; quiz_started?: number | boolean; quiz_starts_at?: string | null; starts_in_seconds?: number | null }; questions?: Question[] }>(endpoint)
       .then(async (data) => {
         if (!active) return;
         setCategories(data.categories ?? []);
@@ -117,6 +120,23 @@ export default function LatihanPage() {
         setAnswers({});
         setAnswerChecks({});
         setError("");
+        if (categoryId) {
+          const started = Boolean(data.category?.quiz_started);
+          const scheduled = data.category?.quiz_starts_at != null;
+          const startStatus = {
+            scheduled,
+            started,
+            starts_in_seconds: scheduled && !started ? Number(data.category?.starts_in_seconds ?? 0) : null,
+          };
+          setQuizStartStatus(startStatus);
+          setCountdownSeconds(startStatus.starts_in_seconds);
+          if (!started) {
+            prepareQuestions([]);
+            setCountdownSeconds(startStatus.starts_in_seconds);
+            setLoadedRouteKey(routeKey);
+            return;
+          }
+        }
         let nextQuestions = data.questions ?? [];
         const configuredTimeLimit = Number(data.category?.time_limit_minutes);
         if (categoryId) {
@@ -156,11 +176,16 @@ export default function LatihanPage() {
       })
       .catch((requestError: ApiError) => {
         if (requestError.status === 401) router.replace("/login");
-        else if (active) setError(requestError.message);
+        else if (active) {
+          setError(requestError.message);
+          setQuizStartStatus(null);
+          setCountdownSeconds(null);
+          setQuestions([]);
+        }
         if (active) setLoadedRouteKey(routeKey);
       });
     return () => { active = false; };
-  }, [categoryId, materialCategory, routeKey, router]);
+  }, [categoryId, materialCategory, routeKey, router, quizStartRefresh]);
 
   function flushEssaySave() {
     if (essaySaveTimeoutRef.current !== null) {
@@ -269,12 +294,36 @@ export default function LatihanPage() {
   }, []);
 
   useEffect(() => {
-    if (!categoryId || loading || result || countdownSeconds === null) return;
-    const timeout = window.setTimeout(() => {
-      setCountdownSeconds((seconds) => seconds === null ? null : seconds === 0 ? null : seconds - 1);
-    }, countdownSeconds === 0 ? 400 : 1000);
-    return () => window.clearTimeout(timeout);
-  }, [categoryId, countdownSeconds, loading, result]);
+    if (!categoryId || loading || quizStartStatus?.started) return;
+    let active = true;
+    let refreshing = false;
+    let polling = false;
+    const pollStartStatus = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        const status = await apiRequest<QuizStartStatus>(`/api/v1/quizzes/start-status?category_id=${encodeURIComponent(categoryId)}`);
+        if (!active) return;
+        setError("");
+        setQuizStartStatus(status);
+        setCountdownSeconds(status.started ? null : status.starts_in_seconds);
+        if (status.started && !refreshing) {
+          refreshing = true;
+          setLoadedRouteKey(null);
+          setQuizStartRefresh((current) => current + 1);
+        }
+      } catch (requestError) {
+        if (active) setError(requestError instanceof Error ? requestError.message : "Status mulai quiz gagal dimuat.");
+      } finally {
+        polling = false;
+      }
+    };
+    const interval = window.setInterval(() => { void pollStartStatus(); }, 1000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [categoryId, loading, quizStartStatus?.started]);
 
   useEffect(() => {
     if (attemptId === null || result) return;
@@ -386,7 +435,7 @@ export default function LatihanPage() {
         const response = await apiRequest<{ attempt: QuizAttempt }>("/api/v1/quizzes/attempts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "start", category_id: categoryId }),
+          body: JSON.stringify({ action: "start", category_id: categoryId, restart: true }),
         });
         nextQuestions = response.attempt.questions.map((question) => ({ ...question, question_type: questionType }));
         setAttemptId(response.attempt.id);
@@ -517,7 +566,13 @@ export default function LatihanPage() {
     <header className="page-heading quiz-page-heading"><span className="eyebrow">LATIHAN SOAL</span><h1 className="page-title">{categoryName || "Latihan"}</h1><p className="page-intro">Jawab semua soal dengan hati-hati.</p></header>
     {error && <p className="status status-error" role="alert">{error}</p>}
     {loading && <div className="empty-state" role="status">Sedang memuat soal...</div>}
-    {!loading && (questions.length ? result ? <>
+    {!loading && categoryId && quizStartStatus && !quizStartStatus.started ? <motion.section className="quiz-result-panel quiz-countdown-panel" aria-labelledby="quiz-countdown-title" role="status" aria-live="polite" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
+      <div className="quiz-result-icon" aria-hidden="true"><Clock3 size={24} /></div>
+      <span className="quiz-kicker">{quizStartStatus.scheduled ? "PERSIAPAN QUIZ" : "MENUNGGU GURU"}</span>
+      <h2 id="quiz-countdown-title">{quizStartStatus.scheduled ? "Quiz akan segera dimulai. Bersiaplah!" : "Guru belum memulai quiz."}</h2>
+      {countdownSeconds !== null && <span className="quiz-countdown-number" aria-label={`${countdownSeconds} detik`}>{countdownSeconds}</span>}
+      <p className="quiz-result-caption">{quizStartStatus.scheduled ? "Halaman akan terbuka otomatis saat countdown selesai." : "Halaman ini akan mulai otomatis setelah guru menekan tombol mulai."}</p>
+    </motion.section> : !loading && (questions.length ? result ? <>
       <motion.section className="quiz-result-panel" aria-labelledby="quiz-result-title" initial={{ opacity: 0, y: 18, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}>
         <div className="quiz-result-icon" aria-hidden="true"><Trophy size={24} /></div>
         <span className="quiz-kicker">LATIHAN SELESAI</span>
