@@ -26,8 +26,17 @@ function sessionSecret() {
 }
 
 export async function createSession(userId: number, remember: boolean) {
+  const users = await queryRows<(import("mysql2").RowDataPacket & { session_version: number; account_status: string })[]>(
+    "SELECT session_version, account_status FROM users WHERE id = ? LIMIT 1",
+    [userId],
+  );
+  const account = users[0];
+  if (!account || account.account_status !== "active") {
+    throw new Error("Akun tidak aktif.");
+  }
+
   const lifetime = remember ? "30d" : "120m";
-  const token = await new SignJWT({})
+  const token = await new SignJWT({ session_version: Number(account.session_version) })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(userId))
     .setIssuedAt()
@@ -45,12 +54,21 @@ export async function readSession(token?: string) {
     const userId = Number(payload.sub);
     if (!Number.isSafeInteger(userId) || userId < 1) return null;
 
-    const users = await queryRows<(User & import("mysql2").RowDataPacket)[]>(
-      "SELECT id, username, email, full_name, profile_photo, role FROM users WHERE id = ? LIMIT 1",
+    const users = await queryRows<(User & import("mysql2").RowDataPacket & { account_status: string; session_version: number })[]>(
+      "SELECT id, username, email, full_name, profile_photo, role, account_status, session_version FROM users WHERE id = ? LIMIT 1",
       [userId],
     );
 
-    return users[0] ?? null;
+    const user = users[0];
+    if (!user || user.account_status !== "active" || Number(payload.session_version ?? 0) !== Number(user.session_version)) return null;
+    return {
+      id: Number(user.id),
+      username: user.username,
+      email: user.email,
+      full_name: user.full_name,
+      profile_photo: user.profile_photo,
+      role: user.role,
+    };
   } catch {
     return null;
   }

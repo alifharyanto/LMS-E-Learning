@@ -1,0 +1,3 @@
+ALTER TABLE quiz_question_attempts
+  MODIFY selected_index TINYINT UNSIGNED NULL DEFAULT NULL,
+  MODIFY is_correct TINYINT(1) NULL DEFAULT NULL;

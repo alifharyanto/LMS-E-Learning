@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { createSession, type User } from "@/lib/auth";
-import { queryRows } from "@/lib/db";
+import { execute, queryRows } from "@/lib/db";
 import { json, readJsonLimited } from "@/lib/http";
 import { enforceAuthRateLimit } from "@/lib/security";
 
@@ -49,8 +49,8 @@ async function loginUser(request: Request) {
     console.warn("Rate limit identity check skipped/failed:", err);
   }
 
-  const users = await queryRows<(User & { password: string } & RowDataPacket)[]>(
-    "SELECT id, username, email, password, full_name, profile_photo, role FROM users WHERE username = ? OR email = ? LIMIT 1",
+  const users = await queryRows<(User & { password: string; account_status: string } & RowDataPacket)[]>(
+    "SELECT id, username, email, password, full_name, profile_photo, role, account_status FROM users WHERE username = ? OR email = ? LIMIT 1",
     [identity, identity],
   );
 
@@ -58,6 +58,10 @@ async function loginUser(request: Request) {
   if (!account || !(await bcrypt.compare(password, account.password))) {
     return json({ error: "Username/email atau password salah." }, 422);
   }
+  if (account.account_status !== "active") {
+    return json({ error: "Akun ini sedang dinonaktifkan. Hubungi administrator." }, 403);
+  }
+  await execute("UPDATE users SET last_active_at = NOW() WHERE id = ?", [account.id]);
 
   const user = {
     id: Number(account.id),

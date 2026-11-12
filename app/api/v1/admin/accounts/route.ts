@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
-import { getRequestUser, type User } from "@/lib/auth";
+import { randomUUID } from "node:crypto";
+import type { RowDataPacket } from "mysql2";
+import { getRequestUser } from "@/lib/auth";
 import { execute, queryRows } from "@/lib/db";
 import { json, readJson, safeString } from "@/lib/http";
 
@@ -22,8 +24,9 @@ export async function GET(request: Request) {
     const guard = await roleGuard(request);
     if (guard.response) return guard.response;
 
-    const accounts = await queryRows<any[]>(
-      "SELECT id, username, email, full_name, profile_photo, role, account_status, last_active_at, created_at FROM users ORDER BY created_at DESC",
+    await execute("UPDATE users SET account_uuid = UUID() WHERE account_uuid IS NULL");
+    const accounts = await queryRows<RowDataPacket[]>(
+      "SELECT account_uuid AS uuid, username, email, full_name, profile_photo, role, account_status, last_active_at, created_at FROM users ORDER BY created_at DESC",
     );
     return json({ accounts });
   } catch (error) {
@@ -48,12 +51,12 @@ export async function POST(request: Request) {
       return json({ error: "Username, email, password, dan role wajib valid." }, 422);
     }
 
-    const existing = await queryRows<any[]>("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1", [username, email]);
+    const existing = await queryRows<(RowDataPacket & { id: number })[]>("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1", [username, email]);
     if (existing.length) return json({ error: "Username atau email sudah digunakan." }, 409);
 
     const result = await execute(
-      "INSERT INTO users (username, email, password, full_name, profile_photo, role, account_status) VALUES (?, ?, ?, ?, '', ?, 'active')",
-      [username, email, await bcrypt.hash(password, 12), fullName, role],
+      "INSERT INTO users (account_uuid, username, email, password, full_name, profile_photo, role, account_status) VALUES (?, ?, ?, ?, ?, '', ?, 'active')",
+      [randomUUID(), username, email, await bcrypt.hash(password, 12), fullName, role],
     );
 
     return json({ success: true, id: result.insertId }, 201);

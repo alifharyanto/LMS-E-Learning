@@ -28,9 +28,13 @@ type ReviewData = {
     id: number;
     category_name: string;
     total: number;
+    score: number;
+    percent: number;
+    is_graded: boolean;
     correct_answers: number;
     incorrect_answers: number;
     unanswered_answers: number;
+    pending_answers: number;
   };
   questions: ReviewQuestion[];
 };
@@ -71,15 +75,16 @@ export default function QuizResultReviewPage() {
     <motion.div className="quiz-completed-review" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}>
       <section className="quiz-completed-review-heading" aria-labelledby="review-title">
         <span className="quiz-kicker"><Trophy size={15} /> HASIL LATIHAN</span>
-        <h2 id="review-title">Selamat, Anda telah menyelesaikannya! Mainnya Hebat.</h2>
-        <p>Periksa kembali jawaban yang dipilih dan pelajari alasan dari jawaban yang benar.</p>
+        <h2 id="review-title">{result.is_graded ? "Hasil penilaian sudah tersedia." : "Jawaban terkirim, menunggu penilaian guru."}</h2>
+        <p>{result.is_graded ? "Periksa kembali hasil penilaian dan jawaban Anda." : "Guru akan memeriksa jawaban essay sebelum nilai dan hasil akhir ditampilkan."}</p>
       </section>
       <div className="quiz-review-summary" aria-label="Ringkasan jawaban">
         <div><span>Total soal</span><strong>{result.total}</strong></div>
+        {result.is_graded && <div><span>Nilai akhir</span><strong>{result.percent}%</strong></div>}
         <div><span>Terjawab benar</span><strong className="is-correct">{result.correct_answers}</strong></div>
         <div><span>Terjawab salah</span><strong className="is-incorrect">{result.incorrect_answers}</strong></div>
         <div><span>Tidak dijawab</span><strong>{result.unanswered_answers}</strong></div>
-        <div><span>Menunggu guru</span><strong>{questions.filter((question) => question.status === "pending").length}</strong></div>
+        <div><span>Menunggu guru</span><strong>{result.pending_answers}</strong></div>
       </div>
       <div className="quiz-review-list">
         {questions.map((question, questionIndex) => {

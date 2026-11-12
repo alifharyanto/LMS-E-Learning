@@ -2,7 +2,7 @@
 
 import { upload as uploadBlob } from "@vercel/blob/client";
 import { Activity, CalendarDays, ChartNoAxesColumn, Check, CheckCircle2, Clock3, Eye, FileSpreadsheet, Pencil, Save, Trash2, UsersRound, X, XCircle } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import MarkdownEditor from "@/components/admin/markdown-editor";
 import { MotionButton, Reveal, StaggerGroup, StaggerItem } from "@/components/ui/motion";
@@ -13,7 +13,7 @@ type Material = { id: number; title: string; description: string | null; categor
 type MaterialFormat = "application/pdf" | "text/markdown" | "markdown-editor";
 type Question = { id: number; question: string; answer_index: number | null; explanation: string | null; question_type?: "pilihan" | "essay"; category_id: number; quiz_title: string; material_category: string | null };
 type Contact = { id: number; name: string; email: string; subject: string; message: string; status: string; created_at: string };
-type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; selected_text?: string | null; is_correct: boolean; question_type?: "pilihan" | "essay"; teacher_check?: boolean | null };
+type ResultQuestion = { id: number; question: string; option_a: string; option_b: string; option_c: string; option_d: string; answer_index: number; selected_index: number | null; selected_text?: string | null; is_correct: boolean; question_type?: "pilihan" | "essay"; teacher_check?: boolean | null; draft_check?: boolean | null; status?: "correct" | "incorrect" | "unanswered" | "pending" };
 type Result = {
   id: number;
   user_id: number;
@@ -26,14 +26,17 @@ type Result = {
   correct_answers: number;
   incorrect_answers: number;
   unanswered_answers: number;
+  pending_answers: number;
+  is_graded: boolean;
   percent: number;
   status: string;
   started_at: string | null;
   submitted_at: string | null;
   created_at: string;
+  result_date: string;
   duration_seconds: number;
 };
-type ResultDetail = { result: { id: number; user_id: number; username: string | null; full_name: string | null; score: number; total: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number; percent: number; started_at: string | null; submitted_at: string | null; duration_seconds: number }; questions: ResultQuestion[] };
+type ResultDetail = { result: { id: number; user_id: number; username: string | null; full_name: string | null; score: number; total: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number; pending_answers: number; is_graded: boolean; percent: number; started_at: string | null; submitted_at: string | null; duration_seconds: number }; questions: ResultQuestion[] };
 type RegistrationDay = { date: string; total: number };
 type ActiveStudent = { id: number; username: string; full_name: string; last_active: string };
 type AdminOverview = { total_students: number; joined_today: number; active_today: number; registrations: RegistrationDay[]; active_students: ActiveStudent[]; quiz_30d: { attempts: number; average_percent: number; passed: number } };
@@ -63,8 +66,8 @@ function formatDate(value: string | null) {
   return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
 }
 
-function resultDate(result: Pick<Result, "submitted_at" | "created_at">) {
-  const date = new Date(result.submitted_at || result.created_at);
+function resultDate(result: Pick<Result, "result_date">) {
+  const date = new Date(`${result.result_date}T00:00:00`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -79,10 +82,37 @@ function formatTime(value: string | null) {
   return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+function formatRouteDate(date: Date) {
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  return `${day}${month}${date.getFullYear()}`;
+}
+
+function parseRouteDate(value: string | null) {
+  if (!value || !/^\d{8}$/.test(value)) return null;
+  const day = Number(value.slice(0, 2));
+  const month = Number(value.slice(2, 4));
+  const year = Number(value.slice(4, 8));
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function formatDateSegment(value: string) {
+  return `${value.slice(8, 10)}${value.slice(5, 7)}${value.slice(0, 4)}`;
+}
+
 export default function AdminPage() {
   const pathname = usePathname() || "/admin/dashboard";
   const router = useRouter();
-  const section = pathname === "/admin/materi" ? "materi" : pathname === "/admin/quiz" ? "quiz" : pathname === "/admin/soal" ? "soal" : pathname === "/admin/hasilbelajar" ? "hasilbelajar" : pathname === "/admin/kontak" ? "kontak" : "dashboard";
+  const searchParams = useSearchParams();
+  const isResultsSection = pathname === "/admin/hasilbelajar" || pathname.startsWith("/admin/hasilbelajar/");
+  const resultDateSegment = isResultsSection ? pathname.slice("/admin/hasilbelajar".length).split("/").filter(Boolean)[0] ?? null : null;
+  const selectedResultDate = parseRouteDate(resultDateSegment);
+  const section = pathname === "/admin/materi" ? "materi" : pathname === "/admin/quiz" ? "quiz" : pathname === "/admin/soal" ? "soal" : isResultsSection ? "hasilbelajar" : pathname === "/admin/kontak" ? "kontak" : "dashboard";
+  const adminDataEndpoint = section === "hasilbelajar" && selectedResultDate
+    ? `/api/v1/admin?results_date=${selectedResultDate}`
+    : "/api/v1/admin";
   const headings = {
     dashboard: { title: "Dashboard", eyebrow: "ANALISIS ADMIN", description: "Pantau pendaftaran, aktivitas belajar, dan hasil quiz." },
     materi: { title: "Materi", eyebrow: "KONTEN BELAJAR", description: "Kelola materi yang tersedia untuk siswa." },
@@ -93,6 +123,7 @@ export default function AdminPage() {
   } as const;
   const heading = headings[section];
   const [data, setData] = useState<AdminData | null>(null);
+  const [loadedDataEndpoint, setLoadedDataEndpoint] = useState<string | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [editingMaterialId, setEditingMaterialId] = useState<number | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
@@ -113,15 +144,17 @@ export default function AdminPage() {
   const [importBusy, setImportBusy] = useState(false);
   const [selectedResult, setSelectedResult] = useState<Result | null>(null);
   const [resultDetail, setResultDetail] = useState<ResultDetail | null>(null);
+  const [essayGrades, setEssayGrades] = useState<Record<number, boolean>>({});
+  const [teacherScore, setTeacherScore] = useState("");
   const [detailLoading, setDetailLoading] = useState(false);
   const [essayQuestionType, setEssayQuestionType] = useState<"pilihan" | "essay">("pilihan");
-  const [resultPeriod, setResultPeriod] = useState("");
-  const [resultExactDate, setResultExactDate] = useState("");
   const [selectedResultIds, setSelectedResultIds] = useState<Set<number>>(new Set());
   const [deletingSelectedResults, setDeletingSelectedResults] = useState(false);
 
   async function refresh() {
-    setData(await apiRequest<AdminData>("/api/v1/admin"));
+    const refreshedData = await apiRequest<AdminData>(adminDataEndpoint);
+    setData(refreshedData);
+    setLoadedDataEndpoint(adminDataEndpoint);
     setSelectedResultIds(new Set());
   }
 
@@ -148,9 +181,13 @@ export default function AdminPage() {
   async function openResultDetail(result: Result) {
     setSelectedResult(result);
     setResultDetail(null);
+    setEssayGrades({});
+    setTeacherScore("");
     setDetailLoading(true);
     try {
-      setResultDetail(await apiRequest<ResultDetail>(`/api/v1/admin/results/${result.id}/detail`));
+      const detail = await apiRequest<ResultDetail>(`/api/v1/admin/results/${result.id}/detail`);
+      setResultDetail(detail);
+      setTeacherScore(detail.result.is_graded ? String(detail.result.percent) : "");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Detail hasil quiz gagal dimuat.");
     } finally {
@@ -158,14 +195,41 @@ export default function AdminPage() {
     }
   }
 
-  async function gradeEssayQuestion(questionId: number, isCorrect: boolean) {
-    if (!selectedResult) return;
+  function getEssayGrade(question: ResultQuestion) {
+    return essayGrades[question.id] ?? question.draft_check ?? question.teacher_check ?? null;
+  }
+
+  async function submitEssayReview(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedResult || !resultDetail) return;
+    const answeredEssayQuestions = resultDetail.questions.filter(
+      (question) => question.question_type === "essay" && Boolean(question.selected_text?.trim()),
+    );
+    if (answeredEssayQuestions.some((question) => getEssayGrade(question) === null)) {
+      setError("Periksa semua jawaban essay dengan memilih Benar atau Salah.");
+      return;
+    }
+    const score = Number(teacherScore);
+    if (!teacherScore.trim() || !Number.isInteger(score) || score < 0 || score > 100) {
+      setError("Masukkan nilai akhir berupa bilangan bulat dari 0 sampai 100.");
+      return;
+    }
+    const grades = answeredEssayQuestions.map((question) => ({
+      question_id: question.id,
+      is_correct: getEssayGrade(question) === true,
+    }));
+    const submittedGrades = new Map(grades.map((grade) => [grade.question_id, grade.is_correct]));
+
     setBusy(true);
+    setError("");
     try {
-      const response = await apiRequest<{ success: boolean; score: number; total: number; percent: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number }>(`/api/v1/admin/results/${selectedResult.id}/detail`, {
+      const response = await apiRequest<{ success: boolean; score: number; total: number; percent: number; correct_answers: number; incorrect_answers: number; unanswered_answers: number; pending_answers: number; is_graded: boolean }>(`/api/v1/admin/results/${selectedResult.id}/detail`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question_id: questionId, is_correct: isCorrect }),
+        body: JSON.stringify({
+          percent: score,
+          grades,
+        }),
       });
       setData((current) => current ? {
         ...current,
@@ -176,6 +240,8 @@ export default function AdminPage() {
           correct_answers: response.correct_answers,
           incorrect_answers: response.incorrect_answers,
           unanswered_answers: response.unanswered_answers,
+          pending_answers: response.pending_answers,
+          is_graded: response.is_graded,
         } : result),
       } : current);
       setResultDetail((current) => current ? {
@@ -186,11 +252,20 @@ export default function AdminPage() {
           correct_answers: Number(response.correct_answers),
           incorrect_answers: Number(response.incorrect_answers),
           unanswered_answers: Number(response.unanswered_answers),
+          pending_answers: Number(response.pending_answers),
+          is_graded: response.is_graded,
           percent: Number(response.percent),
         },
-        questions: current.questions.map((question) => question.id === questionId ? { ...question, teacher_check: isCorrect, is_correct: isCorrect, question_type: question.question_type ?? "essay" } : question),
+        questions: current.questions.map((question) => {
+          const submittedGrade = submittedGrades.get(question.id);
+          return question.question_type === "essay" && submittedGrade !== undefined
+            ? { ...question, teacher_check: submittedGrade, draft_check: submittedGrade, is_correct: submittedGrade, status: submittedGrade ? "correct" : "incorrect" }
+            : question;
+        }),
       } : current);
-      setNotice("Penilaian essay berhasil diperbarui.");
+      setTeacherScore(String(response.percent));
+      setEssayGrades({});
+      setNotice("Nilai dan hasil pemeriksaan essay berhasil dikirim ke akun siswa.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Penilaian essay gagal disimpan.");
     } finally {
@@ -199,15 +274,43 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    Promise.all([apiRequest<AdminData>("/api/v1/admin"), apiRequest<{ user: User }>("/api/v1/auth/me")]).then(([adminData, session]) => {
+    if (!isResultsSection) return;
+    const todaySegment = formatRouteDate(new Date());
+    if (!resultDateSegment) {
+      router.replace(`/admin/hasilbelajar/${todaySegment}`);
+      return;
+    }
+    if (!selectedResultDate) {
+      router.replace(`/admin/hasilbelajar/${todaySegment}`);
+      return;
+    }
+    const redirectDate = searchParams.get("redirect");
+    if (redirectDate !== null) {
+      if (parseRouteDate(redirectDate)) router.replace(`/admin/hasilbelajar/${redirectDate}`);
+      else {
+        router.replace(`/admin/hasilbelajar/${resultDateSegment}`);
+      }
+    }
+  }, [isResultsSection, pathname, resultDateSegment, router, searchParams, selectedResultDate]);
+
+  useEffect(() => {
+    if (isResultsSection && !selectedResultDate) return;
+    let active = true;
+    Promise.all([apiRequest<AdminData>(adminDataEndpoint), apiRequest<{ user: User }>("/api/v1/auth/me")]).then(([adminData, session]) => {
+      if (!active) return;
       setData(adminData);
+      setLoadedDataEndpoint(adminDataEndpoint);
       setUserId(session.user.id);
     }).catch((requestError) => {
+      if (!active) return;
       if ((requestError as { status?: number }).status === 401) router.replace("/login");
       else if ((requestError as { status?: number }).status === 403) router.replace("/dashboard");
       else setError(requestError instanceof Error ? requestError.message : "Panel admin gagal dimuat.");
     });
-  }, [router]);
+    return () => {
+      active = false;
+    };
+  }, [adminDataEndpoint, isResultsSection, router, selectedResultDate]);
 
   async function submit(event: FormEvent<HTMLFormElement>, endpoint: string, method = "POST") {
     event.preventDefault();
@@ -357,7 +460,7 @@ export default function AdminPage() {
     }
   }
 
-  if (!data) return <div className="page-loading">Memuat panel admin...</div>;
+  if (!data || loadedDataEndpoint !== adminDataEndpoint) return <div className="page-loading">Memuat panel admin...</div>;
 
   const unreadContacts = data.contacts.filter((contact) => contact.status === "unread").length;
   const registrationDays = data.overview.registrations;
@@ -375,8 +478,7 @@ export default function AdminPage() {
     question.question.toLocaleLowerCase("id-ID").includes(questionSearch.trim().toLocaleLowerCase("id-ID")),
   );
   const filteredResults = datedResults
-    .filter(({ date }) => (!resultPeriod || dateKey(date).startsWith(resultPeriod))
-      && (!resultExactDate || dateKey(date) === resultExactDate))
+    .filter(({ date }) => selectedResultDate !== null && dateKey(date) === selectedResultDate)
     .map(({ result }) => result);
   const allVisibleResultsSelected = filteredResults.length > 0 && filteredResults.every((result) => selectedResultIds.has(result.id));
   const resultsByDate = new Map<string, Result[]>();
@@ -388,6 +490,20 @@ export default function AdminPage() {
     dateResults.push(result);
     resultsByDate.set(key, dateResults);
   }
+  const detailQuestions = resultDetail?.questions ?? [];
+  const answeredEssayQuestions = detailQuestions.filter(
+    (question) => question.question_type === "essay" && Boolean(question.selected_text?.trim()),
+  );
+  const pendingEssayCount = answeredEssayQuestions.filter((question) => getEssayGrade(question) === null).length;
+  const detailCorrectCount = detailQuestions.filter((question) =>
+    question.question_type === "essay" ? getEssayGrade(question) === true : question.selected_index !== null && question.is_correct,
+  ).length;
+  const detailIncorrectCount = detailQuestions.filter((question) =>
+    question.question_type === "essay" ? getEssayGrade(question) === false : question.selected_index !== null && !question.is_correct,
+  ).length;
+  const detailUnansweredCount = detailQuestions.filter((question) =>
+    question.question_type === "essay" ? !question.selected_text?.trim() : question.selected_index === null,
+  ).length;
 
   return <div className="admin-page">
     <header className="page-heading admin-heading">
@@ -527,11 +643,16 @@ export default function AdminPage() {
         </section>
 
         <section className="surface surface-pad admin-section" id="results" hidden={section !== "hasilbelajar"}>
-          <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar</h2></div><span className="admin-count">{filteredResults.length}{filteredResults.length !== data.results.length ? ` / ${data.results.length}` : ""} hasil</span></div>
+          <div className="admin-section-heading"><div><span className="list-meta">AKTIVITAS</span><h2 className="surface-title">Hasil belajar{selectedResultDate ? ` · ${new Date(`${selectedResultDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}` : ""}</h2></div><span className="admin-count">{filteredResults.length} hasil</span></div>
           <div className="result-date-filters" aria-label="Filter tanggal hasil belajar">
-            <label><span>Pilih bulan &amp; tahun</span><input className="input" aria-label="Pilih bulan dan tahun hasil belajar" type="month" value={resultPeriod} onChange={(event) => { setResultPeriod(event.target.value); setResultExactDate(""); setSelectedResultIds(new Set()); }} /></label>
-            <label><span>Atau pilih tanggal</span><input className="input" aria-label="Pilih tanggal hasil belajar" type="date" value={resultExactDate} onChange={(event) => { setResultExactDate(event.target.value); if (event.target.value) setResultPeriod(event.target.value.slice(0, 7)); setSelectedResultIds(new Set()); }} /></label>
-            <MotionButton type="button" className="button button-secondary button-small result-filter-reset" disabled={!resultPeriod && !resultExactDate} onClick={() => { setResultPeriod(""); setResultExactDate(""); setSelectedResultIds(new Set()); }}>Tampilkan semua</MotionButton>
+            <label><span>Pilih tanggal hasil belajar</span><input className="input" aria-label="Pilih tanggal hasil belajar" type="date" value={selectedResultDate ?? ""} onChange={(event) => {
+              const nextDate = event.target.value;
+              if (!nextDate) return;
+              const currentSegment = resultDateSegment ?? formatRouteDate(new Date());
+              setSelectedResultIds(new Set());
+              router.push(`/admin/hasilbelajar/${currentSegment}?redirect=${formatDateSegment(nextDate)}`);
+            }} /></label>
+            <p className="result-date-help">Pilih satu tanggal untuk melihat hasil belajar pada hari tersebut.</p>
           </div>
           {filteredResults.length > 0 && <div className="result-selection-toolbar">
             <label className="result-select-all"><input type="checkbox" checked={allVisibleResultsSelected} onChange={(event) => {
@@ -565,11 +686,11 @@ export default function AdminPage() {
               <div className="result-card-category"><span>Kategori quiz</span><strong>{result.category_name || "Kategori tidak tersedia"}</strong></div>
               <div className="result-card-main">
                 <div className="result-card-user"><strong>{result.full_name || result.username || "Pengguna"}</strong><span>@{result.username || "pengguna"}</span></div>
-                <div className="result-card-metric"><span>Skor</span><strong>{result.score}/{result.total}</strong></div>
+                <div className="result-card-metric"><span>Nilai</span><strong>{result.is_graded ? `${result.percent}%` : "Menunggu"}</strong></div>
                 <div className="result-card-metric"><span>Benar</span><strong className="result-correct">{result.correct_answers}</strong></div>
                 <div className="result-card-metric"><span>Salah</span><strong className="result-incorrect">{result.incorrect_answers}</strong></div>
+                <div className="result-card-metric"><span>Belum diperiksa</span><strong>{result.pending_answers}</strong></div>
                 <div className="result-card-metric"><span>Kosong</span><strong>{result.unanswered_answers}</strong></div>
-                <div className="result-card-metric"><span>Persentase</span><strong>{result.percent}%</strong></div>
                 <div className="result-card-time"><span><Clock3 size={13} /> {formatDuration(result.duration_seconds)}</span><span><CalendarDays size={13} /> {formatDate(result.submitted_at || result.created_at)}</span></div>
               </div>
               <div className="result-card-actions">
@@ -580,7 +701,7 @@ export default function AdminPage() {
               </div>
             </article>)}
           </div>;
-          }) : <p className="empty-state">{data.results.length ? "Tidak ada hasil pada tanggal yang dipilih." : "Belum ada hasil quiz."}</p>}
+          }) : <p className="empty-state">{selectedResultDate ? `Belum ada hasil quiz pada tanggal ${new Date(`${selectedResultDate}T00:00:00`).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}.` : "Memuat hasil belajar..."}</p>}
         </section>
 
         {selectedResult && <div className="result-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedResult(null); }}>
@@ -591,26 +712,30 @@ export default function AdminPage() {
             </header>
             {detailLoading ? <div className="result-detail-loading">Memuat detail jawaban...</div> : resultDetail ? <>
               <div className="result-detail-summary">
-                <div><span>Skor</span><strong>{resultDetail.result.score}/{resultDetail.result.total}</strong></div>
-                <div><span>Benar</span><strong className="result-correct">{resultDetail.result.correct_answers}</strong></div>
-                <div><span>Salah</span><strong className="result-incorrect">{resultDetail.result.incorrect_answers}</strong></div>
-                <div><span>Tidak dijawab</span><strong>{resultDetail.result.unanswered_answers}</strong></div>
+                <div><span>Nilai akhir</span><strong>{!resultDetail.questions.some((question) => question.question_type === "essay") || resultDetail.result.is_graded ? `${teacherScore || resultDetail.result.percent}%` : "Belum dikirim"}</strong></div>
+                <div><span>Benar</span><strong className="result-correct">{detailCorrectCount}</strong></div>
+                <div><span>Salah</span><strong className="result-incorrect">{detailIncorrectCount}</strong></div>
+                <div><span>Belum diperiksa</span><strong>{pendingEssayCount}</strong></div>
+                <div><span>Tidak dijawab</span><strong>{detailUnansweredCount}</strong></div>
                 <div><span>Durasi</span><strong>{formatDuration(resultDetail.result.duration_seconds)}</strong></div>
               </div>
               <div className="result-detail-list">
                 {resultDetail.questions.map((question, index) => {
                   if (question.question_type === "essay") {
-                    return <article className={`result-question ${question.teacher_check === null ? "is-unanswered" : question.teacher_check ? "is-correct" : "is-incorrect"}`} key={question.id}>
-                      <div className="result-question-head"><span>Soal {index + 1}</span><strong>{question.teacher_check === null ? "Belum dinilai" : question.teacher_check ? "Benar" : "Salah"}</strong></div>
+                    const selectedGrade = getEssayGrade(question);
+                    const hasAnswer = Boolean(question.selected_text?.trim());
+                    const statusClass = !hasAnswer ? "is-unanswered" : selectedGrade === null ? "is-unanswered" : selectedGrade ? "is-correct" : "is-incorrect";
+                    return <article className={`result-question ${statusClass}`} key={question.id}>
+                      <div className="result-question-head"><span>Soal {index + 1}</span><strong>{!hasAnswer ? "Tidak dijawab" : selectedGrade === null ? "Belum diperiksa" : selectedGrade ? "Benar" : "Salah"}</strong></div>
                       <h3>{question.question}</h3>
                       <div className="result-essay-answer">
                         <span>Jawaban siswa</span>
                         <p>{question.selected_text || "Siswa belum mengisi jawaban essay."}</p>
                       </div>
-                      <label className="result-essay-grade">
-                        <input type="checkbox" checked={Boolean(question.teacher_check)} disabled={!question.selected_text?.trim() || busy} onChange={(event) => void gradeEssayQuestion(question.id, event.target.checked)} />
-                        <span>Centang jika jawaban benar</span>
-                      </label>
+                      <div className="result-essay-grade-actions" aria-label={`Periksa jawaban soal ${index + 1}`}>
+                        <MotionButton type="button" className={`button button-small result-grade-button is-correct${selectedGrade === true ? " is-selected" : ""}`} aria-pressed={selectedGrade === true} disabled={!hasAnswer || busy} onClick={() => setEssayGrades((current) => ({ ...current, [question.id]: true }))}><CheckCircle2 size={15} />Benar</MotionButton>
+                        <MotionButton type="button" className={`button button-small result-grade-button is-incorrect${selectedGrade === false ? " is-selected" : ""}`} aria-pressed={selectedGrade === false} disabled={!hasAnswer || busy} onClick={() => setEssayGrades((current) => ({ ...current, [question.id]: false }))}><XCircle size={15} />Salah</MotionButton>
+                      </div>
                     </article>;
                   }
 
@@ -630,6 +755,14 @@ export default function AdminPage() {
                   </article>;
                 })}
               </div>
+              {resultDetail.questions.some((question) => question.question_type === "essay") && <form className="result-essay-submit" onSubmit={(event) => void submitEssayReview(event)}>
+                <p>{pendingEssayCount > 0 ? `${pendingEssayCount} jawaban masih belum diperiksa. Pilih Benar atau Salah untuk setiap jawaban yang terisi.` : answeredEssayQuestions.length ? "Periksa kembali jumlah benar dan salah, lalu kirim nilai akhir ke akun siswa." : "Tidak ada jawaban essay yang terisi. Masukkan nilai akhir untuk mengirim hasil ke akun siswa."}</p>
+                <div className="result-essay-submit-controls">
+                  <label className="result-essay-score"><span>Nilai akhir siswa (0-100)</span><input className="input" type="number" min="0" max="100" step="1" value={teacherScore} onChange={(event) => setTeacherScore(event.target.value)} required /></label>
+                  <MotionButton type="submit" className="button button-primary" disabled={busy || pendingEssayCount > 0}>{busy ? "Mengirim nilai..." : "Kirim nilai ke siswa"}</MotionButton>
+                </div>
+                {error && <p className="result-essay-submit-error" role="alert">{error}</p>}
+              </form>}
             </> : <p className="empty-state">Tidak ada detail jawaban tersedia.</p>}
           </section>
         </div>}

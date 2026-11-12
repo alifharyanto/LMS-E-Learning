@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         return json({ category: { name: materialCategory }, quizzes, student: { username: guard.user.username, full_name: guard.user.full_name } });
       }
       const categories = await queryRows<RowDataPacket[]>(
-        "SELECT category_groups.category AS name, SUM(category_groups.quizzes_count) AS quizzes_count, SUM(category_groups.questions_count) AS questions_count FROM (SELECT DISTINCT category AS category, 0 AS quizzes_count, 0 AS questions_count FROM materials WHERE TRIM(category) <> '' UNION ALL SELECT COALESCE(c.material_category, c.name) AS category, COUNT(DISTINCT c.id) AS quizzes_count, COUNT(q.id) AS questions_count FROM quiz_categories c INNER JOIN quiz_questions q ON q.category_id = c.id WHERE c.material_category IS NOT NULL OR c.parent_id IS NULL GROUP BY c.material_category, c.name HAVING COUNT(q.id) > 0) category_groups GROUP BY category_groups.category ORDER BY category_groups.category",
+        "SELECT COALESCE(c.material_category, c.name) AS name, COUNT(DISTINCT c.id) AS quizzes_count, COUNT(q.id) AS questions_count FROM quiz_categories c INNER JOIN quiz_questions q ON q.category_id = c.id WHERE c.material_category IS NOT NULL OR c.parent_id IS NULL GROUP BY c.material_category, c.name HAVING COUNT(q.id) > 0 ORDER BY name",
       );
       return json({ categories, student: { username: guard.user.username, full_name: guard.user.full_name } });
     }

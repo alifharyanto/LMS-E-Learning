@@ -1,5 +1,6 @@
 import type { RowDataPacket } from "mysql2";
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createSession, type User } from "@/lib/auth";
 import { execute, queryRows } from "@/lib/db";
@@ -47,8 +48,8 @@ export async function POST(request: Request) {
     if (existing.length) return json({ error: "Username atau email sudah digunakan." }, 409);
 
     const result = await execute(
-      "INSERT INTO users (username, email, password, full_name, profile_photo, role) VALUES (?, ?, ?, '', '', 'student')",
-      [username, email, await bcrypt.hash(password, 12)],
+      "INSERT INTO users (account_uuid, username, email, password, full_name, profile_photo, role, last_active_at) VALUES (?, ?, ?, ?, '', '', 'student', NOW())",
+      [randomUUID(), username, email, await bcrypt.hash(password, 12)],
     );
 
     const user: User = { id: result.insertId, username, email, full_name: "", profile_photo: "", role: "student" };

@@ -98,10 +98,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       id: number;
       questions_snapshot: unknown;
       answers: unknown;
+      score: number;
+      total: number;
+      percent: number;
+      essay_review_submitted: number;
       category_name: string | null;
       question_type: string | null;
     })[]>(
-      "SELECT r.id, r.questions_snapshot, r.answers, c.name AS category_name, c.question_type FROM quiz_results r LEFT JOIN quiz_categories c ON c.id = r.category_id WHERE r.id = ? AND r.user_id = ? LIMIT 1",
+      "SELECT r.id, r.questions_snapshot, r.answers, r.score, r.total, r.percent, r.essay_review_submitted, c.name AS category_name, c.question_type FROM quiz_results r LEFT JOIN quiz_categories c ON c.id = r.category_id WHERE r.id = ? AND r.user_id = ? LIMIT 1",
       [resultId, user.id],
     );
     const row = rows[0];
@@ -113,8 +117,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return json({ error: "Detail jawaban untuk hasil quiz ini tidak tersedia." }, 409);
     }
 
-    const gradingRows = await queryRows<(RowDataPacket & { question_id: number; is_correct: number | null })[]>(
-      "SELECT question_id, is_correct FROM quiz_question_attempts WHERE result_id = ?",
+    const gradingRows = await queryRows<(RowDataPacket & { question_id: number; selected_index: number | null; is_correct: number | null })[]>(
+      "SELECT question_id, selected_index, is_correct FROM quiz_question_attempts WHERE result_id = ?",
       [resultId],
     );
     const reviewQuestions = questions.map((question) => {
@@ -122,8 +126,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       const selectedIndex = typeof answer === "number" ? answer : null;
       const selectedText = typeof answer === "string" ? answer : null;
       const gradingRow = gradingRows.find((entry) => Number(entry.question_id) === question.id);
-      const teacherCheck = gradingRow?.is_correct == null ? null : Number(gradingRow.is_correct) === 1;
       const isEssay = row.question_type === "essay";
+      const isLegacyEssayPlaceholder = isEssay
+        && gradingRow !== undefined
+        && gradingRow.selected_index !== null;
+      const teacherCheck = !Number(row.essay_review_submitted) || gradingRow?.is_correct == null || isLegacyEssayPlaceholder
+        ? null
+        : Number(gradingRow.is_correct) === 1;
       const isAnswered = isEssay ? Boolean(selectedText?.trim()) : selectedIndex !== null;
       const isCorrect = isEssay ? teacherCheck === true : selectedIndex !== null && selectedIndex === question.answer_index;
       return {
@@ -138,16 +147,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const correctAnswers = reviewQuestions.filter((question) => question.status === "correct").length;
     const unansweredAnswers = reviewQuestions.filter((question) => question.status === "unanswered").length;
     const incorrectAnswers = reviewQuestions.filter((question) => question.status === "incorrect").length;
+    const pendingAnswers = reviewQuestions.filter((question) => question.status === "pending").length;
     const total = reviewQuestions.length;
+    const isGraded = row.question_type !== "essay" || (Boolean(Number(row.essay_review_submitted)) && pendingAnswers === 0);
 
     return json({
       result: {
         id: Number(row.id),
         category_name: row.category_name ?? "Kategori quiz",
         total,
+        score: Number(row.score),
+        percent: Number(row.percent),
+        is_graded: isGraded,
         correct_answers: correctAnswers,
         incorrect_answers: incorrectAnswers,
         unanswered_answers: unansweredAnswers,
+        pending_answers: pendingAnswers,
       },
       questions: reviewQuestions,
     });

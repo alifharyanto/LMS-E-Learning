@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import { randomUUID } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
 import { getRequestUser } from "@/lib/auth";
 import { json, readJsonLimited } from "@/lib/http";
@@ -100,8 +101,8 @@ export async function POST(request: Request) {
 
       for (const [index, account] of accounts.entries()) {
         await connection.execute(
-          "INSERT INTO users (username, email, password, full_name, profile_photo, role, account_status) VALUES (?, ?, ?, ?, '', ?, 'active')",
-          [account.username, account.email, passwordHashes[index], account.fullName, account.role],
+          "INSERT INTO users (account_uuid, username, email, password, full_name, profile_photo, role, account_status) VALUES (?, ?, ?, ?, ?, '', ?, 'active')",
+          [randomUUID(), account.username, account.email, passwordHashes[index], account.fullName, account.role],
         );
       }
     });

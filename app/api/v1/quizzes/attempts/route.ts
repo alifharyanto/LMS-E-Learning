@@ -85,23 +85,28 @@ function parseAnswers(value: unknown, snapshot: SnapshotQuestion[]) {
 }
 
 async function getResult(resultId: number, snapshot: SnapshotQuestion[]): Promise<QuizResult | null> {
-  const rows = await queryRows<(RowDataPacket & { id: number; score: number; total: number; percent: number; unanswered_answers: number })[]>(
-    "SELECT id, score, total, percent, unanswered_answers FROM quiz_results WHERE id = ? LIMIT 1",
+  const rows = await queryRows<(RowDataPacket & { id: number; score: number; total: number; percent: number; unanswered_answers: number; essay_review_submitted: number })[]>(
+    "SELECT id, score, total, percent, unanswered_answers, essay_review_submitted FROM quiz_results WHERE id = ? LIMIT 1",
     [resultId],
   );
   const row = rows[0];
   if (!row) return null;
-  const answerRows = await queryRows<(RowDataPacket & { is_correct: number | null })[]>(
-    "SELECT is_correct FROM quiz_question_attempts WHERE result_id = ?",
+  const answerRows = await queryRows<(RowDataPacket & { selected_index: number | null; is_correct: number | null })[]>(
+    "SELECT selected_index, is_correct FROM quiz_question_attempts WHERE result_id = ?",
     [resultId],
   );
+  const isEssay = snapshot.some((question) => question.question_type === "essay");
   return {
     id: Number(row.id),
     score: Number(row.score),
     total: Number(row.total),
     percent: Number(row.percent),
     correct_answers: Number(row.score),
-    incorrect_answers: answerRows.filter((answer) => answer.is_correct !== null && Number(answer.is_correct) === 0).length,
+    incorrect_answers: isEssay
+      ? Number(row.essay_review_submitted) === 1
+        ? answerRows.filter((answer) => answer.selected_index === null && answer.is_correct !== null && Number(answer.is_correct) === 0).length
+        : 0
+      : answerRows.filter((answer) => answer.is_correct !== null && Number(answer.is_correct) === 0).length,
     unanswered_answers: Number(row.unanswered_answers),
     explanations: snapshot.map((question) => ({ id: question.id, text: question.explanation, answer_index: question.answer_index })),
   };
