@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { BookOpen, Brain, ChartNoAxesColumn, ChevronLeft, ChevronRight, ContactRound, GraduationCap, History, LayoutDashboard, ListChecks, LogOut, Menu, UsersRound, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { apiRequest } from "@/lib/browser-api";
 
 const menu = [
@@ -109,7 +109,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </Link>
         <button className="admin-mobile-toggle" type="button" aria-label={drawerOpen ? "Tutup navigasi" : "Buka navigasi"} aria-expanded={drawerOpen} onClick={() => setDrawerOpen((open) => !open)}>{drawerOpen ? <X size={20} /> : <Menu size={20} />}</button>
       </header>
-      <div className="admin-content">{children}</div>
+      <div className="admin-content"><Suspense fallback={null}>{children}</Suspense></div>
     </main>
   </div>;
 }
