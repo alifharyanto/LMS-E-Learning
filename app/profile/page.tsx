@@ -407,8 +407,8 @@ export default function MyProfilePage() {
           </section>
 
           <footer className="profile-footer">
-            <p>© 2026 CourseUp. Ruang belajar untuk melangkah lebih jauh.</p>
-            <p>Hubungi kami</p>
+            <p>© 2026 CourseUp. Ruang belajar siswa.</p>
+            <Link href="/contact">Hubungi kami</Link>
           </footer>
         </div>
       </div>

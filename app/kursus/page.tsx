@@ -304,9 +304,9 @@ export default function KursusPage() {
             </div>
           )}
 
-          <div className="mt-10 flex w-full items-center justify-between border-t border-[#cbd5e1]/40 pb-6 pt-12 text-xs text-[#64748b]">
-            <p>© 2026 CourseUp. Ruang belajar untuk melangkah lebih jauh.</p>
-            <a href="#" className="shrink-0 text-right font-medium text-[#437188] transition-colors hover:text-[#335364]">Hubungi kami</a>
+          <div className="course-library-footer mt-10 flex w-full items-center justify-between border-t border-[#cbd5e1]/40 pb-6 pt-12 text-xs text-[#64748b]">
+            <p>© 2026 CourseUp. Ruang belajar siswa.</p>
+            <a href="/contact" className="shrink-0 text-right font-medium text-[#437188] transition-colors hover:text-[#335364]">Hubungi kami</a>
           </div>
         </div>
       </main>

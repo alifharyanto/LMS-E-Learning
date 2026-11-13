@@ -77,6 +77,14 @@ export default function SiteShell({ children }: { children: ReactNode }) {
       <div className="practice-route-main">
         <MobileStudentNavigation activePage="practice" />
         <AnimatePresence mode="wait"><motion.main key={pathname} className="practice-route-content" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}><Suspense fallback={<div className="page-loading">Memuat halaman...</div>}>{children}</Suspense></motion.main></AnimatePresence>
+        <div className="practice-route-footer">
+          <footer className="site-footer">
+            <div className="footer-inner">
+              <span>© 2026 CourseUp. Ruang belajar siswa.</span>
+              <Link href="/contact">Hubungi kami</Link>
+            </div>
+          </footer>
+        </div>
       </div>
     </div>
   </MotionConfig>;
